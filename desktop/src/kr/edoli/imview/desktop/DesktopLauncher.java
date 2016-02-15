@@ -10,6 +10,9 @@ public class DesktopLauncher {
 
         config.setWindowedMode(1280, 720);
 
+		config.setBackBufferConfig(8, 8, 8, 8, 16, 0, 16);
+		config.useVsync(false);
+
 		new Lwjgl3Application(new ImView(), config);
 	}
 }

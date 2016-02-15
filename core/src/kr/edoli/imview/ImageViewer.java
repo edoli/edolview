@@ -70,7 +70,15 @@ public class ImageViewer extends Widget {
     public void setImage(String path) {
         pixmap = new Pixmap(Gdx.files.internal(path));
         region = new TextureRegion(new Texture(pixmap));
+
+        region.getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Nearest);
+
         setSize(region.getRegionWidth(), region.getRegionHeight());
+        if (getParent() != null) {
+        } else {
+
+        }
+
     }
 
     @Override

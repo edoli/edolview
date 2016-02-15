@@ -25,6 +25,6 @@ public class DataView extends Widget {
         batch.draw(Textures.White, getX(), getY(), getWidth(), getHeight());
 
         batch.setColor(Color.WHITE);
-        font.draw(batch, panningView.getMouseX() + ", " + panningView.getMouseY(), getX() + 12, getY() + 22);
+        font.draw(batch, String.format("%.02f, %.02f", panningView.getMouseXOnImage(), panningView.getMouseYOnImage()), getX() + 12, getY() + 22);
     }
 }

@@ -1,5 +1,8 @@
 package kr.edoli.imview;
 
+import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
@@ -16,10 +19,15 @@ import lombok.Getter;
 public class PanningView extends WidgetGroup {
 
     private Actor actor;
-    private @Getter float mouseX;
-    private @Getter float mouseY;
+    private @Getter float mouseXOnImage;
+    private @Getter float mouseYOnImage;
+
+    private @Getter float mouseXOnPanning;
+    private @Getter float mouseYOnPanning;
 
     private Vector2 mousePosA = new Vector2();
+
+    private ShapeRenderer shapeRenderer = new ShapeRenderer();
 
     public PanningView(final Actor actor) {
         this.actor = actor;
@@ -74,17 +82,41 @@ public class PanningView extends WidgetGroup {
         actor.setY((getHeight() - actor.getHeight()) / 2);
     }
 
+    public void reset() {
+        actorToCenter();
+        actor.setScale(1);
+    }
+
     @Override
     public Actor hit(float x, float y, boolean touchable) {
         mousePosA.set(x, y);
+
+        mouseXOnPanning = mousePosA.x;
+        mouseYOnPanning = mousePosA.y;
+
         actor.parentToLocalCoordinates(mousePosA);
 
-        mouseX = mousePosA.x;
-        mouseY = mousePosA.y;
+        mouseXOnImage = mousePosA.x;
+        mouseYOnImage = mousePosA.y;
 
-        mouseX = Utils.clamp(mouseX, 0, actor.getWidth());
-        mouseY = Utils.clamp(mouseY, 0, actor.getHeight());
+        mouseXOnImage = Utils.clamp(mouseXOnImage, 0, actor.getWidth());
+        mouseYOnImage = Utils.clamp(mouseYOnImage, 0, actor.getHeight());
 
         return super.hit(x, y, touchable);
+    }
+
+    @Override
+    public void draw(Batch batch, float parentAlpha) {
+        super.draw(batch, parentAlpha);
+
+        batch.end();
+
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+        shapeRenderer.setColor(Color.MAROON);
+        shapeRenderer.line(0, mouseYOnPanning + 1, getWidth(), mouseYOnPanning + 1);
+        shapeRenderer.line(mouseXOnPanning - 1, 0, mouseXOnPanning - 1, getHeight());
+        shapeRenderer.end();
+
+        batch.begin();
     }
 }
