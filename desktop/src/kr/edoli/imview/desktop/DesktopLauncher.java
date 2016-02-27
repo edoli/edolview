@@ -13,6 +13,12 @@ public class DesktopLauncher {
 		config.setBackBufferConfig(8, 8, 8, 8, 16, 0, 16);
 		config.useVsync(false);
 
-		new Lwjgl3Application(new ImView(), config);
+		if (arg.length > 0) {
+			new Lwjgl3Application(new ImView(arg[0]), config);
+		} else {
+			new Lwjgl3Application(new ImView(null), config);
+
+		}
+
 	}
 }

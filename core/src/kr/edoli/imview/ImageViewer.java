@@ -1,6 +1,7 @@
 package kr.edoli.imview;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -68,7 +69,17 @@ public class ImageViewer extends Widget {
     }
 
     public void setImage(String path) {
-        pixmap = new Pixmap(Gdx.files.internal(path));
+        if (path == null) {
+            return;
+        }
+
+        FileHandle fileHandle = Gdx.files.internal(path);
+
+        if (!fileHandle.exists()) {
+            return;
+        }
+
+        pixmap = new Pixmap(fileHandle);
         region = new TextureRegion(new Texture(pixmap));
 
         region.getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Nearest);

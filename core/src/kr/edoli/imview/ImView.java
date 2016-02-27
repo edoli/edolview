@@ -7,6 +7,12 @@ public class ImView extends Game {
 	private long targetDelay = 1000 / 60;
 	private long start;
 
+	public static String imagePath;
+
+	public ImView(String imagePath) {
+		this.imagePath = imagePath;
+	}
+
 	@Override
 	public void create() {
 		setScreen(new ImageScreen());

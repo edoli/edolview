@@ -35,10 +35,10 @@ public class ImageScreen implements Screen {
         Table table = new Table();
         Table overlayTable = new Table();
 
-        imagePath = "test.png";
+        imagePath = ImView.imagePath;
 
         imageViewer = new ImageViewer();
-        //imageViewer.setImage(imagePath);
+        imageViewer.setImage(imagePath);
         imageViewer.setFillParent(true);
 
         panningView = new PanningView(imageViewer);
