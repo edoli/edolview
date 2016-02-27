@@ -8,8 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
 import kr.edoli.imview.Bus;
-import kr.edoli.imview.filter.FilterMessage;
-import kr.edoli.imview.ui.UIFactory;
+import kr.edoli.imview.event.FilterMessage;
 import kr.edoli.imview.ui.drawable.ColorDrawable;
 
 /**

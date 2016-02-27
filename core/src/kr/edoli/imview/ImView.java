@@ -2,7 +2,7 @@ package kr.edoli.imview;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import kr.edoli.imview.ui.ImageScreen;
+import kr.edoli.imview.ui.MainScreen;
 import lombok.Data;
 
 public class ImView extends Game {
@@ -19,7 +19,7 @@ public class ImView extends Game {
 	public void create() {
 		Context.imagePath = ImView.args.getImagePath();
 
-		setScreen(new ImageScreen());
+		setScreen(new MainScreen());
 		start = System.currentTimeMillis();
 	}
 

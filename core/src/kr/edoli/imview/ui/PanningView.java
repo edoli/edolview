@@ -11,9 +11,14 @@ import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup;
 import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils;
+import kr.edoli.imview.Bus;
 import kr.edoli.imview.Context;
+import kr.edoli.imview.event.MagnifyMessage;
+import kr.edoli.imview.ui.res.Colors;
+import kr.edoli.imview.ui.res.Textures;
 import kr.edoli.imview.util.Utils;
 import lombok.Getter;
+import net.engio.mbassy.listener.Handler;
 
 /**
  * Created by 석준 on 2016-02-06.
@@ -34,7 +39,7 @@ public class PanningView extends WidgetGroup {
             @Override
             public void pan(InputEvent event, float x, float y, float deltaX, float deltaY) {
 
-                if (!UIUtils.ctrl()) {
+                if (!UIUtils.ctrl() && !UIUtils.alt()) {
                     actor.moveBy(deltaX, deltaY);
                 }
                 super.pan(event, x, y, deltaX, deltaY);
@@ -65,6 +70,8 @@ public class PanningView extends WidgetGroup {
                 return super.scrolled(event, x, y, amount);
             }
         });
+
+        Bus.subscribe(this);
     }
 
     @Override
@@ -93,18 +100,40 @@ public class PanningView extends WidgetGroup {
     public void draw(Batch batch, float parentAlpha) {
         super.draw(batch, parentAlpha);
 
-        batch.end();
 
         Vector2 mousePosOnPanning = Context.getMousePosOnPanning();
         float mouseXOnPanning = mousePosOnPanning.x;
         float mouseYOnPanning = mousePosOnPanning.y;
 
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        shapeRenderer.setColor(Color.MAROON);
-        shapeRenderer.line(0, mouseYOnPanning + 1, getWidth(), mouseYOnPanning + 1);
-        shapeRenderer.line(mouseXOnPanning - 1, 0, mouseXOnPanning - 1, getHeight());
-        shapeRenderer.end();
+        Color preColor = batch.getColor();
 
-        batch.begin();
+        batch.setColor(Colors.highlight);
+        batch.draw(Textures.White, 0, mouseYOnPanning + 1, getWidth(), 1);
+        batch.draw(Textures.White, mouseXOnPanning, 0, 1, getHeight());
+
+        batch.setColor(preColor);
+
+    }
+
+    public void magnify(float x, float y, float width, float height) {
+        float targetAspectRatio = width / height;
+        float viewAspectRatio = getHeight() / getWidth();
+
+        if (targetAspectRatio > viewAspectRatio) {
+            float scale = getWidth() / width;
+            actor.setX(-x * scale);
+            actor.setY(-(y + height / 2 - width * viewAspectRatio / 2) * scale);
+            actor.setScale(scale);
+        } else {
+            float scale = getHeight() / height;
+            actor.setX(-(x + width / 2 - height / viewAspectRatio / 2) * scale);
+            actor.setY(-y * scale);
+            actor.setScale(scale);
+        }
+    }
+
+    @Handler
+    public void handle(MagnifyMessage magnifyMessage) {
+        magnify(magnifyMessage.getX(), magnifyMessage.getY(), magnifyMessage.getWidth(), magnifyMessage.getHeight());
     }
 }

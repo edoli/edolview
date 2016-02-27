@@ -15,7 +15,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.Widget;
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils;
 import kr.edoli.imview.Bus;
 import kr.edoli.imview.Context;
-import kr.edoli.imview.filter.FilterMessage;
+import kr.edoli.imview.event.FilterMessage;
+import kr.edoli.imview.event.MagnifyMessage;
+import kr.edoli.imview.ui.res.Colors;
 import kr.edoli.imview.ui.res.Textures;
 import net.engio.mbassy.listener.Handler;
 
@@ -30,12 +32,16 @@ public class ImageViewer extends Widget {
 
     private Rectangle selectedRegion = new Rectangle();
 
+    enum DragMode {
+        Magnify, Analysis
+    }
 
     public ImageViewer() {
         Bus.subscribe(this);
 
         addListener(new InputListener() {
 
+            private DragMode dragMode;
 
             private Vector2 startPos = new Vector2();
             private Vector2 toPos = new Vector2();
@@ -44,6 +50,12 @@ public class ImageViewer extends Widget {
             public boolean touchDown(InputEvent event, float x, float y, int pointer, int button) {
                 if (UIUtils.ctrl()) {
                     startPos.set(x, y);
+                    dragMode = DragMode.Magnify;
+                    return true;
+                }
+                if (UIUtils.alt()) {
+                    startPos.set(x, y);
+                    dragMode = DragMode.Analysis;
                     return true;
                 }
                 return false;
@@ -51,22 +63,32 @@ public class ImageViewer extends Widget {
 
             @Override
             public void touchDragged(InputEvent event, float x, float y, int pointer) {
-                if (UIUtils.ctrl()) {
-                    toPos.set(x, y);
+                toPos.set(x, y);
 
-                    float lowX = Math.min(startPos.x, toPos.x);
-                    float highX = Math.max(startPos.x, toPos.x);
+                float lowX = Math.min(startPos.x, toPos.x);
+                float highX = Math.max(startPos.x, toPos.x);
 
-                    float lowY = Math.min(startPos.y, toPos.y);
-                    float highY = Math.max(startPos.y, toPos.y);
+                float lowY = Math.min(startPos.y, toPos.y);
+                float highY = Math.max(startPos.y, toPos.y);
 
-                    lowX = (float) Math.floor(lowX);
-                    lowY = (float) Math.floor(lowY);
+                lowX = (float) Math.floor(lowX);
+                lowY = (float) Math.floor(lowY);
 
-                    highX = (float) Math.ceil(highX);
-                    highY = (float) Math.ceil(highY);
+                highX = (float) Math.ceil(highX);
+                highY = (float) Math.ceil(highY);
 
-                    selectedRegion.set(lowX, lowY, highX - lowX, highY - lowY);
+                selectedRegion.set(lowX, lowY, highX - lowX, highY - lowY);
+            }
+
+            @Override
+            public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
+                switch (dragMode) {
+                    case Magnify:
+                        Bus.publish(new MagnifyMessage(selectedRegion));
+                        selectedRegion.set(0, 0, 0, 0);
+                        break;
+                    case Analysis:
+                        break;
                 }
             }
         });
@@ -111,7 +133,7 @@ public class ImageViewer extends Widget {
 
 
         Color preColor = batch.getColor();
-        batch.setColor(new Color(0.086f, 0.584f, 0.639f, 0.4f));
+        batch.setColor(Colors.overlayRegion);
         batch.draw(Textures.White,
                 selectedRegion.x * getScaleX() + getX(),
                 selectedRegion.y * getScaleY() + getY(),

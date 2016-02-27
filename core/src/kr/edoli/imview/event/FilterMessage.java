@@ -1,4 +1,4 @@
-package kr.edoli.imview.filter;
+package kr.edoli.imview.event;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

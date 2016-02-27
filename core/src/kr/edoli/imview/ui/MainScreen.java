@@ -13,6 +13,7 @@ import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import kr.edoli.imview.Context;
 import kr.edoli.imview.ImView;
+import kr.edoli.imview.ui.res.Colors;
 import kr.edoli.imview.util.ImageFileUtils;
 import kr.edoli.imview.util.Utils;
 import org.apache.commons.io.FilenameUtils;
@@ -26,14 +27,17 @@ import java.util.Arrays;
 /**
  * Created by 석준 on 2016-02-06.
  */
-public class ImageScreen implements Screen {
+public class MainScreen implements Screen {
 
     private Stage stage = new Stage(new ScreenViewport());
 
     private ImageViewer imageViewer;
     private PanningView panningView;
 
-    public ImageScreen() {
+    public MainScreen() {
+
+        ColorActor background = new ColorActor(Colors.background);
+        background.setSize(stage.getWidth(), stage.getHeight());
 
         Table table = new Table();
         Table overlayTable = new Table();
@@ -53,11 +57,11 @@ public class ImageScreen implements Screen {
         overlayTable.add().expandY().fillY().width(196);
         overlayTable.add().expand();
         overlayTable.add(new FilterView()).expandY().fillY().width(128).row();
-        overlayTable.add(dataView).colspan(2).expandX().fillX().height(32);
+        overlayTable.add(dataView).colspan(3).expandX().fillX().height(32);
         overlayTable.setFillParent(true);
 
-        table.debug();
-        overlayTable.debug();
+        //table.debug();
+        //overlayTable.debug();
 
 
         Array<Lwjgl3Window> windows = (Array<Lwjgl3Window>) Utils.getPrivate(Gdx.app, "windows");
@@ -73,6 +77,7 @@ public class ImageScreen implements Screen {
             }
         });
 
+        stage.addActor(background);
         stage.addActor(table);
         stage.addActor(overlayTable);
 
