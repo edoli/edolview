@@ -1,4 +1,4 @@
-package kr.edoli.imview;
+package kr.edoli.imview.ui;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.files.FileHandle;
@@ -13,6 +13,10 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.ui.Widget;
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils;
+import kr.edoli.imview.Bus;
+import kr.edoli.imview.Context;
+import kr.edoli.imview.filter.FilterMessage;
+import kr.edoli.imview.ui.res.Textures;
 import net.engio.mbassy.listener.Handler;
 
 /**
@@ -79,16 +83,18 @@ public class ImageViewer extends Widget {
             return;
         }
 
+        if (pixmap != null) {
+            pixmap.dispose();
+        }
+
         pixmap = new Pixmap(fileHandle);
         region = new TextureRegion(new Texture(pixmap));
+
+        Context.currentImage = pixmap;
 
         region.getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Nearest);
 
         setSize(region.getRegionWidth(), region.getRegionHeight());
-        if (getParent() != null) {
-        } else {
-
-        }
 
     }
 

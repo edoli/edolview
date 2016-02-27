@@ -1,9 +1,10 @@
-package kr.edoli.imview;
+package kr.edoli.imview.ui;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import kr.edoli.imview.ui.drawable.ColorDrawable;
 
 /**
  * Created by 석준 on 2016-02-06.

@@ -1,13 +1,16 @@
-package kr.edoli.imview;
+package kr.edoli.imview.ui;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.ButtonGroup;
-import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Align;
+import kr.edoli.imview.Bus;
+import kr.edoli.imview.filter.FilterMessage;
+import kr.edoli.imview.ui.UIFactory;
+import kr.edoli.imview.ui.drawable.ColorDrawable;
 
 /**
  * Created by 석준 on 2016-02-06.

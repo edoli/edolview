@@ -2,24 +2,26 @@ package kr.edoli.imview;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import kr.edoli.imview.ui.ImageScreen;
+import lombok.Data;
 
 public class ImView extends Game {
 	private long targetDelay = 1000 / 60;
 	private long start;
 
-	public static String imagePath;
+	public static AppArgs args = new AppArgs();
 
 	public ImView(String imagePath) {
-		this.imagePath = imagePath;
+		args.setImagePath(imagePath);
 	}
 
 	@Override
 	public void create() {
+		Context.imagePath = ImView.args.getImagePath();
+
 		setScreen(new ImageScreen());
 		start = System.currentTimeMillis();
 	}
-
-
 
 	@Override
 	public void render() {
@@ -38,5 +40,10 @@ public class ImView extends Game {
 		if (screen != null) screen.render(Gdx.graphics.getDeltaTime());
 
 		start = System.currentTimeMillis();
+	}
+
+	@Data
+	public static class AppArgs {
+		private String imagePath;
 	}
 }

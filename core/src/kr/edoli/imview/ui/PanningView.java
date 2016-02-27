@@ -1,4 +1,4 @@
-package kr.edoli.imview;
+package kr.edoli.imview.ui;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
@@ -11,6 +11,8 @@ import com.badlogic.gdx.scenes.scene2d.Touchable;
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup;
 import com.badlogic.gdx.scenes.scene2d.utils.ActorGestureListener;
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils;
+import kr.edoli.imview.Context;
+import kr.edoli.imview.util.Utils;
 import lombok.Getter;
 
 /**
@@ -19,13 +21,6 @@ import lombok.Getter;
 public class PanningView extends WidgetGroup {
 
     private Actor actor;
-    private @Getter float mouseXOnImage;
-    private @Getter float mouseYOnImage;
-
-    private @Getter float mouseXOnPanning;
-    private @Getter float mouseYOnPanning;
-
-    private Vector2 mousePosA = new Vector2();
 
     private ShapeRenderer shapeRenderer = new ShapeRenderer();
 
@@ -48,6 +43,8 @@ public class PanningView extends WidgetGroup {
 
 
         addListener(new InputListener() {
+
+            private Vector2 mousePosA = new Vector2();
 
             @Override
             public boolean scrolled(InputEvent event, float x, float y, int amount) {
@@ -87,22 +84,9 @@ public class PanningView extends WidgetGroup {
         actor.setScale(1);
     }
 
-    @Override
-    public Actor hit(float x, float y, boolean touchable) {
-        mousePosA.set(x, y);
-
-        mouseXOnPanning = mousePosA.x;
-        mouseYOnPanning = mousePosA.y;
-
-        actor.parentToLocalCoordinates(mousePosA);
-
-        mouseXOnImage = mousePosA.x;
-        mouseYOnImage = mousePosA.y;
-
-        mouseXOnImage = Utils.clamp(mouseXOnImage, 0, actor.getWidth());
-        mouseYOnImage = Utils.clamp(mouseYOnImage, 0, actor.getHeight());
-
-        return super.hit(x, y, touchable);
+    public void localToImageCoordinates(Vector2 localCoords) {
+        localToDescendantCoordinates(actor, localCoords);
+        localCoords.y = actor.getHeight() - localCoords.y;
     }
 
     @Override
@@ -110,6 +94,10 @@ public class PanningView extends WidgetGroup {
         super.draw(batch, parentAlpha);
 
         batch.end();
+
+        Vector2 mousePosOnPanning = Context.getMousePosOnPanning();
+        float mouseXOnPanning = mousePosOnPanning.x;
+        float mouseYOnPanning = mousePosOnPanning.y;
 
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         shapeRenderer.setColor(Color.MAROON);

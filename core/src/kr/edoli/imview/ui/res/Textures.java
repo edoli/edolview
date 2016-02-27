@@ -1,4 +1,4 @@
-package kr.edoli.imview;
+package kr.edoli.imview.ui.res;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;

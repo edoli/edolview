@@ -1,4 +1,4 @@
-package kr.edoli.imview;
+package kr.edoli.imview.ui;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
@@ -11,6 +11,10 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import kr.edoli.imview.Context;
+import kr.edoli.imview.ImView;
+import kr.edoli.imview.util.ImageFileUtils;
+import kr.edoli.imview.util.Utils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.ArrayUtils;
 import org.lwjgl.glfw.GLFW;
@@ -25,7 +29,6 @@ import java.util.Arrays;
 public class ImageScreen implements Screen {
 
     private Stage stage = new Stage(new ScreenViewport());
-    private String imagePath;
 
     private ImageViewer imageViewer;
     private PanningView panningView;
@@ -35,10 +38,8 @@ public class ImageScreen implements Screen {
         Table table = new Table();
         Table overlayTable = new Table();
 
-        imagePath = ImView.imagePath;
-
         imageViewer = new ImageViewer();
-        imageViewer.setImage(imagePath);
+        imageViewer.setImage(Context.imagePath);
         imageViewer.setFillParent(true);
 
         panningView = new PanningView(imageViewer);
@@ -47,7 +48,7 @@ public class ImageScreen implements Screen {
         table.setFillParent(true);
 
 
-        DataView dataView = new DataView(panningView);
+        DataView dataView = new DataView();
 
         overlayTable.add().expandY().fillY().width(196);
         overlayTable.add().expand();
@@ -82,30 +83,9 @@ public class ImageScreen implements Screen {
             public boolean keyDown(InputEvent event, int keycode) {
 
                 if (keycode == Input.Keys.RIGHT || keycode == Input.Keys.LEFT) {
-                    File file = new File(imagePath);
-                    String[] fileNames = file.getParentFile().list();
-                    String fileName = file.getName();
-                    Arrays.sort(fileNames);
-
-                    int index = ArrayUtils.indexOf(fileNames, fileName);
-                    String path;
-
                     int modifier = keycode == Input.Keys.RIGHT ? 1 : -1;
 
-                    do {
-                        index = index + modifier;
-
-                        if (index == fileNames.length) {
-                            index = 0;
-                        }
-                        if (index == -1) {
-                            index = fileNames.length - 1;
-                        }
-
-                        path = file.getParent() + "/" + fileNames[index];
-                    } while (!isImage(path));
-
-                    changeImage(path);
+                    changeImage(ImageFileUtils.siblingFile(Context.imagePath, modifier).getPath());
 
                     return true;
                 }
@@ -113,23 +93,19 @@ public class ImageScreen implements Screen {
                 return super.keyDown(event, keycode);
             }
         });
-    }
 
-    private boolean isImage(String path) {
-        String ext = FilenameUtils.getExtension(path);
-        String[] exts = new String[] {"png", "PNG", "jpg", "JPG"};
-
-        return ArrayUtils.contains(exts, ext);
+        Context.stage = stage;
+        Context.panningView = panningView;
     }
 
     private void changeImage(String path) {
-        if (!isImage(path)) {
+        if (!ImageFileUtils.isImage(path)) {
             return;
         }
 
-        imagePath = path;
+        Context.imagePath = path;
 
-        imageViewer.setImage(imagePath);
+        imageViewer.setImage(Context.imagePath);
         panningView.reset();
     }
 

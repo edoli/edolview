@@ -1,4 +1,4 @@
-package kr.edoli.imview;
+package kr.edoli.imview.filter;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -9,7 +9,7 @@ import lombok.Data;
 @Data
 @AllArgsConstructor
 public class FilterMessage {
-    enum FilterType {
+    public enum FilterType {
         DFilter, NoFilter
     }
 

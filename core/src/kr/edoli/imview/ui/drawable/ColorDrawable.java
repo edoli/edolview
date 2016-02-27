@@ -1,9 +1,9 @@
-package kr.edoli.imview;
+package kr.edoli.imview.ui.drawable;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable;
-import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import kr.edoli.imview.ui.res.Textures;
 
 /**
  * Created by 석준 on 2016-02-06.
