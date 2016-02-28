@@ -12,6 +12,7 @@ public class Colors {
     public static Color border = Color.valueOf("#2c3e50");
     public static Color highlight = Color.valueOf("#2ecc71");
     public static Color overlayRegion = Color.valueOf("#3498db88");
+    public static Color overlayRegionZoom = Color.valueOf("#c0392b88");
     public static Color checked = Color.valueOf("#c0392b");
     public static Color checkedOver = Color.valueOf("#e74c3c");
 

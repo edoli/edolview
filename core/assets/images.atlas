@@ -1,0 +1,20 @@
+
+images.png
+size: 32,16
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+leftArrow
+  rotate: false
+  xy: 2, 2
+  size: 12, 12
+  orig: 12, 12
+  offset: 0, 0
+  index: -1
+rightArrow
+  rotate: false
+  xy: 16, 2
+  size: 12, 12
+  orig: 12, 12
+  offset: 0, 0
+  index: -1

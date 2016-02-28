@@ -83,7 +83,7 @@ public class HistogramViewer extends Widget {
                 float value = (float) histogram.getFreq(i) / histogram.getMaxFreq();
                 float currentX = x + i * delta;
                 float currentY = y + value * getHeight();
-                BatchUtils.drawLine(batch, preX, preY, currentX, currentY);
+                BatchUtils.drawLine(batch, preX, preY, currentX, currentY, 1);
                 preX = currentX;
                 preY = currentY;
             }

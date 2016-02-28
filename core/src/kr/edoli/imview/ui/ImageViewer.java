@@ -19,6 +19,7 @@ import kr.edoli.imview.event.FilterMessage;
 import kr.edoli.imview.event.MagnifyMessage;
 import kr.edoli.imview.ui.res.Colors;
 import kr.edoli.imview.ui.res.Textures;
+import kr.edoli.imview.ui.util.BatchUtils;
 import net.engio.mbassy.listener.Handler;
 
 /**
@@ -30,6 +31,7 @@ public class ImageViewer extends Widget {
     private Pixmap pixmap;
     private Pixmap filteredPixmap;
 
+    private Rectangle zoomedRegionOnView = new Rectangle();
     private Rectangle selectedRegionOnView = new Rectangle();
 
     enum DragMode {
@@ -77,15 +79,19 @@ public class ImageViewer extends Widget {
                 highX = (float) Math.ceil(highX);
                 highY = (float) Math.ceil(highY);
 
-                selectedRegionOnView.set(lowX, lowY, highX - lowX, highY - lowY);
+                if (dragMode == DragMode.Analysis) {
+                    selectedRegionOnView.set(lowX, lowY, highX - lowX, highY - lowY);
+                } else if (dragMode == DragMode.Magnify) {
+                    zoomedRegionOnView.set(lowX, lowY, highX - lowX, highY - lowY);
+                }
             }
 
             @Override
             public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
                 switch (dragMode) {
                     case Magnify:
-                        Bus.publish(new MagnifyMessage(selectedRegionOnView));
-                        selectedRegionOnView.set(0, 0, 0, 0);
+                        Bus.publish(new MagnifyMessage(zoomedRegionOnView));
+                        zoomedRegionOnView.set(0, 0, 0, 0);
                         break;
                     case Analysis:
                         Context.selectedRegionOnImage.get().set(
@@ -139,13 +145,33 @@ public class ImageViewer extends Widget {
 
 
         Color preColor = batch.getColor();
+
         batch.setColor(Colors.overlayRegion);
         batch.draw(Textures.White,
                 selectedRegionOnView.x * getScaleX() + getX(),
                 selectedRegionOnView.y * getScaleY() + getY(),
                 selectedRegionOnView.width * getScaleX(),
                 selectedRegionOnView.height * getScaleY());
+
+        batch.setColor(Colors.overlayRegionZoom);
+        BatchUtils.drawRect(batch,
+                zoomedRegionOnView.x * getScaleX() + getX(),
+                zoomedRegionOnView.y * getScaleY() + getY(),
+                zoomedRegionOnView.width * getScaleX(),
+                zoomedRegionOnView.height * getScaleY());
+
+        batch.setColor(Colors.checkedOver);
+        BatchUtils.drawRectBorder(batch,
+                zoomedRegionOnView.x * getScaleX() + getX(),
+                zoomedRegionOnView.y * getScaleY() + getY(),
+                zoomedRegionOnView.width * getScaleX(),
+                zoomedRegionOnView.height * getScaleY(), 1);
+
+
+        batch.setColor(Colors.highlight);
+
         batch.setColor(preColor);
+
     }
 
     @Handler

@@ -3,6 +3,7 @@ package kr.edoli.imview;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import kr.edoli.imview.ui.MainScreen;
+import kr.edoli.imview.value.ValueListener;
 import lombok.Data;
 
 public class ImView extends Game {
@@ -17,6 +18,13 @@ public class ImView extends Game {
 
 	@Override
 	public void create() {
+		Context.imagePath.addListener(new ValueListener<String>() {
+			@Override
+			public void change(String value) {
+				Gdx.graphics.setTitle(value);
+			}
+		});
+
 		Context.imagePath.set(ImView.args.getImagePath());
 
 		setScreen(new MainScreen());

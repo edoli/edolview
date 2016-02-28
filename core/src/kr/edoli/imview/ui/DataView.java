@@ -35,7 +35,7 @@ public class DataView extends Widget {
         font.draw(batch, String.format("%.02f, %.02f", pixelX, pixelY), getX() + 12, getY() + 22);
 
         Rectangle selectedRegion = Context.selectedRegionOnImage.get();
-        font.draw(batch, String.format("%d, %d, %d, %d 가위바위보",
+        font.draw(batch, String.format("%d, %d, %d, %d",
                 (int) selectedRegion.x,
                 (int) selectedRegion.y,
                 (int) selectedRegion.width,
