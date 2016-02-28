@@ -13,6 +13,7 @@ import kr.edoli.imview.ui.drawable.ColorBorderDrawable;
 import kr.edoli.imview.ui.histogram.HistogramPanel;
 import kr.edoli.imview.ui.res.Colors;
 import kr.edoli.imview.ui.res.Drawables;
+import kr.edoli.imview.ui.util.UIFactory;
 
 /**
  * Created by daniel on 16. 2. 28.

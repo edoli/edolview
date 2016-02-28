@@ -4,9 +4,9 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
-import kr.edoli.imview.ui.UIFactory;
 import kr.edoli.imview.ui.drawable.ColorDrawable;
 import kr.edoli.imview.ui.res.Colors;
+import kr.edoli.imview.ui.util.UIFactory;
 
 /**
  * Created by daniel on 16. 2. 27.

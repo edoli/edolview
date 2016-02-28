@@ -10,6 +10,7 @@ import com.badlogic.gdx.utils.Align;
 import kr.edoli.imview.Bus;
 import kr.edoli.imview.event.FilterMessage;
 import kr.edoli.imview.ui.drawable.ColorDrawable;
+import kr.edoli.imview.ui.util.UIFactory;
 
 /**
  * Created by 석준 on 2016-02-06.

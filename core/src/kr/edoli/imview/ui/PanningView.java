@@ -16,8 +16,6 @@ import kr.edoli.imview.Context;
 import kr.edoli.imview.event.MagnifyMessage;
 import kr.edoli.imview.ui.res.Colors;
 import kr.edoli.imview.ui.res.Textures;
-import kr.edoli.imview.util.Utils;
-import lombok.Getter;
 import net.engio.mbassy.listener.Handler;
 
 /**
@@ -59,7 +57,10 @@ public class PanningView extends WidgetGroup {
 
                 double factor = Math.pow(1.1, -amount);
 
-                actor.setScale((float) (actor.getScaleX() * factor));
+                float scale = (float) (actor.getScaleX() * factor);
+                actor.setScale(scale);
+
+                Context.zoom.set(scale);
 
 
                 actor.localToParentCoordinates(mousePosA);

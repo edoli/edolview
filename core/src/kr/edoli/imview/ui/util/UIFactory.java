@@ -1,7 +1,9 @@
-package kr.edoli.imview.ui;
+package kr.edoli.imview.ui.util;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import kr.edoli.imview.ui.drawable.ColorBorderDrawable;
@@ -12,9 +14,9 @@ import kr.edoli.imview.ui.res.Colors;
  * Created by 석준 on 2016-02-06.
  */
 public class UIFactory {
-    private static BitmapFont font = new BitmapFont();
+    private static BitmapFont font;
 
-    private static Label.LabelStyle labelStyle = new Label.LabelStyle(font, Color.WHITE);
+    private static Label.LabelStyle labelStyle = new Label.LabelStyle(getFont(), Color.WHITE);
     private static TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle(
             new ColorDrawable(new Color(0, 0, 0, 0.25f)),
             new ColorDrawable(new Color(0.792f, 0.02f, 0.302f, 0.5f)),
@@ -25,6 +27,17 @@ public class UIFactory {
     private static ImageButton.ImageButtonStyle imageButtonStyle;
     private static TextButton.TextButtonStyle checkButtonStyle;
     private static CheckBox.CheckBoxStyle checkBoxStyle;
+
+    public static BitmapFont getFont() {
+        if (font == null) {
+            FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("font.ttf"));
+            FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+            parameter.size = 16;
+            parameter.incremental = true;
+            font = generator.generateFont(parameter);
+        }
+        return font;
+    }
 
     public static Label label(String text) {
         Label label = new Label(text, labelStyle);
@@ -62,7 +75,7 @@ public class UIFactory {
         if (checkButtonStyle == null) {
             checkButtonStyle = new TextButton.TextButtonStyle();
 
-            checkButtonStyle.font = font;
+            checkButtonStyle.font = getFont();
 
             checkButtonStyle.up = new ColorBorderDrawable(Colors.background, Colors.border);
             checkButtonStyle.over = new ColorBorderDrawable(Colors.backgroundOver, Colors.border);

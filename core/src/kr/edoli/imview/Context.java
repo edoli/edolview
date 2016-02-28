@@ -20,6 +20,7 @@ public class Context {
     public static Value<String> imagePath = new Value<>();
     public static Value<Pixmap> currentImage = new Value<>(new Pixmap(0 ,0, Pixmap.Format.RGB888));
 
+    public static Value<Float> zoom = new Value<>(1f);
     public static Value<Rectangle> selectedRegionOnImage = new Value<>(new Rectangle());
 
     public static Vector2 getMousePosOnImage() {
