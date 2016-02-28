@@ -5,10 +5,10 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Widget;
+import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
 import kr.edoli.imview.Context;
-import kr.edoli.imview.ui.PanningView;
+import kr.edoli.imview.ui.drawable.ColorBorderDrawable;
 import kr.edoli.imview.ui.res.Colors;
-import kr.edoli.imview.ui.res.Textures;
 
 /**
  * Created by 석준 on 2016-02-06.
@@ -16,13 +16,14 @@ import kr.edoli.imview.ui.res.Textures;
 public class DataView extends Widget {
 
     private BitmapFont font = new BitmapFont();
+    private Drawable background = new ColorBorderDrawable(Colors.background, Colors.border);
 
     @Override
     public void draw(Batch batch, float parentAlpha) {
         super.draw(batch, parentAlpha);
 
         batch.setColor(Colors.background);
-        batch.draw(Textures.White, getX(), getY(), getWidth(), getHeight());
+        background.draw(batch, getX(), getY(), getWidth(), getHeight());
 
         batch.setColor(Color.WHITE);
         Vector2 mousePosOnImage = Context.getMousePosOnImage();

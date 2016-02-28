@@ -1,6 +1,5 @@
 package kr.edoli.imview.util;
 
-import com.badlogic.gdx.Input;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.ArrayUtils;
 
@@ -15,6 +14,11 @@ public class ImageFileUtils {
 
 
         File file = new File(currentFilePath);
+
+        if (file.getParentFile() == null) {
+            return file;
+        }
+
         String[] fileNames = file.getParentFile().list();
         String fileName = file.getName();
         Arrays.sort(fileNames);

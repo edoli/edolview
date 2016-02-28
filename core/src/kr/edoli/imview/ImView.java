@@ -17,7 +17,7 @@ public class ImView extends Game {
 
 	@Override
 	public void create() {
-		Context.imagePath = ImView.args.getImagePath();
+		Context.imagePath.set(ImView.args.getImagePath());
 
 		setScreen(new MainScreen());
 		start = System.currentTimeMillis();

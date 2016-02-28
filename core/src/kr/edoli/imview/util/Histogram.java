@@ -31,4 +31,11 @@ public class Histogram {
     public int getMaxFreq() {
         return max;
     }
+
+    public void clear() {
+        for (int i = 0; i < freq.length; i++) {
+            freq[i] = 0;
+        }
+        max = 0;
+    }
 }

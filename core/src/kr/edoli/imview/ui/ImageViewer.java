@@ -19,6 +19,7 @@ import kr.edoli.imview.event.FilterMessage;
 import kr.edoli.imview.event.MagnifyMessage;
 import kr.edoli.imview.ui.res.Colors;
 import kr.edoli.imview.ui.res.Textures;
+import kr.edoli.imview.util.Clipboard;
 import net.engio.mbassy.listener.Handler;
 
 /**
@@ -30,7 +31,7 @@ public class ImageViewer extends Widget {
     private Pixmap pixmap;
     private Pixmap filteredPixmap;
 
-    private Rectangle selectedRegion = new Rectangle();
+    private Rectangle selectedRegionOnView = new Rectangle();
 
     enum DragMode {
         Magnify, Analysis
@@ -77,17 +78,24 @@ public class ImageViewer extends Widget {
                 highX = (float) Math.ceil(highX);
                 highY = (float) Math.ceil(highY);
 
-                selectedRegion.set(lowX, lowY, highX - lowX, highY - lowY);
+                selectedRegionOnView.set(lowX, lowY, highX - lowX, highY - lowY);
             }
 
             @Override
             public void touchUp(InputEvent event, float x, float y, int pointer, int button) {
                 switch (dragMode) {
                     case Magnify:
-                        Bus.publish(new MagnifyMessage(selectedRegion));
-                        selectedRegion.set(0, 0, 0, 0);
+                        Bus.publish(new MagnifyMessage(selectedRegionOnView));
+                        selectedRegionOnView.set(0, 0, 0, 0);
                         break;
                     case Analysis:
+                        Context.selectedRegionOnImage.get().set(
+                                selectedRegionOnView.x,
+                                Context.currentImage.get().getHeight() - selectedRegionOnView.y,
+                                selectedRegionOnView.width,
+                                selectedRegionOnView.height
+                        );
+                        Context.selectedRegionOnImage.forceUpdate();
                         break;
                 }
             }
@@ -112,12 +120,13 @@ public class ImageViewer extends Widget {
         pixmap = new Pixmap(fileHandle);
         region = new TextureRegion(new Texture(pixmap));
 
-        Context.currentImage = pixmap;
+        Context.currentImage.set(pixmap);
 
         region.getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Nearest);
 
         setSize(region.getRegionWidth(), region.getRegionHeight());
 
+        Clipboard.copy(pixmap, 100, 100, 500, 500);
     }
 
     @Override
@@ -135,10 +144,10 @@ public class ImageViewer extends Widget {
         Color preColor = batch.getColor();
         batch.setColor(Colors.overlayRegion);
         batch.draw(Textures.White,
-                selectedRegion.x * getScaleX() + getX(),
-                selectedRegion.y * getScaleY() + getY(),
-                selectedRegion.width * getScaleX(),
-                selectedRegion.height * getScaleY());
+                selectedRegionOnView.x * getScaleX() + getX(),
+                selectedRegionOnView.y * getScaleY() + getY(),
+                selectedRegionOnView.width * getScaleX(),
+                selectedRegionOnView.height * getScaleY());
         batch.setColor(preColor);
     }
 

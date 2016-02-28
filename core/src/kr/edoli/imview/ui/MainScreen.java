@@ -12,17 +12,11 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import kr.edoli.imview.Context;
-import kr.edoli.imview.ImView;
 import kr.edoli.imview.ui.res.Colors;
 import kr.edoli.imview.util.ImageFileUtils;
 import kr.edoli.imview.util.Utils;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.ArrayUtils;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWDropCallback;
-
-import java.io.File;
-import java.util.Arrays;
 
 /**
  * Created by 석준 on 2016-02-06.
@@ -43,7 +37,7 @@ public class MainScreen implements Screen {
         Table overlayTable = new Table();
 
         imageViewer = new ImageViewer();
-        imageViewer.setImage(Context.imagePath);
+        imageViewer.setImage(Context.imagePath.get());
         imageViewer.setFillParent(true);
 
         panningView = new PanningView(imageViewer);
@@ -54,14 +48,16 @@ public class MainScreen implements Screen {
 
         DataView dataView = new DataView();
 
+        Table rightPanel = new RightPanel();
+
         overlayTable.add().expandY().fillY().width(196);
         overlayTable.add().expand();
-        overlayTable.add(new FilterView()).expandY().fillY().width(128).row();
+        overlayTable.add(rightPanel).expandY().fillY().row();
         overlayTable.add(dataView).colspan(3).expandX().fillX().height(32);
         overlayTable.setFillParent(true);
-
-        //table.debug();
-        //overlayTable.debug();
+//
+//        table.debug();
+//        overlayTable.debug();
 
 
         Array<Lwjgl3Window> windows = (Array<Lwjgl3Window>) Utils.getPrivate(Gdx.app, "windows");
@@ -90,7 +86,7 @@ public class MainScreen implements Screen {
                 if (keycode == Input.Keys.RIGHT || keycode == Input.Keys.LEFT) {
                     int modifier = keycode == Input.Keys.RIGHT ? 1 : -1;
 
-                    changeImage(ImageFileUtils.siblingFile(Context.imagePath, modifier).getPath());
+                    changeImage(ImageFileUtils.siblingFile(Context.imagePath.get(), modifier).getPath());
 
                     return true;
                 }
@@ -108,9 +104,9 @@ public class MainScreen implements Screen {
             return;
         }
 
-        Context.imagePath = path;
+        Context.imagePath.set(path);
 
-        imageViewer.setImage(Context.imagePath);
+        imageViewer.setImage(path);
         panningView.reset();
     }
 
