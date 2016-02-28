@@ -19,7 +19,6 @@ import kr.edoli.imview.event.FilterMessage;
 import kr.edoli.imview.event.MagnifyMessage;
 import kr.edoli.imview.ui.res.Colors;
 import kr.edoli.imview.ui.res.Textures;
-import kr.edoli.imview.util.Clipboard;
 import net.engio.mbassy.listener.Handler;
 
 /**
@@ -91,7 +90,7 @@ public class ImageViewer extends Widget {
                     case Analysis:
                         Context.selectedRegionOnImage.get().set(
                                 selectedRegionOnView.x,
-                                Context.currentImage.get().getHeight() - selectedRegionOnView.y,
+                                Context.currentImage.get().getHeight() - selectedRegionOnView.y - selectedRegionOnView.getHeight(),
                                 selectedRegionOnView.width,
                                 selectedRegionOnView.height
                         );
@@ -125,8 +124,6 @@ public class ImageViewer extends Widget {
         region.getTexture().setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Nearest);
 
         setSize(region.getRegionWidth(), region.getRegionHeight());
-
-        Clipboard.copy(pixmap, 100, 100, 500, 500);
     }
 
     @Override

@@ -3,6 +3,7 @@ package kr.edoli.imview.ui;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.scenes.scene2d.ui.Widget;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
@@ -31,5 +32,12 @@ public class DataView extends Widget {
         float pixelX = mousePosOnImage.x;
         float pixelY = mousePosOnImage.y;
         font.draw(batch, String.format("%.02f, %.02f", pixelX, pixelY), getX() + 12, getY() + 22);
+
+        Rectangle selectedRegion = Context.selectedRegionOnImage.get();
+        font.draw(batch, String.format("%d, %d, %d, %d",
+                (int) selectedRegion.x,
+                (int) selectedRegion.y,
+                (int) selectedRegion.width,
+                (int) selectedRegion.height), getX() + 256, getY() + 22);
     }
 }

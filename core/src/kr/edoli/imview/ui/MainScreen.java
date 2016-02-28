@@ -5,14 +5,17 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Window;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.UIUtils;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import kr.edoli.imview.Context;
 import kr.edoli.imview.ui.res.Colors;
+import kr.edoli.imview.util.Clipboard;
 import kr.edoli.imview.util.ImageFileUtils;
 import kr.edoli.imview.util.Utils;
 import org.lwjgl.glfw.GLFW;
@@ -88,6 +91,21 @@ public class MainScreen implements Screen {
 
                     changeImage(ImageFileUtils.siblingFile(Context.imagePath.get(), modifier).getPath());
 
+                    return true;
+                }
+
+                if (UIUtils.ctrl() && keycode == Input.Keys.C) {
+                    Rectangle rect = Context.selectedRegionOnImage.get();
+
+                    if (rect.getWidth() == 0) {
+                        Clipboard.copy(Context.currentImage.get());
+                    } else {
+                        System.out.println(rect);
+                        Clipboard.copy(Context.currentImage.get(),
+                                (int) rect.x, (int) rect.y,
+                                (int) rect.width, (int) rect.height);
+
+                    }
                     return true;
                 }
 

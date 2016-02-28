@@ -42,12 +42,12 @@ public class Clipboard {
     }
 
     public static void copy(Pixmap pixmap, int offsetX, int offsetY, int width, int height) {
-
         ByteBuffer byteBuffer = pixmap.getPixels();
 
         int length = byteBuffer.capacity();
         byte[] totalArray = new byte[length];
-        byteBuffer.get(totalArray);
+        byteBuffer.get(totalArray, 0, length);
+        byteBuffer.position(0);
 
         int subLength = (width * height * 4);
         byte[] subArray = new byte[subLength];
@@ -84,7 +84,7 @@ public class Clipboard {
 
         copy(image);
 
-        showImage(image);
+        //showImage(image);
     }
 
     public static void copy(Image image) {
