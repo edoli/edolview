@@ -17,9 +17,9 @@ public class ColorHistogramViewer extends HistogramViewer {
     private Histogram greenHistogram;
 
     public ColorHistogramViewer() {
-        redHistogram = addHistogram(new Histogram(256), Color.RED);
-        greenHistogram = addHistogram(new Histogram(256), Color.GREEN);
-        blueHistogram = addHistogram(new Histogram(256), Color.BLUE);
+        redHistogram = addHistogram(new Histogram(255), Color.RED);
+        greenHistogram = addHistogram(new Histogram(255), Color.GREEN);
+        blueHistogram = addHistogram(new Histogram(255), Color.BLUE);
 
         Context.currentImage.addListener(new ValueListener<Pixmap>() {
             @Override
@@ -71,13 +71,13 @@ public class ColorHistogramViewer extends HistogramViewer {
                 b = (color >> 8) & 0xFF;
 
                 if (r > 0) {
-                    redHistogram.addDataPoint(r);
+                    redHistogram.addDataPoint(r - 1);
                 }
                 if (g > 0) {
-                    greenHistogram.addDataPoint(g);
+                    greenHistogram.addDataPoint(g - 1);
                 }
                 if (b > 0) {
-                    blueHistogram.addDataPoint(b);
+                    blueHistogram.addDataPoint(b - 1);
                 }
             }
         }

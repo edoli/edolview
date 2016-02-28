@@ -33,8 +33,8 @@ public class MainScreen implements Screen {
 
     public MainScreen() {
 
-        ColorActor background = new ColorActor(Colors.background);
-        background.setSize(stage.getWidth(), stage.getHeight());
+        ColorWidget background = new ColorWidget(Colors.background);
+        background.setFillParent(true);
 
         Table table = new Table();
         Table overlayTable = new Table();
