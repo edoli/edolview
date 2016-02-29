@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.scenes.scene2d.ui.*;
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable;
+import com.badlogic.gdx.utils.Align;
 import kr.edoli.imview.ui.drawable.ColorBorderDrawable;
 import kr.edoli.imview.ui.drawable.ColorDrawable;
 import kr.edoli.imview.ui.res.Colors;
@@ -15,6 +16,7 @@ import kr.edoli.imview.ui.res.Colors;
  */
 public class UIFactory {
     private static BitmapFont font;
+    private static BitmapFont iconicFont;
 
     private static Label.LabelStyle labelStyle = new Label.LabelStyle(getFont(), Color.WHITE);
     private static TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle(
@@ -24,6 +26,7 @@ public class UIFactory {
             font
             );
 
+    private static TextButton.TextButtonStyle iconButtonStyle;
     private static ImageButton.ImageButtonStyle imageButtonStyle;
     private static TextButton.TextButtonStyle checkButtonStyle;
     private static CheckBox.CheckBoxStyle checkBoxStyle;
@@ -37,6 +40,18 @@ public class UIFactory {
             font = generator.generateFont(parameter);
         }
         return font;
+    }
+
+    public static BitmapFont getIconicFont() {
+        if (iconicFont == null) {
+            FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fontawesome-webfont.ttf"));
+            //FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("fontawesome-webfont.ttf"));
+            FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+            parameter.size = 16;
+            parameter.incremental = true;
+            iconicFont = generator.generateFont(parameter);
+        }
+        return iconicFont;
     }
 
     public static Label label(String text) {
@@ -56,6 +71,21 @@ public class UIFactory {
             imageButtonStyle.imageUp = icon;
         }
         ImageButton button = new ImageButton(imageButtonStyle);
+
+        return button;
+
+    }
+
+    public static TextButton iconButton(String icon) {
+        if (iconButtonStyle == null) {
+            iconButtonStyle = new TextButton.TextButtonStyle();
+
+            iconButtonStyle.font = UIFactory.getIconicFont();
+            iconButtonStyle.up = new ColorBorderDrawable(Colors.background, Colors.border);
+            iconButtonStyle.over = new ColorBorderDrawable(Colors.backgroundOver, Colors.border);
+        }
+        TextButton button = new TextButton(icon, iconButtonStyle);
+        button.getLabel().setAlignment(Align.center);
 
         return button;
 

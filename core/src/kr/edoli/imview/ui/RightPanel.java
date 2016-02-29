@@ -5,14 +5,14 @@ import com.badlogic.gdx.graphics.Cursor;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.InputEvent;
 import com.badlogic.gdx.scenes.scene2d.ui.Cell;
-import com.badlogic.gdx.scenes.scene2d.ui.ImageButton;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.DragListener;
 import com.badlogic.gdx.utils.Align;
 import kr.edoli.imview.ui.drawable.ColorBorderDrawable;
 import kr.edoli.imview.ui.histogram.HistogramPanel;
 import kr.edoli.imview.ui.res.Colors;
-import kr.edoli.imview.ui.res.Drawables;
+import kr.edoli.imview.ui.res.FontAwesomes;
 import kr.edoli.imview.ui.util.UIFactory;
 
 /**
@@ -21,7 +21,7 @@ import kr.edoli.imview.ui.util.UIFactory;
 public class RightPanel extends Table {
 
     private Table contentTable = new Table();
-    private ImageButton foldButton = UIFactory.iconButton(null);
+    private TextButton foldButton = UIFactory.iconButton(FontAwesomes.FaEllipsisV);
     private boolean isFold;
     private Cell<?> contentCell;
 
@@ -36,18 +36,7 @@ public class RightPanel extends Table {
 
         background(new ColorBorderDrawable(Colors.background, Colors.border));
 
-        /*
-        foldButton.addListener(new ClickListener() {
-            @Override
-            public void clicked(InputEvent event, float x, float y) {
-                super.clicked(event, x, y);
-
-                setFold(foldButton.isChecked());
-            }
-        });
-
-        setFold(foldButton.isChecked());
-        */
+        setFold(isFold);
 
         foldButton.addListener(new DragListener() {
             private float offsetX;
@@ -118,14 +107,10 @@ public class RightPanel extends Table {
             contentTable.setVisible(false);
             contentCell.width(0);
 
-            foldButton.getStyle().imageUp = Drawables.leftArrow;
-
             invalidateHierarchy();
         } else {
             contentTable.setVisible(true);
             contentCell.width(128);
-
-            foldButton.getStyle().imageUp = Drawables.rightArrow;
 
             invalidateHierarchy();
         }
