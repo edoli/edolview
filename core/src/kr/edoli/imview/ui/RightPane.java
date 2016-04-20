@@ -10,7 +10,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.DragListener;
 import com.badlogic.gdx.utils.Align;
 import kr.edoli.imview.ui.drawable.ColorBorderDrawable;
-import kr.edoli.imview.ui.histogram.HistogramPanel;
+import kr.edoli.imview.ui.panel.ColorPanel;
+import kr.edoli.imview.ui.panel.histogram.HistogramPanel;
 import kr.edoli.imview.ui.res.Colors;
 import kr.edoli.imview.ui.res.FontAwesomes;
 import kr.edoli.imview.ui.util.UIFactory;
@@ -18,19 +19,21 @@ import kr.edoli.imview.ui.util.UIFactory;
 /**
  * Created by daniel on 16. 2. 28.
  */
-public class RightPanel extends Table {
+public class RightPane extends Table {
 
     private Table contentTable = new Table();
     private TextButton foldButton = UIFactory.iconButton(FontAwesomes.FaEllipsisV);
     private boolean isFold;
     private Cell<?> contentCell;
 
-    public RightPanel() {
+    public RightPane() {
 
         add(foldButton).expandY().fillY().width(12);
 
 
         contentTable.add(new HistogramPanel()).height(300).expand().fillX().align(Align.top);
+        contentTable.row();
+        contentTable.add(new ColorPanel()).height(300).expand().fillX().align(Align.top);
 
         contentCell = add(contentTable).expand().fill().width(256);
 

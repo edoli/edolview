@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import kr.edoli.imview.ui.PanningView;
 import kr.edoli.imview.util.Utils;
 import kr.edoli.imview.value.Value;
+import kr.edoli.imview.value.ValueListener;
 
 /**
  * Created by daniel on 16. 2. 27.
@@ -21,7 +22,16 @@ public class Context {
     public static Value<Pixmap> currentImage = new Value<>(new Pixmap(0 ,0, Pixmap.Format.RGB888));
 
     public static Value<Float> zoom = new Value<>(1f);
-    public static Value<Rectangle> selectedRegionOnImage = new Value<>(new Rectangle());
+    public static Value<Rectangle> selectedRegionOnImage = new Value<>(null);
+
+    public Context() {
+        currentImage.addListener(new ValueListener<Pixmap>() {
+            @Override
+            public void change(Pixmap value) {
+                selectedRegionOnImage.set(null);
+            }
+        });
+    }
 
     public static Vector2 getMousePosOnImage() {
         Vector2 tmp = new Vector2();

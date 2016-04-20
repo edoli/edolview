@@ -19,6 +19,12 @@ public class UIFactory {
     private static BitmapFont iconicFont;
 
     private static Label.LabelStyle labelStyle = new Label.LabelStyle(getFont(), Color.WHITE);
+    private static TextField.TextFieldStyle textFieldStyle = new TextField.TextFieldStyle(
+            getFont(), Color.WHITE,
+            new ColorDrawable(Color.BLUE),
+            new ColorDrawable(Color.GRAY),
+            null
+    );
     private static TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle(
             new ColorDrawable(new Color(0, 0, 0, 0.25f)),
             new ColorDrawable(new Color(0.792f, 0.02f, 0.302f, 0.5f)),
@@ -58,6 +64,12 @@ public class UIFactory {
         Label label = new Label(text, labelStyle);
 
         return label;
+    }
+
+    public static TextField textField(String text) {
+        TextField textField = new TextField(text, textFieldStyle);
+
+        return textField;
     }
 
     public static ImageButton iconButton(Drawable icon) {

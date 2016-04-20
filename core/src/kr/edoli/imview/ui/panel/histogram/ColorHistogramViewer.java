@@ -1,4 +1,4 @@
-package kr.edoli.imview.ui.histogram;
+package kr.edoli.imview.ui.panel.histogram;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.Pixmap;
@@ -21,21 +21,10 @@ public class ColorHistogramViewer extends HistogramViewer {
         greenHistogram = addHistogram(new Histogram(255), Color.GREEN);
         blueHistogram = addHistogram(new Histogram(255), Color.BLUE);
 
-        Context.currentImage.addListener(new ValueListener<Pixmap>() {
-            @Override
-            public void change(Pixmap pixmap) {
-                setRegion(pixmap, null);
-            }
-        });
-
         Context.selectedRegionOnImage.addListener(new ValueListener<Rectangle>() {
             @Override
-            public void change(Rectangle value) {
-                if (value.width == 0 || value.height == 0) {
-                    return;
-                }
-
-                setRegion(Context.currentImage.get(), value);
+            public void change(Rectangle rect) {
+                setRegion(Context.currentImage.get(), rect);
             }
         });
     }

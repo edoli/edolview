@@ -94,13 +94,12 @@ public class ImageViewer extends Widget {
                         zoomedRegionOnView.set(0, 0, 0, 0);
                         break;
                     case Analysis:
-                        Context.selectedRegionOnImage.get().set(
+                        Context.selectedRegionOnImage.set(new Rectangle(
                                 selectedRegionOnView.x,
                                 Context.currentImage.get().getHeight() - selectedRegionOnView.y - selectedRegionOnView.getHeight(),
                                 selectedRegionOnView.width,
                                 selectedRegionOnView.height
-                        );
-                        Context.selectedRegionOnImage.forceUpdate();
+                        ));
                         break;
                 }
             }

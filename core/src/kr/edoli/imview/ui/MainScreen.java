@@ -51,7 +51,7 @@ public class MainScreen implements Screen {
 
         DataView dataView = new DataView();
 
-        Table rightPanel = new RightPanel();
+        Table rightPanel = new RightPane();
 
         overlayTable.add().expandY().fillY().width(196);
         overlayTable.add().expand();

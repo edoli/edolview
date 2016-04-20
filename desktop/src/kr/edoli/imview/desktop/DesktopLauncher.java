@@ -8,7 +8,7 @@ import kr.edoli.imview.ImView;
 public class DesktopLauncher {
 	public static void main (String[] arg) {
 
-		pack();
+		//pack();
 
 
 		Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
