@@ -26,16 +26,20 @@ public class RightPane extends Table {
     private boolean isFold;
     private Cell<?> contentCell;
 
+    private float defaultWidth = 320;
+    private float minWidth = 240;
+
     public RightPane() {
 
         add(foldButton).expandY().fillY().width(12);
 
 
-        contentTable.add(new HistogramPanel()).height(300).expand().fillX().align(Align.top);
+        contentTable.add(new HistogramPanel()).height(300).expandX().fillX().align(Align.top);
         contentTable.row();
-        contentTable.add(new ColorPanel()).height(300).expand().fillX().align(Align.top);
+        contentTable.add(new ColorPanel()).height(48).expandX().fillX().align(Align.top);
+        contentTable.add().expandY();
 
-        contentCell = add(contentTable).expand().fill().width(256);
+        contentCell = add(contentTable).expand().fill().width(defaultWidth);
 
         background(new ColorBorderDrawable(Colors.background, Colors.border));
 
@@ -89,14 +93,14 @@ public class RightPane extends Table {
                 if (width > 500) {
                     width = 500;
                 }
-                if (width < 128) {
+                if (width < minWidth) {
                     setFold(true);
                 }
 
                 if (!isFold) {
                     contentCell.width(width);
                     invalidateHierarchy();
-                } else if (x < -128) {
+                } else if (x < -minWidth) {
                     setFold(false);
                 }
                 super.drag(event, x, y, pointer);
@@ -113,7 +117,6 @@ public class RightPane extends Table {
             invalidateHierarchy();
         } else {
             contentTable.setVisible(true);
-            contentCell.width(128);
 
             invalidateHierarchy();
         }

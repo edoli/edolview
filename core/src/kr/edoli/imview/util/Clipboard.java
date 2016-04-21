@@ -1,5 +1,6 @@
 package kr.edoli.imview.util;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Pixmap;
 
 import javax.swing.*;
@@ -85,6 +86,10 @@ public class Clipboard {
         copy(image);
 
         //showImage(image);
+    }
+
+    public static void copy(String text) {
+        Gdx.app.getClipboard().setContents(text);
     }
 
     public static void copy(Image image) {

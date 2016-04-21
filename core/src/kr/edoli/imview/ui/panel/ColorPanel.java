@@ -2,11 +2,19 @@ package kr.edoli.imview.ui.panel;
 
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.math.Rectangle;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.ui.Button;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils;
+import com.badlogic.gdx.utils.Align;
 import kr.edoli.imview.Context;
+import kr.edoli.imview.ui.OptionList;
+import kr.edoli.imview.ui.res.FontAwesomes;
 import kr.edoli.imview.ui.util.UIFactory;
+import kr.edoli.imview.util.Clipboard;
 import kr.edoli.imview.value.ValueListener;
 
 /**
@@ -14,11 +22,75 @@ import kr.edoli.imview.value.ValueListener;
  */
 public class ColorPanel extends Panel {
 
-    private TextField colorLabel;
+    enum ColorType {
+        RGB {
+            @Override
+            String colorToString(float r, float g, float b) {
+                return String.format("%d, %d, %d", (int) r, (int) g, (int) b);
+            }
+        },
+        RGBFloat {
+            @Override
+            String colorToString(float r, float g, float b) {
+                return String.format("%.2f, %.2f, %.2f", r / 255, g / 255, b / 255);
+            }
+        },
+        Hex {
+            @Override
+            String colorToString(float r, float g, float b) {
+                return String.format("#%02X%02X%02X", (int) r, (int) g, (int) b);
+            }
+        };
+
+        abstract String colorToString(float r, float g, float b);
+    }
+
+    private ColorType colorType;
+    private Label colorLabel;
+    private TextButton colorCopyButton;
+    private OptionList optionList;
+
+    private float r;
+    private float g;
+    private float b;
 
     public ColorPanel() {
-        colorLabel = UIFactory.textField("");
-        add(colorLabel);
+        colorLabel = UIFactory.label("");
+        colorCopyButton = UIFactory.iconButton(FontAwesomes.FaCopy);
+        optionList = new OptionList(new String[] {
+                "RGB",
+                "Float",
+                "Hex"
+        });
+        optionList.setOptionChangedListener(new OptionList.OptionChangedListener() {
+            @Override
+            public void changed(Button option, int id) {
+                if (id == 0) {
+                    colorType = ColorType.RGB;
+                } else if (id == 1) {
+                    colorType = ColorType.RGBFloat;
+                } else if (id == 2) {
+                    colorType = ColorType.Hex;
+                }
+                reFormatText();
+            }
+        });
+
+        colorLabel.getStyle().font.getData().markupEnabled = true;
+
+        add(UIFactory.label("Color:")).pad(0, 8, 0, 8);
+        add(colorLabel).expandX().align(Align.left);
+        add(colorCopyButton).size(32);
+        row();
+        add(optionList).colspan(3).expandX().fillX();
+
+
+        colorCopyButton.addListener(new ClickListener() {
+            @Override
+            public void clicked(InputEvent event, float x, float y) {
+                Clipboard.copy(colorLabel.getText().toString());
+            }
+        });
 
         Context.selectedRegionOnImage.addListener(new ValueListener<Rectangle>() {
             @Override
@@ -56,10 +128,14 @@ public class ColorPanel extends Panel {
         }
         int count = (right - left) * (bottom - top);
 
-        r = r / count;
-        g = g / count;
-        b = b / count;
+        this.r = r / count;
+        this.g = g / count;
+        this.b = b / count;
 
-        colorLabel.setText(String.format("%d, %d, %d", r, g, b));
+        reFormatText();
+    }
+
+    private void reFormatText() {
+        colorLabel.setText(colorType.colorToString(r, g, b));
     }
 }

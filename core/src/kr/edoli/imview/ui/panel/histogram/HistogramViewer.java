@@ -37,6 +37,13 @@ public class HistogramViewer extends Widget {
         float preX;
         float preY;
 
+        float max = 0;
+        for (HistogramGraph histogramGraph : histogramGraphs) {
+            if (histogramGraph.getHistogram().getMaxFreq() > max) {
+                max = histogramGraph.getHistogram().getMaxFreq();
+            }
+        }
+
         for (HistogramGraph histogramGraph : histogramGraphs) {
             if (!histogramGraph.isShow()) {
                 continue;
@@ -55,7 +62,7 @@ public class HistogramViewer extends Widget {
 
             float delta = getWidth() / histogram.getNumber();
             for (int i = 0; i < histogram.getNumber(); i++) {
-                float value = (float) histogram.getFreq(i) / histogram.getMaxFreq();
+                float value = (float) histogram.getFreq(i) / max;
                 float currentX = x + i * delta;
                 float currentY = y + value * getHeight();
                 BatchUtils.drawQuad(batch, preX, y, preX, preY, currentX, currentY, currentX, y);
@@ -80,7 +87,7 @@ public class HistogramViewer extends Widget {
 
             float delta = getWidth() / histogram.getNumber();
             for (int i = 0; i < histogram.getNumber(); i++) {
-                float value = (float) histogram.getFreq(i) / histogram.getMaxFreq();
+                float value = (float) histogram.getFreq(i) / max;
                 float currentX = x + i * delta;
                 float currentY = y + value * getHeight();
                 BatchUtils.drawLine(batch, preX, preY, currentX, currentY, 1);

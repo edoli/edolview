@@ -21,7 +21,7 @@ public class DesktopLauncher {
 		if (arg.length > 0) {
 			new Lwjgl3Application(new ImView(arg[0]), config);
 		} else {
-			new Lwjgl3Application(new ImView("test.png"), config);
+			new Lwjgl3Application(new ImView("test.jpg"), config);
 
 		}
 
