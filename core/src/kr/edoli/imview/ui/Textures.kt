@@ -9,11 +9,8 @@ import com.badlogic.gdx.graphics.Texture
  */
 
 val White = colorTexture(Color.WHITE)
-val RED = colorTexture(Color.RED)
 
 fun colorTexture(color: Color) : Texture {
-    println(color)
-
     val pixmap = Pixmap(1, 1, Pixmap.Format.RGBA8888)
 
     pixmap.setColor(color)

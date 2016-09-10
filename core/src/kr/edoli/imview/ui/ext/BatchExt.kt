@@ -1,6 +1,7 @@
 package kr.edoli.imview.ui.ext
 
 import com.badlogic.gdx.graphics.g2d.Batch
+import com.badlogic.gdx.math.Rectangle
 import kr.edoli.imview.ui.White
 
 /**
@@ -8,6 +9,9 @@ import kr.edoli.imview.ui.White
  */
 private val vertices = FloatArray(20)
 
+fun Batch.drawRect(rect: Rectangle) {
+    drawRect(rect.x, rect.y, rect.width, rect.height)
+}
 
 fun Batch.drawRect(x: Float, y: Float, width: Float, height: Float) {
     drawQuad(x, y, x + width, y, x + width, y + height, x, y + height);
@@ -61,6 +65,10 @@ fun Batch.drawLine(x1: Float, y1: Float, x2: Float, y2: Float, lineWidth: Float)
              x1 - ndy, y1 + ndx,
              x2 - ndy, y2 + ndx,
              x2 + ndy, y2 - ndx)
+}
+
+fun Batch.drawRectBorder(rect: Rectangle, lineWidth: Float) {
+    drawRectBorder(rect.x, rect.y, rect.width, rect.height, lineWidth)
 }
 
 fun Batch.drawRectBorder(x: Float, y: Float, width: Float, height: Float, lineWidth: Float) {
