@@ -19,10 +19,9 @@ public class DesktopLauncher {
 		config.useVsync(false);
 
 		if (arg.length > 0) {
-			new Lwjgl3Application(new ImView(arg[0]), config);
+			new Lwjgl3Application(new ImView(), config);
 		} else {
-			new Lwjgl3Application(new ImView("test.jpg"), config);
-
+			new Lwjgl3Application(new ImView(), config);
 		}
 
 	}
