@@ -8,8 +8,12 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import kr.edoli.imview.ui.ext.drawLine
+import kr.edoli.imview.ui.ext.drawRect
 import kr.edoli.imview.ui.ext.drawRectBorder
+import kr.edoli.imview.util.ceil
+import kr.edoli.imview.util.floor
 import kr.edoli.imview.util.generateId
 
 /**
@@ -22,6 +26,9 @@ class ImageViewer : Actor() {
 
     val selectBox = Rectangle()
     val zoomBox = Rectangle()
+
+    val selectDrawBox = Rectangle()
+    val zoomDrawBox = Rectangle()
 
     var image: TextureRegion? = null
         set(value) {
@@ -38,7 +45,7 @@ class ImageViewer : Actor() {
 
     init {
         touchable = Touchable.enabled
-        addListener(ImageViewerController(imageProperty))
+        addListener(ImageViewerController(imageProperty, zoomBox, selectBox))
     }
 
     override fun draw(batch: Batch, parentAlpha: Float) {
@@ -51,11 +58,29 @@ class ImageViewer : Actor() {
         }
 
         // draw overlay
-        color = batch.color.cpy()
-        batch.color.set(Color.RED)
-        batch.drawRectBorder(selectBox, 1f)
+        color = batch.color
 
-        batch.color.set(color)
+        selectDrawBox.set(
+                selectBox.x * imageProperty.scale + imageProperty.x,
+                selectBox.y * imageProperty.scale + imageProperty.y,
+                selectBox.width * imageProperty.scale,
+                selectBox.height * imageProperty.scale)
+        batch.color = Color(1f, 1f, 1f, 0.2f)
+        batch.drawRect(selectDrawBox)
+        batch.color = Color.RED
+        batch.drawRectBorder(selectDrawBox, 1f)
+
+        zoomDrawBox.set(
+                zoomBox.x * imageProperty.scale + imageProperty.x,
+                zoomBox.y * imageProperty.scale + imageProperty.y,
+                zoomBox.width * imageProperty.scale,
+                zoomBox.height * imageProperty.scale)
+        batch.color = Color(1f, 1f, 1f, 0.2f)
+        batch.drawRect(zoomDrawBox)
+        batch.color = Color.GREEN
+        batch.drawRectBorder(zoomDrawBox, 1f)
+
+        batch.color = color
 
 
         super.draw(batch, parentAlpha)
@@ -69,8 +94,18 @@ class ImageViewer : Actor() {
             var scale: Float = 1f
     )
 
-    class ImageViewerController(val imageProperty: ImageProperty) : InputListener() {
+    class ImageViewerController(
+            val imageProperty: ImageProperty,
+            val zoomBox: Rectangle,
+            val selectBox: Rectangle) : InputListener() {
 
+        enum class Mode {
+            Move, select, zoom
+        }
+
+        var mode = Mode.Move
+        var initX = 0f
+        var initY = 0f
         var prevX = 0f
         var prevY = 0f
         var logScale = 0f
@@ -79,9 +114,35 @@ class ImageViewer : Actor() {
             logScale = Math.log(imageProperty.scale.toDouble()).toFloat()
         }
 
+        fun screenToPixelX(x: Float): Float {
+            return (x - imageProperty.x) / imageProperty.scale
+        }
+
+        fun screenToPixelY(y: Float): Float {
+            return (y - imageProperty.y) / imageProperty.scale
+        }
+
         override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+            initX = x
+            initY = y
             prevX = x
             prevY = y
+
+            if (UIUtils.ctrl()) {
+                mode = Mode.zoom
+                zoomBox.x = screenToPixelX(x)
+                zoomBox.y = screenToPixelY(y)
+                zoomBox.width = 0f
+                zoomBox.height = 0f
+            } else if (UIUtils.shift()) {
+                mode = Mode.select
+                selectBox.x = screenToPixelX(x).floor()
+                selectBox.y = screenToPixelY(y).floor()
+                selectBox.width = 0f
+                selectBox.height = 0f
+            } else {
+                mode = Mode.Move
+            }
 
             return true
         }
@@ -90,8 +151,21 @@ class ImageViewer : Actor() {
             val dx = x - prevX
             val dy = y - prevY
 
-            imageProperty.x += dx
-            imageProperty.y += dy
+            when(mode) {
+                Mode.Move -> {
+                    imageProperty.x += dx
+                    imageProperty.y += dy
+                }
+                Mode.zoom -> {
+                    zoomBox.width = screenToPixelX(x) - screenToPixelX(initX)
+                    zoomBox.height = screenToPixelY(y) - screenToPixelY(initY)
+                }
+                Mode.select -> {
+                    selectBox.width = (screenToPixelX(x) - screenToPixelX(initX)).ceil()
+                    selectBox.height = (screenToPixelY(y) - screenToPixelY(initY)).ceil()
+                }
+
+            }
 
             prevX = x
             prevY = y
@@ -110,7 +184,7 @@ class ImageViewer : Actor() {
             val fracX = (x - imageProperty.x) / imageProperty.scale
             val fracY = (y - imageProperty.y) / imageProperty.scale
 
-            logScale += amount / 16f
+            logScale -= amount / 16f
             imageProperty.scale = Math.exp(logScale.toDouble()).toFloat()
 
             imageProperty.x = x - fracX * imageProperty.scale
