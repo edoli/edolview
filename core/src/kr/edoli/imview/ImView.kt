@@ -1,7 +1,7 @@
 package kr.edoli.imview
 
 import com.badlogic.gdx.Game
-import kr.edoli.imview.ui.MainScreen
+import kr.edoli.imview.ui.screen.MainScreen
 
 /**
  * Created by daniel on 16. 9. 10.

@@ -1,4 +1,4 @@
-package kr.edoli.imview.ui
+package kr.edoli.imview.ui.screen
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
@@ -29,9 +29,12 @@ open class BaseScreen : Screen {
     }
 
     override fun render(delta: Float) {
-        Gdx.gl.glClearColor(0f, 0f, 0f, 1f);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        stage.act()
 
+        Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT)
+
+        stage.draw()
     }
 
     override fun resume() {

@@ -1,4 +1,4 @@
-package kr.edoli.imview.ui
+package kr.edoli.imview.ui.screen
 
 /**
  * Created by daniel on 16. 9. 10.
@@ -6,4 +6,6 @@ package kr.edoli.imview.ui
 
 class MainScreen : BaseScreen() {
 
+    init {
+    }
 }

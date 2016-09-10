@@ -54,7 +54,6 @@ project(":core") {
         compile "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
         compile "net.engio:mbassador:1.2.4"
-        compile "org.apache.commons:commons-lang3:3.4"
         compile "commons-io:commons-io:2.4"
 
         compile "org.projectlombok:lombok:1.16.6"
