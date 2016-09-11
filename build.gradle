@@ -28,6 +28,14 @@ allprojects {
         mavenCentral()
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
         maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+
+        maven {
+            url = 'https://gitlab.com/edoli-mia/GdxUI.git'
+            credentials {
+                username 'edoli.mia@gmail.com'
+                password 'fireload0502'
+            }
+        }
     }
 }
 
@@ -55,6 +63,7 @@ project(":core") {
         compile "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
         compile "io.reactivex:rxjava:1.1.6"
         compile "commons-io:commons-io:2.4"
+        compile project(":edoliui")
 
         compile "org.projectlombok:lombok:1.16.6"
     }

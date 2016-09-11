@@ -1,1 +1,3 @@
 include 'desktop', 'core'
+include ":edoliui"
+project(":edoliui").projectDir = file("../edoli-ui/core")
