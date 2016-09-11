@@ -18,9 +18,17 @@ class MainScreen : BaseScreen() {
         val mainLayout = Table()
         mainLayout.setFillParent(true)
 
+
         imageViewer.image = TextureRegion(Texture(Gdx.files.internal("test.png")))
 
-        mainLayout.add(imageViewer).expand().fill()
+        val centerLayout = Table()
+        centerLayout.add(imageViewer).expand().fill()
+
+        mainLayout.add().height(32f).row()
+        mainLayout.add(centerLayout).expand().fill().row()
+        mainLayout.add().height(32f).row()
+
+        mainLayout.debug()
 
         stage.addActor(mainLayout)
     }
