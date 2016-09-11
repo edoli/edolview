@@ -58,8 +58,8 @@ fun Batch.drawLine(x1: Float, y1: Float, x2: Float, y2: Float, lineWidth: Float)
     val len = Math.hypot(dx.toDouble(), dy.toDouble()).toFloat()
 
     val halfWidth = lineWidth / 2
-    val ndx = (dx / len) * lineWidth
-    val ndy = (dy / len) * lineWidth
+    val ndx = (dx / len) * halfWidth
+    val ndy = (dy / len) * halfWidth
 
     drawQuad(x1 + ndy, y1 - ndx,
              x1 - ndy, y1 + ndx,

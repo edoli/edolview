@@ -12,9 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import kr.edoli.imview.ui.ext.drawLine
 import kr.edoli.imview.ui.ext.drawRect
 import kr.edoli.imview.ui.ext.drawRectBorder
-import kr.edoli.imview.util.ceil
-import kr.edoli.imview.util.floor
-import kr.edoli.imview.util.generateId
+import kr.edoli.imview.util.*
 
 /**
  * Created by daniel on 16. 9. 10.
@@ -45,7 +43,7 @@ class ImageViewer : Actor() {
 
     init {
         touchable = Touchable.enabled
-        addListener(ImageViewerController(imageProperty, zoomBox, selectBox))
+        addListener(ImageViewerController(this, imageProperty, zoomBox, selectBox))
     }
 
     override fun draw(batch: Batch, parentAlpha: Float) {
@@ -67,7 +65,7 @@ class ImageViewer : Actor() {
                 selectBox.height * imageProperty.scale)
         batch.color = Color(1f, 1f, 1f, 0.2f)
         batch.drawRect(selectDrawBox)
-        batch.color = Color.RED
+        batch.color = Color.GREEN
         batch.drawRectBorder(selectDrawBox, 1f)
 
         zoomDrawBox.set(
@@ -77,7 +75,7 @@ class ImageViewer : Actor() {
                 zoomBox.height * imageProperty.scale)
         batch.color = Color(1f, 1f, 1f, 0.2f)
         batch.drawRect(zoomDrawBox)
-        batch.color = Color.GREEN
+        batch.color = Color.RED
         batch.drawRectBorder(zoomDrawBox, 1f)
 
         batch.color = color
@@ -95,15 +93,16 @@ class ImageViewer : Actor() {
     )
 
     class ImageViewerController(
+            val imageViewer: Actor,
             val imageProperty: ImageProperty,
             val zoomBox: Rectangle,
             val selectBox: Rectangle) : InputListener() {
 
         enum class Mode {
-            Move, select, zoom
+            move, select, zoom
         }
 
-        var mode = Mode.Move
+        var mode = Mode.move
         var initX = 0f
         var initY = 0f
         var prevX = 0f
@@ -130,18 +129,18 @@ class ImageViewer : Actor() {
 
             if (UIUtils.ctrl()) {
                 mode = Mode.zoom
-                zoomBox.x = screenToPixelX(x)
-                zoomBox.y = screenToPixelY(y)
-                zoomBox.width = 0f
-                zoomBox.height = 0f
+                zoomBox.set(
+                        screenToPixelX(initX),
+                        screenToPixelY(initY),
+                        0f, 0f)
             } else if (UIUtils.shift()) {
                 mode = Mode.select
-                selectBox.x = screenToPixelX(x).floor()
-                selectBox.y = screenToPixelY(y).floor()
-                selectBox.width = 0f
-                selectBox.height = 0f
+                selectBox.set(
+                        screenToPixelX(initX).floor(),
+                        screenToPixelY(initY).floor(),
+                        0f, 0f)
             } else {
-                mode = Mode.Move
+                mode = Mode.move
             }
 
             return true
@@ -152,17 +151,26 @@ class ImageViewer : Actor() {
             val dy = y - prevY
 
             when(mode) {
-                Mode.Move -> {
+                Mode.move -> {
                     imageProperty.x += dx
                     imageProperty.y += dy
                 }
                 Mode.zoom -> {
-                    zoomBox.width = screenToPixelX(x) - screenToPixelX(initX)
-                    zoomBox.height = screenToPixelY(y) - screenToPixelY(initY)
+                    zoomBox.set(
+                            screenToPixelX(initX),
+                            screenToPixelY(initY),
+                            screenToPixelX(x) - screenToPixelX(initX),
+                            screenToPixelY(y) - screenToPixelY(initY))
+                            .adjust()
                 }
                 Mode.select -> {
-                    selectBox.width = (screenToPixelX(x) - screenToPixelX(initX)).ceil()
-                    selectBox.height = (screenToPixelY(y) - screenToPixelY(initY)).ceil()
+                    selectBox.set(
+                            screenToPixelX(initX),
+                            screenToPixelY(initY),
+                            (screenToPixelX(x) - screenToPixelX(initX)),
+                            (screenToPixelY(y) - screenToPixelY(initY)))
+                            .adjust()
+                            .digitize()
                 }
 
             }
@@ -172,6 +180,19 @@ class ImageViewer : Actor() {
         }
 
         override fun touchUp(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int) {
+            when(mode) {
+                Mode.zoom -> {
+                    val widthScale = imageViewer.width / zoomBox.width
+                    val heightScale = imageViewer.height / zoomBox.height
+                    imageProperty.scale = Math.min(widthScale, heightScale)
+                    imageProperty.x = (imageViewer.width - (zoomBox.x * 2 + zoomBox.width) * imageProperty.scale) / 2
+                    imageProperty.y = (imageViewer.height - (zoomBox.y * 2 + zoomBox.height) * imageProperty.scale) / 2
+
+                    logScale = Math.log(imageProperty.scale.toDouble()).toFloat()
+
+                    zoomBox.reset()
+                }
+            }
         }
 
         override fun enter(event: InputEvent?, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
