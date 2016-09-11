@@ -46,6 +46,10 @@ class ImageViewer : Actor() {
         addListener(ImageViewerController(this, imageProperty, zoomBox, selectBox))
     }
 
+    override fun hit(x: Float, y: Float, touchable: Boolean): Actor? {
+        return super.hit(x, y, touchable)
+    }
+
     override fun draw(batch: Batch, parentAlpha: Float) {
         // draw image
         if (image != null) {
@@ -79,7 +83,6 @@ class ImageViewer : Actor() {
         batch.drawRectBorder(zoomDrawBox, 1f)
 
         batch.color = color
-
 
         super.draw(batch, parentAlpha)
     }
