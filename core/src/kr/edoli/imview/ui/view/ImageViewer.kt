@@ -1,6 +1,7 @@
 package kr.edoli.imview.ui.view
 
-import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.math.Rectangle
@@ -9,9 +10,13 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
-import kr.edoli.imview.ui.ext.drawLine
-import kr.edoli.imview.ui.ext.drawRect
-import kr.edoli.imview.ui.ext.drawRectBorder
+import kr.edoli.imview.bus.Bus
+import kr.edoli.imview.bus.CursorPositionMessage
+import kr.edoli.imview.bus.SelectBoxMessage
+import kr.edoli.imview.bus.SelectionCopyMessage
+import kr.edoli.imview.res.Colors
+import kr.edoli.imview.ui.drawRect
+import kr.edoli.imview.ui.drawRectBorder
 import kr.edoli.imview.util.*
 
 /**
@@ -28,22 +33,41 @@ class ImageViewer : Actor() {
     val selectDrawBox = Rectangle()
     val zoomDrawBox = Rectangle()
 
-    var image: TextureRegion? = null
+    // Colors
+    val selectOverlayRectColor = Colors.selectOverlay.cpy().mul(1f, 1f, 1f, 0.2f)
+    val selectOverlayBorderColor = Colors.selectOverlay.cpy()
+    val zoomOverlayRectColor = Colors.zoomOverlay.cpy().mul(1f, 1f, 1f, 0.2f)
+    val zoomOverlayBorderColor = Colors.zoomOverlay.cpy()
+
+
+    var image: Pixmap? = null
         set(value) {
             if (value != null) {
-                imageProperty.width = value.regionWidth.toFloat()
-                imageProperty.height = value.regionHeight.toFloat()
+                imageProperty.width = value.width.toFloat()
+                imageProperty.height = value.height.toFloat()
+                imageRegion = TextureRegion(Texture(value))
             } else {
                 imageProperty.width = 0f
                 imageProperty.height = 0f
             }
             field = value
         }
+    var imageRegion: TextureRegion? = null
 
 
     init {
         touchable = Touchable.enabled
         addListener(ImageViewerController(this, imageProperty, zoomBox, selectBox))
+
+        Bus.subscribe(SelectionCopyMessage::class.java) {
+            if (image != null) {
+                Clipboard.copy(image,
+                        selectBox.x.toInt(),
+                        ((image as Pixmap).height - selectBox.y.toInt() - selectBox.height.toInt()),
+                        selectBox.width.toInt(),
+                        selectBox.height.toInt())
+            }
+        }
     }
 
     override fun hit(x: Float, y: Float, touchable: Boolean): Actor? {
@@ -53,7 +77,7 @@ class ImageViewer : Actor() {
     override fun draw(batch: Batch, parentAlpha: Float) {
         // draw image
         if (image != null) {
-            batch.draw(image, imageProperty.x, imageProperty.y,
+            batch.draw(imageRegion, imageProperty.x, imageProperty.y,
                     0f, 0f,
                     imageProperty.width, imageProperty.height,
                     imageProperty.scale, imageProperty.scale, 0f)
@@ -67,20 +91,20 @@ class ImageViewer : Actor() {
                 selectBox.y * imageProperty.scale + imageProperty.y,
                 selectBox.width * imageProperty.scale,
                 selectBox.height * imageProperty.scale)
-        batch.color = Color(1f, 1f, 1f, 0.2f)
+        batch.color = selectOverlayRectColor
         batch.drawRect(selectDrawBox)
-        batch.color = Color.GREEN
-        batch.drawRectBorder(selectDrawBox, 1f)
+        batch.color = selectOverlayBorderColor
+        batch.drawRectBorder(selectDrawBox, 0.5f)
 
         zoomDrawBox.set(
                 zoomBox.x * imageProperty.scale + imageProperty.x,
                 zoomBox.y * imageProperty.scale + imageProperty.y,
                 zoomBox.width * imageProperty.scale,
                 zoomBox.height * imageProperty.scale)
-        batch.color = Color(1f, 1f, 1f, 0.2f)
+        batch.color = zoomOverlayRectColor
         batch.drawRect(zoomDrawBox)
-        batch.color = Color.RED
-        batch.drawRectBorder(zoomDrawBox, 1f)
+        batch.color = zoomOverlayBorderColor
+        batch.drawRectBorder(zoomDrawBox, 0.5f)
 
         batch.color = color
 
@@ -153,6 +177,9 @@ class ImageViewer : Actor() {
             val dx = x - prevX
             val dy = y - prevY
 
+            val x2 = imageProperty.width
+            val y2 = imageProperty.height
+
             when(mode) {
                 Mode.move -> {
                     imageProperty.x += dx
@@ -165,6 +192,7 @@ class ImageViewer : Actor() {
                             screenToPixelX(x) - screenToPixelX(initX),
                             screenToPixelY(y) - screenToPixelY(initY))
                             .adjust()
+                            .clamp(0f, 0f, x2, y2)
                 }
                 Mode.select -> {
                     selectBox.set(
@@ -174,9 +202,20 @@ class ImageViewer : Actor() {
                             (screenToPixelY(y) - screenToPixelY(initY)))
                             .adjust()
                             .digitize()
-                }
+                            .clamp(0f, 0f, x2, y2)
 
+
+                    Bus.send(SelectBoxMessage(
+                            selectBox.x.toInt(),
+                            selectBox.y.toInt(),
+                            selectBox.width.toInt(),
+                            selectBox.height.toInt()))
+                }
             }
+
+            Bus.send(CursorPositionMessage(
+                    screenToPixelX(x).toInt(),
+                    screenToPixelY(y).toInt()))
 
             prevX = x
             prevY = y
@@ -196,6 +235,13 @@ class ImageViewer : Actor() {
                     zoomBox.reset()
                 }
             }
+        }
+
+        override fun mouseMoved(event: InputEvent?, x: Float, y: Float): Boolean {
+            Bus.send(CursorPositionMessage(
+                    screenToPixelX(x).toInt(),
+                    screenToPixelY(y).toInt()))
+            return true
         }
 
         override fun enter(event: InputEvent?, x: Float, y: Float, pointer: Int, fromActor: Actor?) {

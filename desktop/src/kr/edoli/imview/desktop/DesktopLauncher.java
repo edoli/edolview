@@ -15,7 +15,7 @@ public class DesktopLauncher {
 
         config.setWindowedMode(1280, 720);
 
-		config.setBackBufferConfig(8, 8, 8, 8, 16, 0, 16);
+		config.setBackBufferConfig(8, 8, 8, 8, 16, 0, 4);
 		config.useVsync(true);
 
 		if (arg.length > 0) {

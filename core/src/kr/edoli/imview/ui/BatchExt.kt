@@ -1,8 +1,8 @@
-package kr.edoli.imview.ui.ext
+package kr.edoli.imview.ui
 
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.math.Rectangle
-import kr.edoli.imview.ui.White
+import kr.edoli.edoliui.widget.Textures
 
 /**
  * Created by daniel on 16. 9. 10.
@@ -48,7 +48,7 @@ fun Batch.drawQuad(x1: Float, y1: Float, x2: Float, y2: Float,
     vertices[idx++] = 1f
     vertices[idx++] = 1f
 
-    draw(White, vertices, 0, 20);
+    draw(Textures.white, vertices, 0, 20);
 }
 
 fun Batch.drawLine(x1: Float, y1: Float, x2: Float, y2: Float, lineWidth: Float) {
@@ -76,7 +76,7 @@ fun Batch.drawRectBorder(x: Float, y: Float, width: Float, height: Float, lineWi
 }
 
 fun Batch.drawBorder(x1: Float, y1: Float, x2: Float, y2: Float
-, x3: Float, y3: Float, x4: Float, y4: Float, lineWidth: Float) {
+                     , x3: Float, y3: Float, x4: Float, y4: Float, lineWidth: Float) {
     drawLine(x1, y1, x2, y2, lineWidth);
     drawLine(x2, y2, x3, y3, lineWidth);
     drawLine(x3, y3, x4, y4, lineWidth);

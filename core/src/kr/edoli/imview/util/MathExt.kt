@@ -42,3 +42,22 @@ fun Rectangle.reset(): Rectangle {
     height = 0f
     return this
 }
+fun Rectangle.clamp(x1: Float, y1: Float, x2: Float, y2: Float): Rectangle {
+    if (x + width < x1 || x > x2 || y + height < y1 || y > y2) {
+        reset()
+        return this
+    }
+
+
+    if (x < x1) {
+        width -= (x1 - x)
+        x = x1
+    }
+    if (y < y1) {
+        height -= (y1 - y)
+        y = y1
+    }
+    if (x + width > x2) width = x2 - x
+    if (y + height > y2) height = y2 - y
+    return this
+}

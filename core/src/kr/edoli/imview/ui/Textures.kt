@@ -1,24 +1,26 @@
-package kr.edoli.imview.ui
+package kr.edoli.edoliui.widget
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 
 /**
- * Created by daniel on 16. 9. 10.
+ * Created by daniel on 16. 1. 8.
  */
+object Textures {
+    val white = produceWhiteTexture()
 
-val White = colorTexture(Color.WHITE)
+    private fun produceWhiteTexture(): Texture {
+        val pixmap = Pixmap(1, 1, Pixmap.Format.RGB565)
 
-fun colorTexture(color: Color) : Texture {
-    val pixmap = Pixmap(1, 1, Pixmap.Format.RGBA8888)
+        pixmap.setColor(Color.WHITE)
+        pixmap.fill()
 
-    pixmap.setColor(color)
-    pixmap.fill()
+        val tex = Texture(pixmap)
+        tex.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
 
-    val texture = Texture(pixmap)
+        pixmap.dispose()
 
-    pixmap.dispose()
-
-    return texture
+        return tex
+    }
 }

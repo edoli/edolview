@@ -6,12 +6,8 @@ sourceCompatibility = 1.7
 
 sourceSets.main.java.srcDirs = [ "src/" ]
 
-
-eclipse.project {
-    name = appName + "-core"
-}
 buildscript {
-    ext.kotlin_version = '1.0.3'
+    ext.kotlin_version = '1.0.4'
     repositories {
         mavenCentral()
     }
@@ -22,9 +18,7 @@ buildscript {
 repositories {
     mavenCentral()
 }
-dependencies {
-    compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-}
+
 sourceSets {
     main.java.srcDirs += 'src/main/kotlin'
 }

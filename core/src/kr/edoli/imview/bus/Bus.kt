@@ -1,4 +1,4 @@
-package kr.edoli.imview.util
+package kr.edoli.imview.bus
 
 import rx.subjects.PublishSubject
 import rx.subjects.SerializedSubject
@@ -15,10 +15,10 @@ object Bus {
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <T> subscribe(clazz: Class<T>, body: (T) -> Unit) {
+    fun <T> subscribe(clazz: Class<T>, update: T.() -> Unit) {
         bus.subscribe {
             if (it.javaClass == clazz) {
-                body(it as T)
+                (it as T).update()
             }
         }
     }

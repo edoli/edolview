@@ -1,11 +1,17 @@
 package kr.edoli.imview.ui.screen
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.Input
+import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import kr.edoli.imview.res.Colors
+import kr.edoli.imview.ui.ColorActor
+import kr.edoli.imview.ui.view.ContextGroup
 import kr.edoli.imview.ui.view.ImageViewer
+import kr.edoli.imview.ui.view.StatusBar
 
 /**
  * Created by daniel on 16. 9. 10.
@@ -16,11 +22,15 @@ class MainScreen : BaseScreen() {
     val imageViewer = ImageViewer()
 
     init {
+        val background = ColorActor(Colors.background)
+        background.width = stage.width
+        background.height = stage.height
+
         val mainLayout = Table()
         mainLayout.setFillParent(true)
 
         val imageViewWrapper = Table()
-        imageViewer.image = TextureRegion(Texture(Gdx.files.internal("test.png")))
+        imageViewer.image = Pixmap(Gdx.files.internal("test.png"))
         imageViewWrapper.isTransform = true
         imageViewWrapper.clip = true
         imageViewWrapper.touchable = Touchable.childrenOnly
@@ -30,11 +40,27 @@ class MainScreen : BaseScreen() {
         centerLayout.add(imageViewWrapper).expand().fill()
 
         mainLayout.add().height(32f).expandX().fillX().row()
+        mainLayout.add(ColorActor(Colors.border)).height(1f).expandX().fillX().row()
         mainLayout.add(centerLayout).expand().fill().row()
-        mainLayout.add().height(32f).expandX().fillX().row()
+        mainLayout.add(ColorActor(Colors.border)).height(1f).expandX().fillX().row()
+        mainLayout.add(StatusBar()).height(32f).expandX().fillX().row()
 
-        mainLayout.debug()
 
+        val contextGroup = ContextGroup()
+
+        contextGroup.width = stage.width
+        contextGroup.height = stage.height
+
+
+        stage.root.addListener(object : ClickListener(Input.Buttons.RIGHT) {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                contextGroup.menuPosition(x, y)
+                contextGroup.show()
+            }
+        })
+
+        stage.addActor(background)
         stage.addActor(mainLayout)
+        stage.addActor(contextGroup)
     }
 }
