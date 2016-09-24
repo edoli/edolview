@@ -24,12 +24,14 @@ import org.lwjgl.glfw.GLFWDropCallback
 class Toolbar : Table() {
 
 
-    val imageListWindowButton = UI.iconButton(FontAwesomes.FaList)
+    val imageListWindowButton = UI.iconButton(FontAwesomes.FaTh)
 
     init {
 
+        pad(0f, 8f, 0f, 8f)
+
         align(Align.left)
-        add(imageListWindowButton)
+        add(imageListWindowButton).size(24f)
 
         imageListWindowButton.onClick {
             if (WindowUtils.hasWindow(Windows.ImageList)) {

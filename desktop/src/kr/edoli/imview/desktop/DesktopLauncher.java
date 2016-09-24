@@ -2,7 +2,6 @@ package kr.edoli.imview.desktop;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
-import com.badlogic.gdx.tools.texturepacker.TexturePacker;
 import kr.edoli.imview.ImView;
 
 public class DesktopLauncher {
@@ -25,7 +24,9 @@ public class DesktopLauncher {
 		}
     }
 
+    /*
 	public static void pack() {
 		TexturePacker.process("../../inputdir", ".", "images");
 	}
+	*/
 }
