@@ -3,6 +3,7 @@ package kr.edoli.imview.ui.screen
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 
@@ -11,7 +12,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport
  */
 
 open class BaseScreen : Screen {
-    val stage = Stage(ScreenViewport())
+    val stage = Stage(ScreenViewport(), PolygonSpriteBatch())
 
     override fun show() {
         Gdx.input.inputProcessor = stage

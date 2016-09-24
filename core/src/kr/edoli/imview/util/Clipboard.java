@@ -43,6 +43,12 @@ public class Clipboard {
     }
 
     public static void copy(Pixmap pixmap, int offsetX, int offsetY, int width, int height) {
+        if (width == 0 || height == 0 ||
+                offsetX < 0 || offsetY < 0 ||
+                offsetX + width > pixmap.getWidth() || offsetY + height > pixmap.getHeight()) {
+            return;
+        }
+
         ByteBuffer byteBuffer = pixmap.getPixels();
 
         int length = byteBuffer.capacity();

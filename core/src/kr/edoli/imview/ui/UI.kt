@@ -22,9 +22,9 @@ object UI {
     val iconButtonStyle = initStyle(TextButton.TextButtonStyle()) {
         font = Fonts.iconicFont
         fontColor = Color.WHITE
-        up = ColorDrawable(Colors.buttonUp)
-        over = ColorDrawable(Colors.buttonOver)
-        down = ColorDrawable(Colors.buttonDown)
+        up = ColorDrawable(Colors.buttonUp, 4f)
+        over = ColorDrawable(Colors.buttonOver, 4f)
+        down = ColorDrawable(Colors.buttonDown, 4f)
     }
 
     val textButtonStyle = initStyle(TextButton.TextButtonStyle()) {

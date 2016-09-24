@@ -9,12 +9,12 @@ leftArrow
   xy: 2, 2
   size: 12, 12
   orig: 12, 12
-  offset: 0, 0
+  start: 0, 0
   index: -1
 rightArrow
   rotate: false
   xy: 16, 2
   size: 12, 12
   orig: 12, 12
-  offset: 0, 0
+  start: 0, 0
   index: -1
