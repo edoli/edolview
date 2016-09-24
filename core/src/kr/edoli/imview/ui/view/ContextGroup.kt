@@ -32,6 +32,10 @@ class ContextGroup : Group() {
     fun show() {
         touchable = Touchable.enabled
         contextMenu.isVisible = true
+
+        if (stage != null) {
+            stage.scrollFocus = this
+        }
     }
 
     fun hide() {

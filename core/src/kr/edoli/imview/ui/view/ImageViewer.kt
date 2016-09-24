@@ -5,6 +5,7 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.math.Rectangle
+import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
@@ -15,6 +16,7 @@ import kr.edoli.imview.bus.CursorPositionMessage
 import kr.edoli.imview.bus.SelectBoxMessage
 import kr.edoli.imview.bus.SelectionCopyMessage
 import kr.edoli.imview.res.Colors
+import kr.edoli.imview.ui.drawLine
 import kr.edoli.imview.ui.drawRect
 import kr.edoli.imview.ui.drawRectBorder
 import kr.edoli.imview.util.*
@@ -33,11 +35,14 @@ class ImageViewer : Actor() {
     val selectDrawBox = Rectangle()
     val zoomDrawBox = Rectangle()
 
+    val mousePotition = Vector2()
+
     // Colors
     val selectOverlayRectColor = Colors.selectOverlay.cpy().mul(1f, 1f, 1f, 0.2f)
     val selectOverlayBorderColor = Colors.selectOverlay.cpy()
     val zoomOverlayRectColor = Colors.zoomOverlay.cpy().mul(1f, 1f, 1f, 0.2f)
     val zoomOverlayBorderColor = Colors.zoomOverlay.cpy()
+    val mouseCrossColor = Colors.mouseCross.cpy()
 
 
     var image: Pixmap? = null
@@ -57,7 +62,7 @@ class ImageViewer : Actor() {
 
     init {
         touchable = Touchable.enabled
-        addListener(ImageViewerController(this, imageProperty, zoomBox, selectBox))
+        addListener(ImageViewerController(this, imageProperty, zoomBox, selectBox, mousePotition))
 
         Bus.subscribe(SelectionCopyMessage::class.java) {
             if (image != null) {
@@ -83,9 +88,9 @@ class ImageViewer : Actor() {
                     imageProperty.scale, imageProperty.scale, 0f)
         }
 
-        // draw overlay
-        color = batch.color
+        val prevColor = batch.color
 
+        // draw overlay
         selectDrawBox.set(
                 selectBox.x * imageProperty.scale + imageProperty.x,
                 selectBox.y * imageProperty.scale + imageProperty.y,
@@ -106,7 +111,13 @@ class ImageViewer : Actor() {
         batch.color = zoomOverlayBorderColor
         batch.drawRectBorder(zoomDrawBox, 0.5f)
 
-        batch.color = color
+        // draw mouse cross
+        batch.color = mouseCrossColor
+        batch.drawLine(0f, mousePotition.y + 0.5f, width, mousePotition.y + 0.5f, 1f)
+        batch.drawLine(mousePotition.x + 0.5f, 0f, mousePotition.x + 0.5f, height, 1f)
+
+
+        batch.color = prevColor
 
         super.draw(batch, parentAlpha)
     }
@@ -119,11 +130,14 @@ class ImageViewer : Actor() {
             var scale: Float = 1f
     )
 
+
+    // Controller
     class ImageViewerController(
             val imageViewer: Actor,
             val imageProperty: ImageProperty,
             val zoomBox: Rectangle,
-            val selectBox: Rectangle) : InputListener() {
+            val selectBox: Rectangle,
+            val mousePosition: Vector2) : InputListener() {
 
         enum class Mode {
             move, select, zoom
@@ -213,9 +227,7 @@ class ImageViewer : Actor() {
                 }
             }
 
-            Bus.send(CursorPositionMessage(
-                    screenToPixelX(x).toInt(),
-                    screenToPixelY(y).toInt()))
+            moved(x, y)
 
             prevX = x
             prevY = y
@@ -238,9 +250,7 @@ class ImageViewer : Actor() {
         }
 
         override fun mouseMoved(event: InputEvent?, x: Float, y: Float): Boolean {
-            Bus.send(CursorPositionMessage(
-                    screenToPixelX(x).toInt(),
-                    screenToPixelY(y).toInt()))
+            moved(x, y)
             return true
         }
 
@@ -261,6 +271,15 @@ class ImageViewer : Actor() {
             imageProperty.y = y - fracY * imageProperty.scale
 
             return true
+        }
+
+        fun moved(x: Float, y: Float) {
+            Bus.send(CursorPositionMessage(
+                    screenToPixelX(x).toInt(),
+                    screenToPixelY(y).toInt()))
+
+            mousePosition.x = x
+            mousePosition.y = y
         }
 
     }

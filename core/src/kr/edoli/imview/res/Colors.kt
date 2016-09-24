@@ -12,6 +12,7 @@ object Colors {
 
     val selectOverlay = Color.valueOf("#41EAD4")
     val zoomOverlay = Color.valueOf("#F71735")
+    val mouseCross = Color.valueOf("#A2DE3B")
 
     val buttonUp = Color.valueOf("#1E1E20")
     val buttonOver = Color.valueOf("#9A8E63")
