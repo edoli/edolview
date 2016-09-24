@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Cursor
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.ui.TextField
@@ -69,7 +70,9 @@ fun <T : Actor> T.cursor(cursor: Cursor.SystemCursor): T {
         override fun enter(event: InputEvent?, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
             super.enter(event, x, y, pointer, fromActor)
             if (isOver) {
-                Gdx.graphics.setSystemCursor(cursor)
+                if (this@cursor is Button && !this@cursor.isDisabled || this@cursor !is Button) {
+                    Gdx.graphics.setSystemCursor(cursor)
+                }
             }
         }
 

@@ -1,8 +1,6 @@
 package kr.edoli.imview.bus
 
-import kr.edoli.imview.util.Windows
-
 /**
  * Created by daniel on 16. 9. 24.
  */
-data class WindowOpenMessage(val windowName: Windows)
+data class WindowOpenMessage(val windowName: String)

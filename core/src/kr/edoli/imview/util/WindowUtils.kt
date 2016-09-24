@@ -12,7 +12,7 @@ import java.util.*
  */
 object WindowUtils {
 
-    private val windowMap = HashMap<Windows, Long>()
+    private val windowMap = HashMap<String, Long>()
 
     fun getWindows(): com.badlogic.gdx.utils.Array<Lwjgl3Window> {
         val app = Gdx.app as Lwjgl3Application
@@ -44,19 +44,27 @@ object WindowUtils {
         return field.get(window) as Long
     }
 
-    fun hasWindow(windowName: Windows): Boolean {
+    fun hasWindow(windowName: String): Boolean {
         return windowMap.containsKey(windowName)
+    }
+
+    fun closeAllWindow() {
+        Gdx.app.postRunnable {
+            for (window in getWindows()) {
+                window.closeWindow()
+            }
+        }
     }
 
     fun closeWindow(index: Int) {
         getWindow(index).closeWindow()
     }
 
-    fun removeWindow(windowName: Windows) {
+    fun removeWindow(windowName: String) {
         windowMap.remove(windowName)
     }
 
-    fun getIndexOf(windowName: Windows): Int {
+    fun getIndexOf(windowName: String): Int {
         val windows = getWindows()
         val handle = windowMap[windowName]
         for ((i, window) in windows.withIndex()) {
@@ -67,7 +75,7 @@ object WindowUtils {
         return -1
     }
 
-    fun newWindow(windowName: Windows, listener: ApplicationListener, config: Lwjgl3WindowConfiguration): Lwjgl3Window {
+    fun newWindow(windowName: String, listener: ApplicationListener, config: Lwjgl3WindowConfiguration): Lwjgl3Window {
         val app = Gdx.app as Lwjgl3Application
         val window = app.newWindow(listener, config)
         windowMap[windowName] = getHandle(window)

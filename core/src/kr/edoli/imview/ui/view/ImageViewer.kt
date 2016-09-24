@@ -10,6 +10,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.CursorPositionMessage
@@ -24,7 +25,7 @@ import kr.edoli.imview.util.*
 /**
  * Created by daniel on 16. 9. 10.
  */
-class ImageViewer : Actor() {
+class ImageViewer : Widget() {
 
     val viewerId = generateId()
     val imageProperty = ImageProperty()

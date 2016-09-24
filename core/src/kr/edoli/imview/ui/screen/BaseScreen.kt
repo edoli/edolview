@@ -23,7 +23,7 @@ open class BaseScreen : Screen {
     }
 
     override fun resize(width: Int, height: Int) {
-        stage.viewport.update(width, height)
+        stage.viewport.update(width, height, true)
     }
 
     override fun hide() {
