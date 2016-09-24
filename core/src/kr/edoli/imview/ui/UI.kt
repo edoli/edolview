@@ -68,8 +68,7 @@ fun <T : Actor> T.cursor(cursor: Cursor.SystemCursor): T {
         }
 
         override fun exit(event: InputEvent?, x: Float, y: Float, pointer: Int, toActor: Actor?) {
-            super.exit(event, x, y, pointer, toActor)
-            if (!isOver) {
+            if (pointer == -1) {
                 Gdx.graphics.setSystemCursor(com.badlogic.gdx.graphics.Cursor.SystemCursor.Arrow)
             }
         }
