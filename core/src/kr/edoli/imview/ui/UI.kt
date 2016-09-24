@@ -25,6 +25,9 @@ object UI {
         up = ColorDrawable(Colors.buttonUp, 4f)
         over = ColorDrawable(Colors.buttonOver, 4f)
         down = ColorDrawable(Colors.buttonDown, 4f)
+
+        disabled = ColorDrawable(Colors.buttonUp, 4f)
+        disabledFontColor= Color.GRAY
     }
 
     val textButtonStyle = initStyle(TextButton.TextButtonStyle()) {
@@ -33,6 +36,9 @@ object UI {
         up = ColorDrawable(Colors.buttonUp)
         over = ColorDrawable(Colors.buttonOver)
         down = ColorDrawable(Colors.buttonDown)
+
+        disabled = ColorDrawable(Colors.buttonUp, 4f)
+        disabledFontColor= Color.GRAY
     }
 
     val labelStyle = initStyle(Label.LabelStyle()) {

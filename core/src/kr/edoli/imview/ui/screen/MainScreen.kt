@@ -12,6 +12,7 @@ import kr.edoli.imview.ui.ColorActor
 import kr.edoli.imview.ui.view.ContextGroup
 import kr.edoli.imview.ui.view.ImageViewer
 import kr.edoli.imview.ui.view.StatusBar
+import kr.edoli.imview.ui.view.Toolbar
 
 /**
  * Created by daniel on 16. 9. 10.
@@ -39,7 +40,7 @@ class MainScreen : BaseScreen() {
         val centerLayout = Table()
         centerLayout.add(imageViewWrapper).expand().fill()
 
-        mainLayout.add().height(32f).expandX().fillX().row()
+        mainLayout.add(Toolbar()).height(32f).expandX().fillX().row()
         mainLayout.add(ColorActor(Colors.border)).height(1f).expandX().fillX().row()
         mainLayout.add(centerLayout).expand().fill().row()
         mainLayout.add(ColorActor(Colors.border)).height(1f).expandX().fillX().row()

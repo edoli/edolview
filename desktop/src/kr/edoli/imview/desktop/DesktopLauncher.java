@@ -16,15 +16,14 @@ public class DesktopLauncher {
         config.setWindowedMode(1280, 720);
 
 		config.setBackBufferConfig(8, 8, 8, 8, 16, 0, 4);
-		config.useVsync(true);
+		config.useVsync(false);
 
 		if (arg.length > 0) {
 			new Lwjgl3Application(new ImView(), config);
 		} else {
 			new Lwjgl3Application(new ImView(), config);
 		}
-
-	}
+    }
 
 	public static void pack() {
 		TexturePacker.process("../../inputdir", ".", "images");
