@@ -1,5 +1,6 @@
 package kr.edoli.imview.ui.view
 
+import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
@@ -123,6 +124,15 @@ class ImageViewer : Widget() {
         super.draw(batch, parentAlpha)
     }
 
+    fun selectAll() {
+        selectBox.set(0f, 0f, imageProperty.width, imageProperty.height)
+    }
+
+
+    fun selectNone() {
+        selectBox.reset()
+    }
+
     data class ImageProperty(
             var width: Float = 0f,
             var height: Float = 0f,
@@ -134,7 +144,7 @@ class ImageViewer : Widget() {
 
     // Controller
     class ImageViewerController(
-            val imageViewer: Actor,
+            val imageViewer: ImageViewer,
             val imageProperty: ImageProperty,
             val zoomBox: Rectangle,
             val selectBox: Rectangle,
@@ -163,7 +173,23 @@ class ImageViewer : Widget() {
             return (y - imageProperty.y) / imageProperty.scale
         }
 
-        override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+        override fun keyDown(event: InputEvent, keycode: Int): Boolean {
+            if (keycode == Input.Keys.A && UIUtils.ctrl()) {
+                imageViewer.selectAll()
+            }
+
+            if (keycode == Input.Keys.C && UIUtils.ctrl()) {
+                Bus.send(SelectionCopyMessage())
+            }
+
+            if (keycode == Input.Keys.ESCAPE) {
+                imageViewer.selectNone()
+            }
+
+            return super.keyDown(event, keycode)
+        }
+
+        override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
             initX = x
             initY = y
             prevX = x
@@ -183,6 +209,10 @@ class ImageViewer : Widget() {
                         0f, 0f)
             } else {
                 mode = Mode.move
+            }
+
+            if (event.stage != null) {
+                event.stage.keyboardFocus = imageViewer
             }
 
             return true
