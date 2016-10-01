@@ -8,13 +8,17 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import kr.edoli.imview.bus.Bus
+import kr.edoli.imview.bus.FileDropMessage
 import kr.edoli.imview.res.Colors
 import kr.edoli.imview.ui.ColorWidget
 import kr.edoli.imview.ui.view.ContextGroup
 import kr.edoli.imview.ui.view.ImageViewer
 import kr.edoli.imview.ui.view.StatusBar
 import kr.edoli.imview.ui.view.Toolbar
+import kr.edoli.imview.util.PathManager
 import kr.edoli.imview.util.WindowUtils
+import kr.edoli.imview.util.Windows
 
 /**
  * Created by daniel on 16. 9. 10.
@@ -53,12 +57,6 @@ class MainScreen : BaseScreen() {
         contextGroup.height = stage.height
 
 
-        stage.root.addListener(object : ClickListener(Input.Buttons.RIGHT) {
-            override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                contextGroup.menuPosition(x, y)
-                contextGroup.show()
-            }
-        })
 
         stage.addActor(background)
         stage.addActor(mainLayout)
@@ -81,16 +79,54 @@ class MainScreen : BaseScreen() {
             override fun deiconified() {
             }
 
+            @Suppress("UNCHECKED_CAST")
             override fun filesDropped(files: Array<out String>?) {
-                if (files != null) {
-
-                }
+                Bus.send(FileDropMessage(Windows.Main, files as Array<String>))
             }
 
             override fun focusLost() {
             }
-
         }
+
+        val pathManager = PathManager()
+
+        Bus.subscribe(FileDropMessage::class.java) {
+            if (windowName == Windows.Main) {
+                val path = files[0]
+                if (pathManager.isImage(path)) {
+                    pathManager.setPath(path)
+                    Gdx.app.graphics.setTitle(path)
+                    imageViewer.image = Pixmap(Gdx.files.absolute(path))
+                }
+            }
+        }
+
+
+        stage.root.addListener(object : ClickListener(Input.Buttons.RIGHT) {
+            override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                contextGroup.menuPosition(x, y)
+                contextGroup.show()
+            }
+
+            override fun keyDown(event: InputEvent?, keycode: Int): Boolean {
+                if (keycode == Input.Keys.LEFT) {
+                    val path = pathManager.prev()
+                    if (path != null) {
+                        Gdx.app.graphics.setTitle(path)
+                        imageViewer.image = Pixmap(Gdx.files.absolute(path))
+                    }
+                }
+
+                if (keycode == Input.Keys.RIGHT) {
+                    val path = pathManager.next()
+                    if (path != null) {
+                        Gdx.app.graphics.setTitle(path)
+                        imageViewer.image = Pixmap(Gdx.files.absolute(path))
+                    }
+                }
+                return super.keyDown(event, keycode)
+            }
+        })
     }
 
     override fun resize(width: Int, height: Int) {
