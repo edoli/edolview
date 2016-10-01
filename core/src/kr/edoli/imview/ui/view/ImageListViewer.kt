@@ -91,6 +91,10 @@ class ImageListViewer : Table() {
         size / 1.2f
     }
 
+    fun psnr(pixmapA: Pixmap, pixmapB: Pixmap) {
+
+    }
+
     class ImageSummary : Actor() {
 
         var region: TextureRegion? = null
