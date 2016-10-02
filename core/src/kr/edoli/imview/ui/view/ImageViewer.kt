@@ -63,17 +63,24 @@ class ImageViewer : Widget() {
             image = it
         }
 
-        /*
         Bus.subscribe(SelectionCopyMessage::class.java) {
             if (image != null) {
-                Clipboard.copy(image,
-                        selectBox.x.toInt(),
-                        ((image as Pixmap).height - selectBox.y.toInt() - selectBox.height.toInt()),
-                        selectBox.width.toInt(),
-                        selectBox.height.toInt())
+                Context.selectBox.once {
+                    val selectBox = it
+
+                    if (selectBox.width != 0f && selectBox.height != 0f) {
+                        Clipboard.copy(image,
+                                selectBox.x.toInt(),
+                                ((image as Pixmap).height - selectBox.y.toInt() - selectBox.height.toInt()),
+                                selectBox.width.toInt(),
+                                selectBox.height.toInt())
+                    } else {
+                        Clipboard.copy(image)
+                    }
+
+                }
             }
         }
-        */
     }
 
     override fun hit(x: Float, y: Float, touchable: Boolean): Actor? {
