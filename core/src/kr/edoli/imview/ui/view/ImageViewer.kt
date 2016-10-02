@@ -13,9 +13,8 @@ import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
+import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
-import kr.edoli.imview.bus.CursorPositionMessage
-import kr.edoli.imview.bus.SelectBoxMessage
 import kr.edoli.imview.bus.SelectionCopyMessage
 import kr.edoli.imview.res.Colors
 import kr.edoli.imview.ui.drawLine
@@ -31,9 +30,6 @@ class ImageViewer : Widget() {
     val viewerId = generateId()
     val imageProperty = ImageProperty()
 
-    val selectBox = Rectangle()
-    val zoomBox = Rectangle()
-
     val selectDrawBox = Rectangle()
     val zoomDrawBox = Rectangle()
 
@@ -47,25 +43,27 @@ class ImageViewer : Widget() {
     val mouseCrossColor = Colors.mouseCross.cpy()
 
 
-    var image: Pixmap? = null
-        set(value) {
-            if (value != null) {
-                imageProperty.width = value.width.toFloat()
-                imageProperty.height = value.height.toFloat()
-                imageRegion = TextureRegion(Texture(value))
-            } else {
-                imageProperty.width = 0f
-                imageProperty.height = 0f
-            }
-            field = value
-        }
-    var imageRegion: TextureRegion? = null
+    private var image: Pixmap? = null
+    private var imageRegion: TextureRegion? = null
 
 
     init {
         touchable = Touchable.enabled
-        addListener(ImageViewerController(this, imageProperty, zoomBox, selectBox, mousePotition))
+        addListener(ImageViewerController(this, imageProperty, mousePotition))
 
+        Context.mainImage.subscribe {
+            if (it != null) {
+                imageProperty.width = it.width.toFloat()
+                imageProperty.height = it.height.toFloat()
+                imageRegion = TextureRegion(Texture(it))
+            } else {
+                imageProperty.width = 0f
+                imageProperty.height = 0f
+            }
+            image = it
+        }
+
+        /*
         Bus.subscribe(SelectionCopyMessage::class.java) {
             if (image != null) {
                 Clipboard.copy(image,
@@ -75,6 +73,7 @@ class ImageViewer : Widget() {
                         selectBox.height.toInt())
             }
         }
+        */
     }
 
     override fun hit(x: Float, y: Float, touchable: Boolean): Actor? {
@@ -92,22 +91,27 @@ class ImageViewer : Widget() {
 
         val prevColor = batch.color
 
-        // draw overlay
-        selectDrawBox.set(
-                selectBox.x * imageProperty.scale + imageProperty.x,
-                selectBox.y * imageProperty.scale + imageProperty.y,
-                selectBox.width * imageProperty.scale,
-                selectBox.height * imageProperty.scale)
+        // draw select box
+        Context.selectBox.once {
+            selectDrawBox.set(
+                    it.x * imageProperty.scale + imageProperty.x,
+                    it.y * imageProperty.scale + imageProperty.y,
+                    it.width * imageProperty.scale,
+                    it.height * imageProperty.scale)
+        }
         batch.color = selectOverlayRectColor
         batch.drawRect(selectDrawBox)
         batch.color = selectOverlayBorderColor
         batch.drawRectBorder(selectDrawBox, 0.5f)
 
-        zoomDrawBox.set(
-                zoomBox.x * imageProperty.scale + imageProperty.x,
-                zoomBox.y * imageProperty.scale + imageProperty.y,
-                zoomBox.width * imageProperty.scale,
-                zoomBox.height * imageProperty.scale)
+        // draw zoom box
+        Context.zoomBox.once {
+            zoomDrawBox.set(
+                    it.x * imageProperty.scale + imageProperty.x,
+                    it.y * imageProperty.scale + imageProperty.y,
+                    it.width * imageProperty.scale,
+                    it.height * imageProperty.scale)
+        }
         batch.color = zoomOverlayRectColor
         batch.drawRect(zoomDrawBox)
         batch.color = zoomOverlayBorderColor
@@ -125,12 +129,12 @@ class ImageViewer : Widget() {
     }
 
     fun selectAll() {
-        selectBox.set(0f, 0f, imageProperty.width, imageProperty.height)
+        Context.selectBox.update { it.set(0f, 0f, imageProperty.width, imageProperty.height) }
     }
 
 
     fun selectNone() {
-        selectBox.reset()
+        Context.selectBox.update { it.reset() }
     }
 
     data class ImageProperty(
@@ -146,8 +150,6 @@ class ImageViewer : Widget() {
     class ImageViewerController(
             val imageViewer: ImageViewer,
             val imageProperty: ImageProperty,
-            val zoomBox: Rectangle,
-            val selectBox: Rectangle,
             val mousePosition: Vector2) : InputListener() {
 
         enum class Mode {
@@ -197,16 +199,20 @@ class ImageViewer : Widget() {
 
             if (UIUtils.ctrl()) {
                 mode = Mode.zoom
-                zoomBox.set(
+                Context.zoomBox.update {
+                    it.set(
                         screenToPixelX(initX),
                         screenToPixelY(initY),
                         0f, 0f)
+                }
             } else if (UIUtils.shift()) {
                 mode = Mode.select
-                selectBox.set(
+                Context.selectBox.update {
+                    it.set(
                         screenToPixelX(initX).floor(),
                         screenToPixelY(initY).floor(),
                         0f, 0f)
+                }
             } else {
                 mode = Mode.move
             }
@@ -231,34 +237,31 @@ class ImageViewer : Widget() {
                     imageProperty.y += dy
                 }
                 Mode.zoom -> {
-                    zoomBox.set(
-                            screenToPixelX(initX),
-                            screenToPixelY(initY),
-                            screenToPixelX(x) - screenToPixelX(initX),
-                            screenToPixelY(y) - screenToPixelY(initY))
-                            .adjust()
-                            .clamp(0f, 0f, x2, y2)
+                    Context.zoomBox.update {
+                        it.set(
+                                screenToPixelX(initX),
+                                screenToPixelY(initY),
+                                screenToPixelX(x) - screenToPixelX(initX),
+                                screenToPixelY(y) - screenToPixelY(initY))
+                                .adjust()
+                                .clamp(0f, 0f, x2, y2)
+                    }
                 }
                 Mode.select -> {
-                    selectBox.set(
-                            screenToPixelX(initX),
-                            screenToPixelY(initY),
-                            (screenToPixelX(x) - screenToPixelX(initX)),
-                            (screenToPixelY(y) - screenToPixelY(initY)))
-                            .adjust()
-                            .digitize()
-                            .clamp(0f, 0f, x2, y2)
-
-
-                    Bus.send(SelectBoxMessage(
-                            selectBox.x.toInt(),
-                            selectBox.y.toInt(),
-                            selectBox.width.toInt(),
-                            selectBox.height.toInt()))
+                    Context.selectBox.update {
+                        it.set(
+                                screenToPixelX(initX),
+                                screenToPixelY(initY),
+                                (screenToPixelX(x) - screenToPixelX(initX)),
+                                (screenToPixelY(y) - screenToPixelY(initY)))
+                                .adjust()
+                                .digitize()
+                                .clamp(0f, 0f, x2, y2)
+                    }
                 }
             }
 
-            moved(x, y)
+            cursorMoved(x, y)
 
             prevX = x
             prevY = y
@@ -267,21 +270,24 @@ class ImageViewer : Widget() {
         override fun touchUp(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int) {
             when(mode) {
                 Mode.zoom -> {
-                    val widthScale = imageViewer.width / zoomBox.width
-                    val heightScale = imageViewer.height / zoomBox.height
-                    imageProperty.scale = Math.min(widthScale, heightScale)
-                    imageProperty.x = (imageViewer.width - (zoomBox.x * 2 + zoomBox.width) * imageProperty.scale) / 2
-                    imageProperty.y = (imageViewer.height - (zoomBox.y * 2 + zoomBox.height) * imageProperty.scale) / 2
+                    // Zoom
+                    Context.zoomBox.once {
+                        val widthScale = imageViewer.width / it.width
+                        val heightScale = imageViewer.height / it.height
+                        imageProperty.scale = Math.min(widthScale, heightScale)
+                        imageProperty.x = (imageViewer.width - (it.x * 2 + it.width) * imageProperty.scale) / 2
+                        imageProperty.y = (imageViewer.height - (it.y * 2 + it.height) * imageProperty.scale) / 2
 
-                    logScale = Math.log(imageProperty.scale.toDouble()).toFloat()
+                        logScale = Math.log(imageProperty.scale.toDouble()).toFloat()
 
-                    zoomBox.reset()
+                    }
+                    Context.zoomBox.update { it.reset() }
                 }
             }
         }
 
         override fun mouseMoved(event: InputEvent?, x: Float, y: Float): Boolean {
-            moved(x, y)
+            cursorMoved(x, y)
             return true
         }
 
@@ -304,10 +310,10 @@ class ImageViewer : Widget() {
             return true
         }
 
-        fun moved(x: Float, y: Float) {
-            Bus.send(CursorPositionMessage(
-                    screenToPixelX(x).toInt(),
-                    screenToPixelY(y).toInt()))
+        fun cursorMoved(x: Float, y: Float) {
+            Context.cursorPosition.update {
+                it.set(screenToPixelX(x).toInt(), screenToPixelY(y).toInt())
+            }
 
             mousePosition.x = x
             mousePosition.y = y

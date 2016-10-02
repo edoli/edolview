@@ -3,9 +3,9 @@ package kr.edoli.imview.ui.view
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import kr.edoli.edoliui.res.FontAwesomes
+import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.CursorPositionMessage
-import kr.edoli.imview.bus.SelectBoxMessage
 import kr.edoli.imview.ui.UI
 import kr.edoli.imview.ui.onClick
 import kr.edoli.imview.util.Clipboard
@@ -36,14 +36,15 @@ class StatusBar : Table() {
             Clipboard.copy(boxText)
         }
 
-        Bus.subscribe(CursorPositionMessage::class.java, {
-            cursorPositionText = "$x,$y"
-            cursorPositionLabel.setText("($cursorPositionText)")
-        })
 
-        Bus.subscribe(SelectBoxMessage::class.java, {
-            boxText = "$x,$y,$width,$height"
+        Context.cursorPosition.subscribe {
+            cursorPositionText = "${it.x},${it.y}"
+            cursorPositionLabel.setText("($cursorPositionText)")
+        }
+
+        Context.selectBox.subscribe {
+            boxText = "${it.x.toInt()},${it.y.toInt()},${it.width.toInt()},${it.height.toInt()}"
             boxLabel.text = "($boxText)"
-        })
+        }
     }
 }

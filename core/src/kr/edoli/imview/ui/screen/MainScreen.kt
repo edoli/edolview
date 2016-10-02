@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.FileDropMessage
 import kr.edoli.imview.res.Colors
@@ -35,8 +36,9 @@ class MainScreen : BaseScreen() {
 
         mainLayout.setFillParent(true)
 
+        Context.mainImage.update(Pixmap(Gdx.files.internal("test.png")))
+
         val imageViewWrapper = Table()
-        imageViewer.image = Pixmap(Gdx.files.internal("test.png"))
         imageViewWrapper.isTransform = true
         imageViewWrapper.clip = true
         imageViewWrapper.touchable = Touchable.childrenOnly
@@ -94,9 +96,8 @@ class MainScreen : BaseScreen() {
             if (windowName == Windows.Main) {
                 val path = files[0]
                 if (pathManager.isImage(path)) {
+                    updateImageFromPath(path)
                     pathManager.setPath(path)
-                    Gdx.app.graphics.setTitle(path)
-                    imageViewer.image = Pixmap(Gdx.files.absolute(path))
                 }
             }
         }
@@ -110,23 +111,22 @@ class MainScreen : BaseScreen() {
 
             override fun keyDown(event: InputEvent?, keycode: Int): Boolean {
                 if (keycode == Input.Keys.LEFT) {
-                    val path = pathManager.prev()
-                    if (path != null) {
-                        Gdx.app.graphics.setTitle(path)
-                        imageViewer.image = Pixmap(Gdx.files.absolute(path))
-                    }
+                    updateImageFromPath(pathManager.prev())
                 }
 
                 if (keycode == Input.Keys.RIGHT) {
-                    val path = pathManager.next()
-                    if (path != null) {
-                        Gdx.app.graphics.setTitle(path)
-                        imageViewer.image = Pixmap(Gdx.files.absolute(path))
-                    }
+                    updateImageFromPath(pathManager.next())
                 }
                 return super.keyDown(event, keycode)
             }
         })
+    }
+
+    fun updateImageFromPath(path: String?) {
+        if (path != null) {
+            Gdx.app.graphics.setTitle(path)
+            Context.mainImage.update(Pixmap(Gdx.files.absolute(path)))
+        }
     }
 
     override fun resize(width: Int, height: Int) {
