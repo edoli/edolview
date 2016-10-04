@@ -2,6 +2,7 @@ package kr.edoli.imview.desktop;
 
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
+import kr.edoli.imview.Context;
 import kr.edoli.imview.ImView;
 
 public class DesktopLauncher {
@@ -9,6 +10,7 @@ public class DesktopLauncher {
 
 		//pack();
 
+		Context.INSTANCE.getArgs().update(arg);
 
 		Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
 

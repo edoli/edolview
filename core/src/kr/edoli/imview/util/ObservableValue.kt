@@ -8,8 +8,8 @@ import rx.subjects.Subject
  * Created by daniel on 16. 10. 2.
  */
 class ObservableValue<T>(initValue: T) {
-    val observable: Subject<T, T> = BehaviorSubject.create<T>()
-    var value = initValue
+    private val observable: Subject<T, T> = BehaviorSubject.create<T>()
+    private var value = initValue
 
     init {
         observable.onNext(initValue)

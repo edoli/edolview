@@ -10,6 +10,8 @@ import kr.edoli.imview.util.ObservableValue
  * Created by daniel on 16. 10. 2.
  */
 object Context {
+    val args = ObservableValue(arrayOf<String>())
+
     val mainImage = NullableObservableValue<Pixmap>(null)
 
     val cursorPosition = ObservableValue(GridPoint2())

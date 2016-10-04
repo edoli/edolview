@@ -36,7 +36,11 @@ class MainScreen : BaseScreen() {
 
         mainLayout.setFillParent(true)
 
-        Context.mainImage.update(Pixmap(Gdx.files.internal("test.png")))
+        if (Context.args.get().size == 0) {
+            Context.mainImage.update(Pixmap(Gdx.files.internal("test.png")))
+        } else {
+            Context.mainImage.update(Pixmap(Gdx.files.internal(Context.args.get()[0])))
+        }
 
         val imageViewWrapper = Table()
         imageViewWrapper.isTransform = true
