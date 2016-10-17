@@ -30,6 +30,8 @@ class MainScreen : BaseScreen() {
     val mainLayout = Table()
     val imageViewer = ImageViewer()
 
+    val pathManager = PathManager()
+
     init {
         val background = ColorWidget(Colors.background)
         background.setFillParent(true)
@@ -39,7 +41,9 @@ class MainScreen : BaseScreen() {
         if (Context.args.get().size == 0) {
             Context.mainImage.update(Pixmap(Gdx.files.internal("test.png")))
         } else {
-            Context.mainImage.update(Pixmap(Gdx.files.internal(Context.args.get()[0])))
+            val path = Context.args.get()[0]
+            updateImageFromPath(path)
+            pathManager.setPath(path)
         }
 
         val imageViewWrapper = Table()
@@ -93,8 +97,6 @@ class MainScreen : BaseScreen() {
             override fun focusLost() {
             }
         }
-
-        val pathManager = PathManager()
 
         Bus.subscribe(FileDropMessage::class.java) {
             if (windowName == Windows.Main) {
