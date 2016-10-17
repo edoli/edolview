@@ -16,6 +16,7 @@ import kr.edoli.imview.util.Clipboard
 class StatusBar : Table() {
 
     var cursorPositionText = "0,0"
+    var cursorRGBText = "0,0,0"
     var boxText = "0,0,0,0"
 
     init {
@@ -25,10 +26,12 @@ class StatusBar : Table() {
         padRight(8f)
 
         val cursorPositionLabel = UI.label("($cursorPositionText)")
+        val cursorRGBLabel = UI.label("color: ($cursorPositionText)")
         val boxCopyButton = UI.iconButton(FontAwesomes.FaCopy)
         val boxLabel = UI.textField("($boxText)")
 
         add(cursorPositionLabel).width(128f).padRight(24f)
+        add(cursorRGBLabel).width(144f).padRight(24f)
         add(boxCopyButton).size(24f).padRight(8f)
         add(boxLabel)
 
@@ -36,10 +39,17 @@ class StatusBar : Table() {
             Clipboard.copy(boxText)
         }
 
+        val t = { q: Byte -> if (q >= 0) q.toInt() else q + 256}
+
 
         Context.cursorPosition.subscribe {
             cursorPositionText = "${it.x},${it.y}"
             cursorPositionLabel.setText("($cursorPositionText)")
+        }
+
+        Context.cursorRGB.subscribe {
+            cursorRGBText = "${t(it[0])}, ${t(it[1])}, ${t(it[2])}"
+            cursorRGBLabel.setText("color: ($cursorRGBText)")
         }
 
         Context.selectBox.subscribe {

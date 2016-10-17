@@ -11,6 +11,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import kr.edoli.imview.Context
@@ -318,8 +319,22 @@ class ImageViewer : Widget() {
         }
 
         fun cursorMoved(x: Float, y: Float) {
+            val pixelX = screenToPixelX(x).toInt()
+            val pixelY = screenToPixelY(y).toInt()
+
             Context.cursorPosition.update {
-                it.set(screenToPixelX(x).toInt(), screenToPixelY(y).toInt())
+                it.set(pixelX, pixelY)
+            }
+
+            Context.cursorRGB.update {
+                val image = Context.mainImage.get()
+                if (image != null) {
+                    val pixel = ImageProc.getPixel(image, pixelX, image.height - pixelY)
+                    it[0] = pixel[0]
+                    it[1] = pixel[1]
+                    it[2] = pixel[2]
+                }
+                it
             }
 
             mousePosition.x = x
