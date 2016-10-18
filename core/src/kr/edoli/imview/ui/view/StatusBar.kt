@@ -1,5 +1,6 @@
 package kr.edoli.imview.ui.view
 
+import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import kr.edoli.edoliui.res.FontAwesomes
@@ -31,7 +32,7 @@ class StatusBar : Table() {
         val boxLabel = UI.textField("($boxText)")
 
         add(cursorPositionLabel).width(128f).padRight(24f)
-        add(cursorRGBLabel).width(144f).padRight(24f)
+        add(cursorRGBLabel).width(172f).padRight(24f)
         add(boxCopyButton).size(24f).padRight(8f)
         add(boxLabel)
 
@@ -48,12 +49,17 @@ class StatusBar : Table() {
         }
 
         Context.cursorRGB.subscribe {
-            cursorRGBText = "${t(it[0])}, ${t(it[1])}, ${t(it[2])}"
+            val textBuilder = StringBuilder()
+            for (byte in it) {
+                textBuilder.append("${t(byte)}, ")
+            }
+            cursorRGBText = textBuilder.toString().substring(0, Math.max(textBuilder.length - 2, 0))
             cursorRGBLabel.setText("color: ($cursorRGBText)")
         }
 
         Context.selectBox.subscribe {
-            boxText = "${it.x.toInt()},${it.y.toInt()},${it.width.toInt()},${it.height.toInt()}"
+            val y = ((Context.mainImage.get() as Pixmap).height - it.y.toInt() - it.height.toInt())
+            boxText = "${it.x.toInt()},${y},${it.width.toInt()},${it.height.toInt()}"
             boxLabel.text = "($boxText)"
         }
     }

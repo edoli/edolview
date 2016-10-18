@@ -15,7 +15,7 @@ object Context {
     val mainImage = NullableObservableValue<Pixmap>(null)
 
     val cursorPosition = ObservableValue(GridPoint2())
-    val cursorRGB = ObservableValue(byteArrayOf(0, 0, 0))
+    val cursorRGB = ObservableValue(byteArrayOf())
     val selectBox = ObservableValue(Rectangle())
     val zoomBox = ObservableValue(Rectangle())
 }

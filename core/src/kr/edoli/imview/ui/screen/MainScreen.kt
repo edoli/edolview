@@ -4,6 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowListener
 import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Table
@@ -131,7 +132,8 @@ class MainScreen : BaseScreen() {
     fun updateImageFromPath(path: String?) {
         if (path != null) {
             Gdx.app.graphics.setTitle(path)
-            Context.mainImage.update(Pixmap(Gdx.files.absolute(path)))
+            var pixmap = Pixmap(Gdx.files.absolute(path))
+            Context.mainImage.update(pixmap)
         }
     }
 

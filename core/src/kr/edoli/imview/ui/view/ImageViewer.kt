@@ -56,7 +56,11 @@ class ImageViewer : Widget() {
             if (it != null) {
                 imageProperty.width = it.width.toFloat()
                 imageProperty.height = it.height.toFloat()
-                imageRegion = TextureRegion(Texture(it))
+                if (it.format == Pixmap.Format.Alpha) {
+                    imageRegion = TextureRegion(Texture(it, Pixmap.Format.LuminanceAlpha, false))
+                } else {
+                    imageRegion = TextureRegion(Texture(it))
+                }
             } else {
                 imageProperty.width = 0f
                 imageProperty.height = 0f
@@ -328,13 +332,18 @@ class ImageViewer : Widget() {
 
             Context.cursorRGB.update {
                 val image = Context.mainImage.get()
-                if (image != null) {
-                    val pixel = ImageProc.getPixel(image, pixelX, image.height - pixelY)
-                    it[0] = pixel[0]
-                    it[1] = pixel[1]
-                    it[2] = pixel[2]
+                if (image == null) {
+                    return@update byteArrayOf()
                 }
-                it
+
+                val channels = image.getChannels()
+                val rgb = if (it.size == channels) it else ByteArray(channels)
+
+                val pixel = ImageProc.getPixel(image, pixelX, image.height - pixelY)
+                for (i in 0..pixel.size-1) {
+                    rgb[i] = pixel[i]
+                }
+                rgb
             }
 
             mousePosition.x = x

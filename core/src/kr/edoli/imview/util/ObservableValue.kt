@@ -21,7 +21,8 @@ class ObservableValue<T>(initValue: T) {
     }
 
     fun update(action: (T) -> T) {
-        observable.onNext(action(value))
+        value = action(value)
+        observable.onNext(value)
     }
 
     fun update(value: T) {

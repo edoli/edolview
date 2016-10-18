@@ -15,6 +15,7 @@ import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.FileDropMessage
 import kr.edoli.imview.ui.UI
 import kr.edoli.imview.util.Windows
+import kr.edoli.imview.util.getChannels
 import org.apache.commons.io.FilenameUtils
 import java.util.*
 
@@ -143,10 +144,7 @@ class ImageListViewer : Table() {
         val width = rect.width.toInt()
         val height = rect.height.toInt()
 
-        val format = pixmapA.format
-        val channels = if (format == Pixmap.Format.RGBA4444 || format == Pixmap.Format.RGBA8888) 4
-                        else if (format == Pixmap.Format.RGB565 || format == Pixmap.Format.RGB888) 3
-                        else 1
+        val channels = pixmapA.getChannels()
 
         val size = width * height * channels
 
