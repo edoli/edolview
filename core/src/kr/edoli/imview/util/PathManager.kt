@@ -13,8 +13,8 @@ import javax.imageio.ImageIO
  * Created by daniel on 16. 10. 1.
  */
 class PathManager {
-    var currentPath: String? = null
-    var currentFileName: String? = null
+    private var currentPath: String? = null
+    private var currentFileName: String? = null
 
     fun setPath(path: String) {
         currentPath = FilenameUtils.getFullPath(path)
@@ -49,7 +49,7 @@ class PathManager {
         val currentIndex = files.indexOf(currentFileName)
 
         val index = currentIndex - 1
-        currentFileName = if (index < files.size) files[files.size - 1] else files[index]
+        currentFileName = if (index < 0) files[files.size - 1] else files[index]
         val fullPath = currentPath + "/" + currentFileName
 
         if (!isImage(fullPath)) {

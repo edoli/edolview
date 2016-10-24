@@ -200,6 +200,14 @@ class ImageViewer : Widget() {
                 imageViewer.selectNone()
             }
 
+            if (keycode == Input.Keys.PLUS) {
+                zoom(imageViewer.width / 2,  imageViewer.height / 2, 1)
+            }
+
+            if (keycode == Input.Keys.MINUS) {
+                zoom(imageViewer.width / 2,  imageViewer.height / 2, -1)
+            }
+
             return super.keyDown(event, keycode)
         }
 
@@ -310,15 +318,7 @@ class ImageViewer : Widget() {
         }
 
         override fun scrolled(event: InputEvent?, x: Float, y: Float, amount: Int): Boolean {
-            val fracX = (x - imageProperty.x) / imageProperty.scale
-            val fracY = (y - imageProperty.y) / imageProperty.scale
-
-            logScale -= amount / 16f
-            imageProperty.scale = Math.exp(logScale.toDouble()).toFloat()
-
-            imageProperty.x = x - fracX * imageProperty.scale
-            imageProperty.y = y - fracY * imageProperty.scale
-
+            zoom(x, y, -amount)
             return true
         }
 
@@ -348,6 +348,18 @@ class ImageViewer : Widget() {
 
             mousePosition.x = x
             mousePosition.y = y
+        }
+
+        fun zoom(x: Float, y: Float, amount: Int) {
+
+            val fracX = (x - imageProperty.x) / imageProperty.scale
+            val fracY = (y - imageProperty.y) / imageProperty.scale
+
+            logScale += amount / 16f
+            imageProperty.scale = Math.exp(logScale.toDouble()).toFloat()
+
+            imageProperty.x = x - fracX * imageProperty.scale
+            imageProperty.y = y - fracY * imageProperty.scale
         }
 
     }

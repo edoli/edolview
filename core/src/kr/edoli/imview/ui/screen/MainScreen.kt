@@ -111,6 +111,10 @@ class MainScreen : BaseScreen() {
 
 
         stage.root.addListener(object : ClickListener(Input.Buttons.RIGHT) {
+
+            var windowWidth = 0
+            var windowHeight = 0
+
             override fun clicked(event: InputEvent?, x: Float, y: Float) {
                 contextGroup.menuPosition(x, y)
                 contextGroup.show()
@@ -123,6 +127,17 @@ class MainScreen : BaseScreen() {
 
                 if (keycode == Input.Keys.RIGHT) {
                     updateImageFromPath(pathManager.next())
+                }
+
+                if (keycode == Input.Keys.F11) {
+                    if (Gdx.graphics.isFullscreen) {
+                        Gdx.graphics.setWindowedMode(windowWidth, windowHeight)
+                    } else {
+                        windowWidth = Gdx.graphics.width
+                        windowHeight = Gdx.graphics.height
+
+                        Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode())
+                    }
                 }
                 return super.keyDown(event, keycode)
             }

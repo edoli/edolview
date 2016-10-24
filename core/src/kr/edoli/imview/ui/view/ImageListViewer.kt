@@ -117,8 +117,11 @@ class ImageListViewer : Table() {
     fun addImage(pixmap: Pixmap, name: String) {
         val imageSummary = ImageSummary()
 
+        var imageRegion =  if (pixmap.format == Pixmap.Format.Alpha) TextureRegion(Texture(pixmap, Pixmap.Format.LuminanceAlpha, false))
+        else TextureRegion(Texture(pixmap))
+
         imageSummary.pixmap = pixmap
-        imageSummary.region = TextureRegion(Texture(pixmap))
+        imageSummary.region = TextureRegion(imageRegion)
         imageSummary.title = name
 
         val mainPixmap = Context.mainImage.get()
@@ -135,7 +138,7 @@ class ImageListViewer : Table() {
         val pixelsA = pixmapA.pixels
         val pixelsB = pixmapB.pixels
 
-        if (pixmapA.width != pixmapB.width || pixmapA.height != pixmapB.height) {
+        if (pixmapA.width != pixmapB.width || pixmapA.height != pixmapB.height || pixmapA.format != pixmapB.format) {
             return -1.0;
         }
 
