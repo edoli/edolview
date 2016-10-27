@@ -1,6 +1,7 @@
 package kr.edoli.imview.ui.view
 
 import com.badlogic.gdx.Input
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
@@ -46,6 +47,7 @@ class ImageViewer : Widget() {
 
     private var image: Pixmap? = null
     private var imageRegion: TextureRegion? = null
+    private var overlayRegion: TextureRegion = TextureRegion()
 
 
     init {
@@ -86,6 +88,45 @@ class ImageViewer : Widget() {
                 }
             }
         }
+
+        Context.selectBox.subscribe {
+            updateSelectBoxContent(it)
+        }
+        Context.selectedImage.subscribe {
+            updateSelectBoxContent(Context.selectBox.get())
+        }
+    }
+
+    fun updateSelectBoxContent(selectBox: Rectangle) {
+        val selectedImage = Context.selectedImage.get()
+        val mainImage = image
+        if (mainImage != null && selectedImage != null &&
+                selectBox.width > 0 && selectBox.height > 0 &&
+                selectedImage.width == mainImage.width && selectedImage.height == mainImage.height) {
+
+            val rect = Rectangle(selectBox)
+            rect.y = mainImage.height - rect.y - rect.height
+            val pixmap = ImageProc.diff(mainImage, selectedImage, rect)
+
+
+            if (pixmap != null) {
+                /*
+                ImageProc.eachPixel(pixmap) { value, x, y, c ->
+                    (value + 128).toByte()
+                }
+                */
+
+                val texture = if (pixmap.format == Pixmap.Format.Alpha) Texture(pixmap, Pixmap.Format.LuminanceAlpha, false)
+                else Texture(pixmap)
+
+                overlayRegion.texture = texture
+                overlayRegion.regionWidth = texture.width
+                overlayRegion.regionHeight = texture.height
+
+            }
+        } else {
+            overlayRegion.texture = null
+        }
     }
 
     override fun hit(x: Float, y: Float, touchable: Boolean): Actor? {
@@ -111,10 +152,18 @@ class ImageViewer : Widget() {
                     it.width * imageProperty.scale,
                     it.height * imageProperty.scale)
         }
-        batch.color = selectOverlayRectColor
-        batch.drawRect(selectDrawBox)
+        if (Context.selectedImage.get() == null) {
+            batch.color = selectOverlayRectColor
+            batch.drawRect(selectDrawBox)
+        }
         batch.color = selectOverlayBorderColor
         batch.drawRectBorder(selectDrawBox, 0.5f)
+
+        // draw overlay
+        batch.color = Color.WHITE
+        if (overlayRegion.texture != null) {
+            batch.draw(overlayRegion, selectDrawBox.x, selectDrawBox.y, selectDrawBox.width, selectDrawBox.height)
+        }
 
         // draw zoom box
         Context.zoomBox.once {

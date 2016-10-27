@@ -14,6 +14,7 @@ public class DesktopLauncher {
 
 		Lwjgl3ApplicationConfiguration config = new Lwjgl3ApplicationConfiguration();
 
+		config.setTitle("ImView");
         config.setWindowedMode(1280, 720);
 
 		config.setBackBufferConfig(8, 8, 8, 8, 16, 0, 4);

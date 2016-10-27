@@ -1,19 +1,26 @@
 package kr.edoli.imview.ui.view
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.Colors
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
+import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.FileDropMessage
 import kr.edoli.imview.ui.UI
+import kr.edoli.imview.util.ImageProc
 import kr.edoli.imview.util.Windows
 import kr.edoli.imview.util.getChannels
 import org.apache.commons.io.FilenameUtils
@@ -47,7 +54,7 @@ class ImageListViewer : Table() {
             if (it != null) {
                 for (imageSummary in imageSummaryList) {
                     if (imageSummary.pixmap != null) {
-                        imageSummary.psnr = psnr(it, imageSummary.pixmap!!)
+                        imageSummary.psnr = ImageProc.psnr(it, imageSummary.pixmap!!)
                     }
                 }
             }
@@ -59,7 +66,7 @@ class ImageListViewer : Table() {
             if (mainImage != null) {
                 for (imageSummary in imageSummaryList) {
                     if (imageSummary.pixmap != null) {
-                        imageSummary.psnr = psnr(mainImage, imageSummary.pixmap!!)
+                        imageSummary.psnr = ImageProc.psnr(mainImage, imageSummary.pixmap!!)
                     }
                 }
             }
@@ -86,8 +93,19 @@ class ImageListViewer : Table() {
         for ((index, imageSummary) in imageSummaryList.withIndex()) {
             val pixmap = imageSummary.pixmap
             val texture = Texture(pixmap)
+            val summaryView = imageSummaryViewList[index]
             texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-            imageSummaryViewList[index].imageSummary = imageSummary
+            summaryView.imageSummary = imageSummary
+
+
+            summaryView.clearListeners()
+            summaryView.addListener(object : ClickListener(Input.Buttons.LEFT) {
+                override fun clicked(event: InputEvent, x: Float, y: Float) {
+                    Context.selectedImage.update(imageSummary!!.pixmap)
+                    update()
+                    super.clicked(event, x, y)
+                }
+            })
         }
 
         val numCol = (width / cellWidth).toInt()
@@ -126,57 +144,12 @@ class ImageListViewer : Table() {
 
         val mainPixmap = Context.mainImage.get()
         if (mainPixmap != null) {
-            imageSummary.psnr = psnr(mainPixmap, pixmap)
+            imageSummary.psnr = ImageProc.psnr(mainPixmap, pixmap)
         }
 
         imageSummaryList.add(imageSummary)
 
         isRefresh = true
-    }
-
-    fun psnr(pixmapA: Pixmap, pixmapB: Pixmap, rect: Rectangle): Double {
-        val pixelsA = pixmapA.pixels
-        val pixelsB = pixmapB.pixels
-
-        if (pixmapA.width != pixmapB.width || pixmapA.height != pixmapB.height || pixmapA.format != pixmapB.format) {
-            return -1.0;
-        }
-
-        val x = rect.x.toInt()
-        val y = rect.y.toInt()
-        val width = rect.width.toInt()
-        val height = rect.height.toInt()
-
-        val channels = pixmapA.getChannels()
-
-        val size = width * height * channels
-
-        var mse = 0.0
-
-        for (tx in x..x+width-1) {
-            for (ty in y..y+height-1) {
-                val ind = (tx + ty * width) * channels
-
-                for (c in 0..channels-1) {
-                    val indc = ind + c
-                    val value = (pixelsA[indc] - pixelsB[indc]).toByte()
-
-                    mse += value * value
-                }
-            }
-        }
-
-        mse /= size
-
-        return 20 * Math.log10(255.0) - 10 * Math.log10(mse)
-    }
-
-    fun psnr(pixmapA: Pixmap, pixmapB: Pixmap): Double {
-        val selectBox = Context.selectBox.get()
-        if (selectBox.width != 0f && selectBox.height != 0f) {
-            return psnr(pixmapA, pixmapB, selectBox)
-        }
-        return psnr(pixmapA, pixmapB, Rectangle(0f, 0f, pixmapA.width.toFloat(), pixmapA.height.toFloat()))
     }
 
     class ImageSummary {
@@ -187,10 +160,18 @@ class ImageListViewer : Table() {
     }
 
     class ImageSummaryView : Table() {
+        companion object {
+            val shapeRenderer = ShapeRenderer()
+            init {
+                shapeRenderer.color = Color.WHITE
+            }
+        }
+
         val psnrLabel = UI.label("")
         val titleLabel = UI.label("")
         val imageAspectView = ImageAspectView()
 
+        var isSelected = false
         var imageSummary: ImageSummary? = null
             set(value) {
                 field = value
@@ -224,7 +205,30 @@ class ImageListViewer : Table() {
                 } else {
                     psnrLabel.setText("image size not match")
                 }
+
                 imageAspectView.region = imageSummary!!.region
+
+                if (Context.selectedImage.get() == imageSummary!!.pixmap) {
+                    isSelected = true
+                } else {
+                    isSelected = false
+                }
+            } else {
+                titleLabel.setText("")
+                imageAspectView.region = null
+                isSelected = false
+            }
+        }
+
+        override fun draw(batch: Batch, parentAlpha: Float) {
+            super.draw(batch, parentAlpha)
+
+            if (isSelected) {
+                batch.end()
+                shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
+                shapeRenderer.rect(x, y, width, height)
+                shapeRenderer.end()
+                batch.begin()
             }
         }
     }
