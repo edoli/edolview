@@ -12,6 +12,7 @@ import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.image.*;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.stream.IntStream;
 
 /**
  * Created by daniel on 16. 2. 28.
@@ -56,31 +57,44 @@ public class Clipboard {
         byteBuffer.get(totalArray, 0, length);
         byteBuffer.position(0);
 
-        int subLength = (width * height * 4);
+        int numChannels = PixmapExtKt.getChannels(pixmap);
+        boolean hasAlpha = (numChannels == 4);
+
+        int copyNumChannels = numChannels;
+        if (!hasAlpha) {
+            copyNumChannels += 1;
+        }
+
+        int subLength = (width * height * copyNumChannels);
         byte[] subArray = new byte[subLength];
 
-        for (int i = 0; i < subArray.length; i += 4) {
-            int index = i / 4;
+        for (int i = 0; i < subArray.length; i += copyNumChannels) {
+            int index = i / copyNumChannels;
             int row = index / width;
             int col = index %  width;
 
-            int j = (col + offsetX) * 4 + (row + offsetY) * 4 * pixmap.getWidth();
-            subArray[i] = totalArray[j];
-            subArray[i + 1] = totalArray[j + 1];
-            subArray[i + 2] = totalArray[j + 2];
-            subArray[i + 3] = totalArray[j + 3];
+            int j = (col + offsetX) * numChannels + (row + offsetY) * numChannels * pixmap.getWidth();
+
+            for (int k = 0; k < copyNumChannels; k++) {
+                if (k < numChannels) {
+                    subArray[i + k] = totalArray[j + k];
+                } else {
+                    subArray[i + k] = (byte) 255;
+                }
+            }
         }
 
 
         DataBufferByte data = new DataBufferByte(subArray, subLength);
 
         //the Raster
-        int[] bandOffsets = new int[] {0, 1, 2, 3};
-        WritableRaster raster = Raster.createInterleavedRaster(data, width, height, width * 4, 4, bandOffsets, null);
+        int[] bandOffsets = IntStream.range(0, copyNumChannels).toArray();
+        WritableRaster raster = Raster.createInterleavedRaster(data, width, height, width * copyNumChannels, copyNumChannels, bandOffsets, null);
 
         //the ColorModel
-        ColorSpace cs = ColorSpace.getInstance(ColorSpace.CS_sRGB);
-        int[] nBits = {8, 8, 8, 8};
+        int[] colorModels = {-1, -1, ColorSpace.CS_GRAY, -1, ColorSpace.CS_sRGB};
+        ColorSpace cs = ColorSpace.getInstance(colorModels[copyNumChannels]);
+        int[] nBits = IntStream.range(0, numChannels + 1).map(operand -> 8).toArray();
         ColorModel colorModel = new ComponentColorModel(cs, nBits, true, false,
                 Transparency.TRANSLUCENT,
                 DataBuffer.TYPE_BYTE);

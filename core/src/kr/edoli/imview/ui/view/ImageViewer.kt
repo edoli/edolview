@@ -292,6 +292,9 @@ class ImageViewer : Widget() {
                 Mode.zoom -> {
                     // Zoom
                     Context.zoomBox.once {
+                        if (it.width == 0f || it.height == 0f) {
+                            return@once
+                        }
                         val widthScale = imageViewer.width / it.width
                         val heightScale = imageViewer.height / it.height
                         imageProperty.scale = Math.min(widthScale, heightScale)
