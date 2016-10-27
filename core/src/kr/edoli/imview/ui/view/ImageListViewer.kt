@@ -13,13 +13,16 @@ import com.badlogic.gdx.math.Rectangle
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
+import kr.edoli.edoliui.res.FontAwesomes
 import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.FileDropMessage
 import kr.edoli.imview.ui.UI
+import kr.edoli.imview.ui.onClick
 import kr.edoli.imview.util.ImageProc
 import kr.edoli.imview.util.Windows
 import kr.edoli.imview.util.getChannels
@@ -37,10 +40,11 @@ class ImageListViewer : Table() {
     private var isRefresh = false
 
     private var cellWidth = 128f
-    private var cellHeight = 128f
+    private var cellHeight = 144f
 
     init {
         align(Align.topLeft)
+        touchable = Touchable.enabled
 
         Bus.subscribe(FileDropMessage::class.java) {
             if (windowName == Windows.ImageList) {
@@ -72,6 +76,16 @@ class ImageListViewer : Table() {
             }
             update()
         }
+
+        addListener(object : ClickListener(Input.Buttons.LEFT) {
+            override fun clicked(event: InputEvent, x: Float, y: Float) {
+                if (event.target == this@ImageListViewer) {
+                    Context.selectedImage.update(null)
+                    update()
+                }
+                super.clicked(event, x, y)
+            }
+        })
     }
 
     override fun act(delta: Float) {
@@ -96,26 +110,41 @@ class ImageListViewer : Table() {
             val summaryView = imageSummaryViewList[index]
             texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
             summaryView.imageSummary = imageSummary
+            summaryView.isUsed = true
 
 
             summaryView.clearListeners()
-            summaryView.addListener(object : ClickListener(Input.Buttons.LEFT) {
-                override fun clicked(event: InputEvent, x: Float, y: Float) {
-                    Context.selectedImage.update(imageSummary!!.pixmap)
-                    update()
-                    super.clicked(event, x, y)
-                }
-            })
+            summaryView.onClick {
+                Context.selectedImage.update(imageSummary!!.pixmap)
+                update()
+            }
+            val s = summaryView.deleteButton.listeners.size
+            if (s > 2) {
+                summaryView.deleteButton.listeners.removeRange(2, s - 1)
+            }
+            summaryView.deleteButton.onClick {
+                imageSummaryList.remove(imageSummary)
+                refresh()
+            }
+        }
+        for (i in imageSummaryList.size..imageSummaryViewList.size-1) {
+            imageSummaryViewList[i].isUsed = false
         }
 
         val numCol = (width / cellWidth).toInt()
 
-        for ((index, imageSummary) in imageSummaryViewList.withIndex()) {
+        var index = 0
+        for (imageSummary in imageSummaryViewList) {
+            if (!imageSummary.isUsed) {
+                continue
+            }
+
             add(imageSummary).size(cellWidth, cellHeight)
 
             if (index % numCol == numCol - 1) {
                 row()
             }
+            index += 1
         }
     }
 
@@ -169,8 +198,10 @@ class ImageListViewer : Table() {
 
         val psnrLabel = UI.label("")
         val titleLabel = UI.label("")
+        val deleteButton = UI.iconButton(FontAwesomes.FaRemove)
         val imageAspectView = ImageAspectView()
 
+        var isUsed = false
         var isSelected = false
         var imageSummary: ImageSummary? = null
             set(value) {
@@ -187,7 +218,12 @@ class ImageListViewer : Table() {
 
             clip = true
 
-            add(titleLabel).height(24f).expandX().fillX()
+            val titleBar = Table()
+
+            titleBar.add(titleLabel).height(24f).expandX().fillX()
+            titleBar.add(deleteButton).size(24f)
+
+            add(titleBar).expandX().fillX().height(24f)
             row()
             add(imageAspectView).expand().fill()
             row()

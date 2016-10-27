@@ -31,10 +31,10 @@ class StatusBar : Table() {
         val boxCopyButton = UI.iconButton(FontAwesomes.FaCopy)
         val boxLabel = UI.textField("($boxText)")
 
-        add(cursorPositionLabel).width(128f).padRight(24f)
-        add(cursorRGBLabel).width(172f).padRight(24f)
+        add(cursorPositionLabel).width(196f).padRight(24f)
+        add(cursorRGBLabel).width(192f).padRight(24f)
         add(boxCopyButton).size(24f).padRight(8f)
-        add(boxLabel)
+        add(boxLabel).width(512f)
 
         boxCopyButton.onClick {
             Clipboard.copy(boxText)
