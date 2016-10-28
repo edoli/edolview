@@ -40,7 +40,7 @@ class MainScreen : BaseScreen() {
         mainLayout.setFillParent(true)
 
         if (Context.args.get().size == 0) {
-            Context.mainImage.update(Pixmap(Gdx.files.internal("test.png")))
+            Context.mainImage.update(Pixmap(Gdx.files.internal("test.jpg")))
         } else {
             val path = Context.args.get()[0]
             updateImageFromPath(path)
