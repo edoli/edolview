@@ -5,9 +5,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import kr.edoli.edoliui.res.FontAwesomes
 import kr.edoli.imview.Context
-import kr.edoli.imview.bus.Bus
-import kr.edoli.imview.bus.CursorPositionMessage
 import kr.edoli.imview.ui.UI
+import kr.edoli.imview.ui.label
 import kr.edoli.imview.ui.onClick
 import kr.edoli.imview.util.Clipboard
 
@@ -30,11 +29,14 @@ class StatusBar : Table() {
         val cursorRGBLabel = UI.label("color: ($cursorPositionText)")
         val boxCopyButton = UI.iconButton(FontAwesomes.FaCopy)
         val boxLabel = UI.textField("($boxText)")
+        val zoomLabel = Context.zoomRate.label({it -> "%.2f%%".format(it * 100)})
 
         add(cursorPositionLabel).width(196f).padRight(24f)
         add(cursorRGBLabel).width(192f).padRight(24f)
         add(boxCopyButton).size(24f).padRight(8f)
         add(boxLabel).width(512f)
+        add().expand()
+        add(zoomLabel)
 
         boxCopyButton.onClick {
             Clipboard.copy(boxText)

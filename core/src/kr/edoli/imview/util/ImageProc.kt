@@ -63,6 +63,37 @@ object ImageProc {
         return byteArrayOf(pixels[(x + y * width)])
     }
 
+    fun crop(pixmap: Pixmap, rect: Rectangle): Pixmap {
+        val pixelsA = pixmap.pixels
+
+        val x = rect.x.toInt()
+        val y = rect.y.toInt()
+        val width = rect.width.toInt()
+        val height = rect.height.toInt()
+
+        val pixmapWidth = pixmap.width
+        val pixmapHeight = pixmap.height
+
+        val channels = pixmap.getChannels()
+
+        val pixmap = Pixmap(rect.width.toInt(), rect.height.toInt(), pixmap.format)
+        val pixels = pixmap.pixels
+
+        for (tx in x..x+width-1) {
+            for (ty in y..y+height-1) {
+                val ind = (tx + ty * pixmapWidth) * channels
+                val indSub = (tx - x + (ty - y) * width) * channels
+
+                for (c in 0..channels-1) {
+
+                    pixels.put(indSub + c, pixelsA[ind + c])
+                }
+            }
+        }
+
+        return pixmap
+    }
+
     fun psnr(pixmapA: Pixmap, pixmapB: Pixmap, rect: Rectangle): Double {
         val pixelsA = pixmapA.pixels
         val pixelsB = pixmapB.pixels
@@ -91,7 +122,9 @@ object ImageProc {
 
                 for (c in 0..channels-1) {
                     val indc = ind + c
-                    val value = (pixelsA[indc] - pixelsB[indc]).toByte()
+                    val p1 = pixelsA[indc].toInt() and 0xFF
+                    val p2 = pixelsB[indc].toInt() and 0xFF
+                    val value = p2 - p1
 
                     mse += value * value
                 }
@@ -106,7 +139,11 @@ object ImageProc {
     fun psnr(pixmapA: Pixmap, pixmapB: Pixmap): Double {
         val selectBox = Context.selectBox.get()
         if (selectBox.width != 0f && selectBox.height != 0f) {
-            return psnr(pixmapA, pixmapB, selectBox)
+
+            val rect = Rectangle(selectBox)
+            rect.y = pixmapA.height - rect.y - rect.height
+
+            return psnr(pixmapA, pixmapB, rect)
         }
         return psnr(pixmapA, pixmapB, Rectangle(0f, 0f, pixmapA.width.toFloat(), pixmapA.height.toFloat()))
     }

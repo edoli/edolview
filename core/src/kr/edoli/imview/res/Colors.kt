@@ -15,8 +15,9 @@ object Colors {
     val mouseCross = Color.valueOf("#A2DE3B")
 
     val buttonUp = Color.valueOf("#1E1E20")
-    val buttonOver = Color.valueOf("#9A8E63")
-    val buttonDown = Color.valueOf("#786D44")
+    val buttonOver = Color.valueOf("#D96C65")
+    val buttonDown = Color.valueOf("#D96C65")
+    val buttonChecked = Color.valueOf("#cc9f4e")
 
     val textSelect = Color.valueOf("#FF9F1C")
 }

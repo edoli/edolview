@@ -15,6 +15,7 @@ import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
+import kr.edoli.imview.ComparisonMode
 import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.SelectionCopyMessage
@@ -95,6 +96,9 @@ class ImageViewer : Widget() {
         Context.selectedImage.subscribe {
             updateSelectBoxContent(Context.selectBox.get())
         }
+        Context.comparisonMode.subscribe {
+            updateSelectBoxContent(Context.selectBox.get())
+        }
     }
 
     fun updateSelectBoxContent(selectBox: Rectangle) {
@@ -106,16 +110,14 @@ class ImageViewer : Widget() {
 
             val rect = Rectangle(selectBox)
             rect.y = mainImage.height - rect.y - rect.height
-            val pixmap = ImageProc.diff(mainImage, selectedImage, rect)
+            val pixmap = when (Context.comparisonMode.get()) {
+                ComparisonMode.Image -> ImageProc.crop(selectedImage, rect)
+                ComparisonMode.Diff -> ImageProc.diff(mainImage, selectedImage, rect)
+            }
+
 
 
             if (pixmap != null) {
-                /*
-                ImageProc.eachPixel(pixmap) { value, x, y, c ->
-                    (value + 128).toByte()
-                }
-                */
-
                 val texture = if (pixmap.format == Pixmap.Format.Alpha) Texture(pixmap, Pixmap.Format.LuminanceAlpha, false)
                 else Texture(pixmap)
 
@@ -179,9 +181,11 @@ class ImageViewer : Widget() {
         batch.drawRectBorder(zoomDrawBox, 0.5f)
 
         // draw mouse cross
-        batch.color = mouseCrossColor
-        batch.drawLine(0f, mousePotition.y + 0.5f, width, mousePotition.y + 0.5f, 1f)
-        batch.drawLine(mousePotition.x + 0.5f, 0f, mousePotition.x + 0.5f, height, 1f)
+        if (Context.isShowCrosshair.get()) {
+            batch.color = mouseCrossColor
+            batch.drawLine(0f, mousePotition.y + 0.5f, width, mousePotition.y + 0.5f, 1f)
+            batch.drawLine(mousePotition.x + 0.5f, 0f, mousePotition.x + 0.5f, height, 1f)
+        }
 
 
         batch.color = prevColor
@@ -352,6 +356,7 @@ class ImageViewer : Widget() {
 
                         logScale = Math.log(imageProperty.scale.toDouble()).toFloat()
 
+                        Context.zoomRate.update(imageProperty.scale)
                     }
                     Context.zoomBox.update { it.reset() }
                 }
@@ -412,6 +417,8 @@ class ImageViewer : Widget() {
 
             imageProperty.x = x - fracX * imageProperty.scale
             imageProperty.y = y - fracY * imageProperty.scale
+
+            Context.zoomRate.update(imageProperty.scale)
         }
 
     }

@@ -149,6 +149,7 @@ class MainScreen : BaseScreen() {
             Gdx.app.graphics.setTitle(path)
             var pixmap = Pixmap(Gdx.files.absolute(path))
             Context.mainImage.update(pixmap)
+            Context.mainPath.update(path)
         }
     }
 

@@ -6,17 +6,18 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import kr.edoli.edoliui.res.FontAwesomes
 import kr.edoli.imview.BaseApplicationListener
+import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.FileDropMessage
 import kr.edoli.imview.bus.WindowClosedMessage
 import kr.edoli.imview.bus.WindowOpenMessage
-import kr.edoli.imview.ui.UI
-import kr.edoli.imview.ui.onClick
+import kr.edoli.imview.ui.*
 import kr.edoli.imview.ui.screen.ImageListScreen
 import kr.edoli.imview.util.WindowUtils
 import kr.edoli.imview.util.Windows
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.glfw.GLFWDropCallback
+import java.awt.Font
 
 /**
  * Created by daniel on 16. 9. 24.
@@ -25,6 +26,9 @@ class Toolbar : Table() {
 
 
     val imageListWindowButton = UI.iconButton(FontAwesomes.FaTh)
+    val isShowCrosshairButton = Context.isShowCrosshair.checkButton(FontAwesomes.FaCrosshairs)
+    val comparisonModeButtons = Context.comparisonMode.radioButtons(arrayOf(FontAwesomes.FaImage, FontAwesomes.FaAdjust))
+    val titleLabel = Context.mainPath.label()
 
     init {
 
@@ -32,6 +36,13 @@ class Toolbar : Table() {
 
         align(Align.left)
         add(imageListWindowButton).size(24f)
+        add(isShowCrosshairButton).size(24f)
+        add().width(72f)
+        comparisonModeButtons.forEach { add(it).size(24f) }
+        add().expandX()
+        add(titleLabel)
+
+
 
         imageListWindowButton.onClick {
             if (WindowUtils.hasWindow(Windows.ImageList)) {

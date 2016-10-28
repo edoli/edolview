@@ -15,8 +15,15 @@ object Context {
     val mainImage = NullableObservableValue<Pixmap>(null)
     val selectedImage = NullableObservableValue<Pixmap>(null)
 
+    val mainPath = ObservableValue<String>("")
+
     val cursorPosition = ObservableValue(GridPoint2())
     val cursorRGB = ObservableValue(byteArrayOf())
     val selectBox = ObservableValue(Rectangle())
     val zoomBox = ObservableValue(Rectangle())
+    val zoomRate = ObservableValue(1f)
+
+    val comparisonMode = ObservableValue(ComparisonMode.Diff)
+
+    val isShowCrosshair = ObservableValue(true)
 }

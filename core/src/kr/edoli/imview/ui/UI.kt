@@ -20,14 +20,17 @@ import kr.edoli.imview.res.Colors
  */
 object UI {
 
+    val round = 2f
+
     val iconButtonStyle = initStyle(TextButton.TextButtonStyle()) {
         font = Fonts.iconicFont
         fontColor = Color.WHITE
-        up = ColorDrawable(Colors.buttonUp, 4f)
-        over = ColorDrawable(Colors.buttonOver, 4f)
-        down = ColorDrawable(Colors.buttonDown, 4f)
+        up = ColorDrawable(Colors.buttonUp, round)
+        over = ColorDrawable(Colors.buttonOver, round)
+        down = ColorDrawable(Colors.buttonDown, round)
+        checked = ColorDrawable(Colors.buttonChecked, round)
 
-        disabled = ColorDrawable(Colors.buttonUp, 4f)
+        disabled = ColorDrawable(Colors.buttonUp, round)
         disabledFontColor= Color.GRAY
     }
 
@@ -38,7 +41,7 @@ object UI {
         over = ColorDrawable(Colors.buttonOver)
         down = ColorDrawable(Colors.buttonDown)
 
-        disabled = ColorDrawable(Colors.buttonUp, 4f)
+        disabled = ColorDrawable(Colors.buttonUp, round)
         disabledFontColor= Color.GRAY
     }
 
