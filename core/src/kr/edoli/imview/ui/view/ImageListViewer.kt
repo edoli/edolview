@@ -23,6 +23,7 @@ import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.FileDropMessage
 import kr.edoli.imview.ui.UI
 import kr.edoli.imview.ui.onClick
+import kr.edoli.imview.util.Clipboard
 import kr.edoli.imview.util.ImageProc
 import kr.edoli.imview.util.Windows
 import kr.edoli.imview.util.getChannels
@@ -40,7 +41,7 @@ class ImageListViewer : Table() {
     private var isRefresh = false
 
     private var cellWidth = 128f
-    private var cellHeight = 144f
+    private var cellHeight = 176f
 
     init {
         align(Align.topLeft)
@@ -86,6 +87,13 @@ class ImageListViewer : Table() {
                 super.clicked(event, x, y)
             }
         })
+    }
+
+
+    override fun layout() {
+        super.layout()
+
+        refresh()
     }
 
     override fun act(delta: Float) {
@@ -223,11 +231,20 @@ class ImageListViewer : Table() {
             titleBar.add(titleLabel).height(24f).expandX().fillX()
             titleBar.add(deleteButton).size(24f)
 
+            val psnrCopyButton = UI.iconButton(FontAwesomes.FaCopy).onClick {
+                if (imageSummary != null) {
+                    Clipboard.copy("${String.format("%.2f", (imageSummary as ImageSummary).psnr)}")
+                }
+            }
+
             add(titleBar).expandX().fillX().height(24f)
             row()
             add(imageAspectView).expand().fill()
             row()
-            add(psnrLabel).height(24f).expandX().fillX()
+            add(Table().apply {
+                add(psnrCopyButton).size(24f).padRight(8f)
+                add(psnrLabel).height(24f).width(96f)
+            }).expandX().fillX()
             update()
         }
 
@@ -262,7 +279,7 @@ class ImageListViewer : Table() {
             if (isSelected) {
                 batch.end()
                 shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
-                shapeRenderer.rect(x, y, width, height)
+                shapeRenderer.rect(x + 1, y + 1, width - 2, height - 2)
                 shapeRenderer.end()
                 batch.begin()
             }

@@ -16,7 +16,7 @@ object Colors {
 
     val buttonUp = Color.valueOf("#1E1E20")
     val buttonOver = Color.valueOf("#D96C65")
-    val buttonDown = Color.valueOf("#D96C65")
+    val buttonDown = Color.valueOf("#d15147")
     val buttonChecked = Color.valueOf("#cc9f4e")
 
     val textSelect = Color.valueOf("#FF9F1C")

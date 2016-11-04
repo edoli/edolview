@@ -28,6 +28,17 @@ object UI {
         up = ColorDrawable(Colors.buttonUp, round)
         over = ColorDrawable(Colors.buttonOver, round)
         down = ColorDrawable(Colors.buttonDown, round)
+
+        disabled = ColorDrawable(Colors.buttonUp, round)
+        disabledFontColor= Color.GRAY
+    }
+
+    val iconCheckButtonStyle = initStyle(TextButton.TextButtonStyle()) {
+        font = Fonts.iconicFont
+        fontColor = Color.WHITE
+        up = ColorDrawable(Colors.buttonUp, round)
+        over = ColorDrawable(Colors.buttonOver, round)
+        down = ColorDrawable(Colors.buttonDown, round)
         checked = ColorDrawable(Colors.buttonChecked, round)
 
         disabled = ColorDrawable(Colors.buttonUp, round)
@@ -61,7 +72,9 @@ object UI {
         return style
     }
 
-    fun iconButton(iconCode: String) = TextButton(iconCode, iconButtonStyle).cursor(Cursor.SystemCursor.Hand)
+    fun iconButton(iconCode: String, checkable: Boolean = false) =
+            TextButton(iconCode, if (checkable) iconCheckButtonStyle else iconButtonStyle)
+                    .cursor(Cursor.SystemCursor.Hand)
     fun textButton(text: String) = TextButton(text, textButtonStyle).cursor(Cursor.SystemCursor.Hand)
     fun label(text: String) = Label(text, labelStyle)
     fun textField(text: String) = TextField(text, textFieldStyle).cursor(Cursor.SystemCursor.Ibeam)
@@ -88,16 +101,24 @@ fun <T : Actor> T.cursor(cursor: Cursor.SystemCursor): T {
     return this
 }
 
-fun Actor.onClick(button: Int, onClick: (Actor) -> Unit) {
+fun Actor.onClick(button: Int, onClick: (Actor) -> Unit): Actor {
     val actor = this
 
     addListener(object : ClickListener(button) {
+
+        override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+            event.stop()
+            return super.touchDown(event, x, y, pointer, button)
+        }
+
         override fun clicked(event: InputEvent, x: Float, y: Float) {
             onClick(actor)
         }
     })
+
+    return actor
 }
 
-fun Actor.onClick(onClick: (Actor) -> Unit) {
-    onClick(Input.Buttons.LEFT, onClick)
+fun Actor.onClick(onClick: (Actor) -> Unit): Actor {
+    return onClick(Input.Buttons.LEFT, onClick)
 }

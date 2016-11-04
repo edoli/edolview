@@ -12,7 +12,7 @@ import kr.edoli.imview.util.ObservableValue
  */
 
 fun ObservableValue<Boolean>.checkButton(icon: String, onClick: (Boolean) -> Unit = {}): Button {
-    val button = UI.iconButton(icon)
+    val button = UI.iconButton(icon, true)
     button.onClick {
         val newValue = button.isChecked
         update(newValue)
@@ -28,7 +28,7 @@ fun ObservableValue<ComparisonMode>.radioButtons(icons: Array<String>, onClick: 
     val values = ComparisonMode.values
     val currentValue = get()
     val buttons = Array<Button>(values.size) {
-        UI.iconButton(icons[it])
+        UI.iconButton(icons[it], true)
     }
 
     for ((i, button) in buttons.withIndex()) {

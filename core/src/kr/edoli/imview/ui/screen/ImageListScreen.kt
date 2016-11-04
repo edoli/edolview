@@ -10,17 +10,26 @@ import kr.edoli.imview.ui.view.ImageListViewer
  */
 class ImageListScreen : BaseScreen() {
 
+
+    val imageListViewer = ImageListViewer()
+    val scrollPane = ScrollPane(imageListViewer)
+
     init {
         val background = ColorWidget(Colors.background)
         background.setFillParent(true)
 
-        val imageListViewer = ImageListViewer()
-        val scrollPane = ScrollPane(imageListViewer)
-
         scrollPane.setFillParent(true)
+        imageListViewer.setFillParent(true)
 
 
         stage.addActor(background)
         stage.addActor(scrollPane)
+    }
+
+    override fun resize(width: Int, height: Int) {
+        super.resize(width, height)
+
+        scrollPane.invalidate()
+        imageListViewer.invalidate()
     }
 }
