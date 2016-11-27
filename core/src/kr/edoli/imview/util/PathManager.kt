@@ -13,8 +13,11 @@ import javax.imageio.ImageIO
  * Created by daniel on 16. 10. 1.
  */
 class PathManager {
+    val availableExts = arrayOf("png", "jpeg", "jpg", "bmp")
+
     private var currentPath: String? = null
     private var currentFileName: String? = null
+
 
     fun setPath(path: String) {
         currentPath = FilenameUtils.getFullPath(path)
@@ -41,6 +44,7 @@ class PathManager {
     }
 
     fun prev(): String? {
+        val t1 = System.nanoTime()
         if (currentPath == null || currentFileName == null) {
             return null
         }
@@ -56,15 +60,20 @@ class PathManager {
             return prev()
         }
 
+        println(System.nanoTime() - t1)
+
         return fullPath
     }
 
     fun isImage(filePath: String): Boolean {
+        /*
         try {
             ImageIO.read(File(filePath)) ?: return false
         } catch (ex: IOException) {
             return false
         }
-        return true
+        return true*/
+        val ext = FilenameUtils.getExtension(filePath).toLowerCase()
+        return availableExts.contains(ext)
     }
 }

@@ -2,17 +2,15 @@ package kr.edoli.imview.ui
 
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Label
-import kr.edoli.edoliui.res.FontAwesomes
 import kr.edoli.imview.ComparisonMode
-import kr.edoli.imview.Context
 import kr.edoli.imview.util.ObservableValue
 
 /**
  * Created by sjjeon on 16. 10. 28.
  */
 
-fun ObservableValue<Boolean>.checkButton(icon: String, onClick: (Boolean) -> Unit = {}): Button {
-    val button = UI.iconButton(icon, true)
+fun ObservableValue<Boolean>.checkButton(icon: String, size: Int = 24, onClick: (Boolean) -> Unit = {}): Button {
+    val button = UI.iconButton(icon, true, size = size)
     button.onClick {
         val newValue = button.isChecked
         update(newValue)
@@ -24,11 +22,11 @@ fun ObservableValue<Boolean>.checkButton(icon: String, onClick: (Boolean) -> Uni
     return button
 }
 
-fun ObservableValue<ComparisonMode>.radioButtons(icons: Array<String>, onClick: (ComparisonMode) -> Unit = {}): Array<Button> {
+fun ObservableValue<ComparisonMode>.radioButtons(icons: Array<String>, size: Int = 24, onClick: (ComparisonMode) -> Unit = {}): Array<Button> {
     val values = ComparisonMode.values
     val currentValue = get()
     val buttons = Array<Button>(values.size) {
-        UI.iconButton(icons[it], true)
+        UI.iconButton(icons[it], true, size = size)
     }
 
     for ((i, button) in buttons.withIndex()) {

@@ -3,11 +3,12 @@ package kr.edoli.imview.ui.view
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Table
-import kr.edoli.edoliui.res.FontAwesomes
 import kr.edoli.edoliui.widget.drawable.ColorDrawable
 import kr.edoli.imview.bus.Bus
+import kr.edoli.imview.bus.ColorCopyMessage
 import kr.edoli.imview.bus.SelectionCopyMessage
 import kr.edoli.imview.res.Colors
+import kr.edoli.imview.res.FontAwesomes
 import kr.edoli.imview.ui.UI
 import kr.edoli.imview.ui.onClick
 
@@ -23,8 +24,8 @@ class ContextMenu(val contextGroup: ContextGroup) : Table() {
             Bus.send(SelectionCopyMessage())
         }
 
-        addButton(FontAwesomes.FaImage) {
-
+        addButton(FontAwesomes.FaSpinner) {
+            Bus.send(ColorCopyMessage())
         }
 
         addButton(FontAwesomes.FaFilter) {

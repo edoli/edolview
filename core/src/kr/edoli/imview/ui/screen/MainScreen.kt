@@ -4,15 +4,16 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowListener
 import com.badlogic.gdx.graphics.Pixmap
-import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.FileDropMessage
 import kr.edoli.imview.res.Colors
+import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.ui.ColorWidget
 import kr.edoli.imview.ui.view.ContextGroup
 import kr.edoli.imview.ui.view.ImageViewer
@@ -39,8 +40,8 @@ class MainScreen : BaseScreen() {
 
         mainLayout.setFillParent(true)
 
-        if (Context.args.get().size == 0) {
-            Context.mainImage.update(Pixmap(Gdx.files.internal("test.jpg")))
+        if (Context.args.get().isEmpty()) {
+            Context.mainImage.update(ImageStore.get(ImageStore.Where.Internal, "test.jpg"))
         } else {
             val path = Context.args.get()[0]
             updateImageFromPath(path)
@@ -56,11 +57,20 @@ class MainScreen : BaseScreen() {
         val centerLayout = Table()
         centerLayout.add(imageViewWrapper).expand().fill()
 
-        mainLayout.add(Toolbar()).height(32f).expandX().fillX().row()
-        mainLayout.add(ColorWidget(Colors.border)).height(1f).expandX().fillX().row()
+        val statusBarHeight = 32f
+
         mainLayout.add(centerLayout).expand().fill().row()
-        mainLayout.add(ColorWidget(Colors.border)).height(1f).expandX().fillX().row()
-        mainLayout.add(StatusBar()).height(32f).expandX().fillX().row()
+        mainLayout.add(StatusBar()).height(statusBarHeight).expandX().fillX().row()
+
+        val overlayTable = Table()
+        overlayTable.setFillParent(true)
+        overlayTable.add(Toolbar()).height(64f).colspan(3).expandX().fillX().row()
+        overlayTable.add()
+        overlayTable.add().expand()
+        overlayTable.add().row()
+        overlayTable.add().height(32f).colspan(3).expandX().fillX()
+
+
 
         val contextGroup = ContextGroup()
 
@@ -71,6 +81,7 @@ class MainScreen : BaseScreen() {
 
         stage.addActor(background)
         stage.addActor(mainLayout)
+        stage.addActor(overlayTable)
         stage.addActor(contextGroup)
 
 
@@ -136,7 +147,7 @@ class MainScreen : BaseScreen() {
                         windowWidth = Gdx.graphics.width
                         windowHeight = Gdx.graphics.height
 
-                        Gdx.graphics.setFullscreenMode(Gdx.graphics.getDisplayMode())
+                        Gdx.graphics.setFullscreenMode(Gdx.graphics.displayMode)
                     }
                 }
                 return super.keyDown(event, keycode)
@@ -145,9 +156,9 @@ class MainScreen : BaseScreen() {
     }
 
     fun updateImageFromPath(path: String?) {
-        if (path != null) {
+        if (path != null && Gdx.files.absolute(path).exists()) {
             Gdx.app.graphics.setTitle(path)
-            var pixmap = Pixmap(Gdx.files.absolute(path))
+            val pixmap = ImageStore.get(ImageStore.Where.Absolute, path)
             Context.mainImage.update(pixmap)
             Context.mainPath.update(path)
         }
