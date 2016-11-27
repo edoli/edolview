@@ -88,6 +88,13 @@ class MainScreen : BaseScreen() {
             infoView.isVisible = it
         }
 
+        Context.isFixToolBar.subscribe {
+            if (it) {
+                showInfoView()
+                showToolBar()
+            }
+        }
+
 
 
         val contextGroup = ContextGroup()
@@ -209,6 +216,9 @@ class MainScreen : BaseScreen() {
     }
 
     fun hideInfoView() {
+        if (Context.isFixToolBar.get()) {
+            return
+        }
         if (infoViewShow) {
             infoViewShow = false
             infoView.addAction(Actions.moveTo(-infoView.width, infoView.y, 0.2f))
