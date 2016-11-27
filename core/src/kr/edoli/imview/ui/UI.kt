@@ -49,10 +49,20 @@ object UI {
         return style
     }
 
+    val labelStyleMap = HashMap<Int, Label.LabelStyle>()
 
-    val labelStyle = initStyle(Label.LabelStyle()) {
-        font = Fonts.text(16)
-        fontColor = Color.WHITE
+    fun labelStyle(size: Int): Label.LabelStyle {
+        if (labelStyleMap.containsKey(size)) {
+            return labelStyleMap[size] as Label.LabelStyle
+        }
+
+        val style = initStyle(Label.LabelStyle()) {
+            font = Fonts.text(size)
+            fontColor = Color.WHITE
+        }
+        labelStyleMap.put(size, style)
+
+        return style
     }
 
     val textFieldStyle = initStyle(TextField.TextFieldStyle()) {
@@ -72,7 +82,7 @@ object UI {
     fun textButton(text: String, checkable: Boolean = false, size: Int = 24) =
             TextButton(text, buttonStyle(ButtonStyleDesc(FontType.Icon, checkable, size)))
                     .cursor(Cursor.SystemCursor.Hand)
-    fun label(text: String) = Label(text, labelStyle)
+    fun label(text: String, size: Int = 16) = Label(text, labelStyle(size))
     fun textField(text: String) = TextField(text, textFieldStyle).cursor(Cursor.SystemCursor.Ibeam)
 
     fun optionTable(vararg buttons: Button): Table {

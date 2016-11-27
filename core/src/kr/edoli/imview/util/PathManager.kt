@@ -44,7 +44,6 @@ class PathManager {
     }
 
     fun prev(): String? {
-        val t1 = System.nanoTime()
         if (currentPath == null || currentFileName == null) {
             return null
         }
@@ -59,8 +58,6 @@ class PathManager {
         if (!isImage(fullPath)) {
             return prev()
         }
-
-        println(System.nanoTime() - t1)
 
         return fullPath
     }

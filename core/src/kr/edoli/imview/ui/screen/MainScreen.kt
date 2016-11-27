@@ -6,6 +6,7 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowListener
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
@@ -15,10 +16,7 @@ import kr.edoli.imview.bus.FileDropMessage
 import kr.edoli.imview.res.Colors
 import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.ui.ColorWidget
-import kr.edoli.imview.ui.view.ContextGroup
-import kr.edoli.imview.ui.view.ImageViewer
-import kr.edoli.imview.ui.view.StatusBar
-import kr.edoli.imview.ui.view.Toolbar
+import kr.edoli.imview.ui.view.*
 import kr.edoli.imview.util.PathManager
 import kr.edoli.imview.util.WindowUtils
 import kr.edoli.imview.util.Windows
@@ -33,6 +31,13 @@ class MainScreen : BaseScreen() {
     val imageViewer = ImageViewer()
 
     val pathManager = PathManager()
+
+
+    var infoViewShow = true
+    var toolBarShow = true
+
+    val toolBar = Toolbar()
+    val infoView = InfoView()
 
     init {
         val background = ColorWidget(Colors.background)
@@ -62,13 +67,26 @@ class MainScreen : BaseScreen() {
         mainLayout.add(centerLayout).expand().fill().row()
         mainLayout.add(StatusBar()).height(statusBarHeight).expandX().fillX().row()
 
-        val overlayTable = Table()
+
+
+        val overlayTable = object : Table() {
+            override fun layout() {
+                super.layout()
+
+                toolBarShow = true
+                infoViewShow = true
+            }
+        }
         overlayTable.setFillParent(true)
-        overlayTable.add(Toolbar()).height(64f).colspan(3).expandX().fillX().row()
-        overlayTable.add()
+        overlayTable.add(toolBar).height(64f).colspan(3).expandX().fillX().row()
+        overlayTable.add(infoView).width(280f).expandY().fillY()
         overlayTable.add().expand()
         overlayTable.add().row()
         overlayTable.add().height(32f).colspan(3).expandX().fillX()
+
+        Context.isShowInfo.subscribe {
+            infoView.isVisible = it
+        }
 
 
 
@@ -152,7 +170,49 @@ class MainScreen : BaseScreen() {
                 }
                 return super.keyDown(event, keycode)
             }
+
+            override fun mouseMoved(event: InputEvent?, x: Float, y: Float): Boolean {
+                if (x < 72f) showInfoView() else hideInfoView()
+
+                if (!infoViewShow) {
+                    if (y > stage.height - 72f) showToolBar() else hideToolBar()
+                }
+
+                return super.mouseMoved(event, x, y)
+            }
         })
+    }
+
+    fun showToolBar() {
+        if (!toolBarShow) {
+            toolBarShow = true
+            toolBar.addAction(Actions.moveTo(toolBar.x, stage.height - toolBar.height, 0.2f))
+        }
+    }
+
+    fun hideToolBar() {
+        if (Context.isFixToolBar.get()) {
+            return
+        }
+        if (toolBarShow) {
+            toolBarShow = false
+            toolBar.addAction(Actions.moveTo(toolBar.x, stage.height, 0.2f))
+        }
+    }
+
+    fun showInfoView() {
+        showToolBar()
+        if (!infoViewShow) {
+            infoViewShow = true
+            infoView.addAction(Actions.moveTo(0f, infoView.y, 0.2f))
+        }
+    }
+
+    fun hideInfoView() {
+        if (infoViewShow) {
+            infoViewShow = false
+            infoView.addAction(Actions.moveTo(-infoView.width, infoView.y, 0.2f))
+        }
     }
 
     fun updateImageFromPath(path: String?) {
@@ -166,5 +226,9 @@ class MainScreen : BaseScreen() {
 
     override fun resize(width: Int, height: Int) {
         super.resize(width, height)
+
+        infoViewShow = true
+        toolBarShow = true
+
     }
 }

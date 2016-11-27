@@ -12,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
@@ -69,6 +70,7 @@ class ImageViewer : Widget() {
                 } else {
                     imageRegion = TextureRegion(Texture(it))
                 }
+                imageRegion?.texture?.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Nearest)
             } else {
                 imageProperty.width = 0f
                 imageProperty.height = 0f
@@ -237,6 +239,7 @@ class ImageViewer : Widget() {
         var prevX = 0f
         var prevY = 0f
         var logScale = 0f
+        var button = -1
 
         init {
             logScale = Math.log(imageProperty.scale.toDouble()).toFloat()
@@ -279,6 +282,7 @@ class ImageViewer : Widget() {
             initY = y
             prevX = x
             prevY = y
+            this.button = button
 
             if (UIUtils.ctrl()) {
                 mode = Mode.zoom
@@ -307,7 +311,7 @@ class ImageViewer : Widget() {
             return true
         }
 
-        override fun touchDragged(event: InputEvent?, x: Float, y: Float, pointer: Int) {
+        override fun touchDragged(event: InputEvent, x: Float, y: Float, pointer: Int) {
             val dx = x - prevX
             val dy = y - prevY
 
@@ -316,8 +320,10 @@ class ImageViewer : Widget() {
 
             when(mode) {
                 Mode.move -> {
-                    imageProperty.x += dx
-                    imageProperty.y += dy
+                    if (button == Input.Buttons.LEFT) {
+                        imageProperty.x += dx
+                        imageProperty.y += dy
+                    }
                 }
                 Mode.zoom -> {
                     Context.zoomBox.update {

@@ -18,7 +18,7 @@ import kr.edoli.imview.ui.onClick
 class ContextMenu(val contextGroup: ContextGroup) : Table() {
 
     init {
-        background = ColorDrawable(Colors.background)
+        background = ColorDrawable(Colors.statusBarBackground)
 
         addButton(FontAwesomes.FaCopy) {
             Bus.send(SelectionCopyMessage())

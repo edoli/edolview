@@ -16,10 +16,7 @@ object ImageStore {
     private val imageStoreMap = CacheBuilder.newBuilder()
             .maximumWeight(MAX_MEMORY)
             .weigher { k1: ImageDesc, v1: Pixmap? -> v1?.pixels?.limit() ?: 0 }
-            .removalListener{
-                println(it.key)
-                it.value?.dispose()
-            }
+            .removalListener{ it.value?.dispose() }
             .build(object : CacheLoader<ImageDesc, Pixmap?>() {
                 override fun load(key: ImageDesc): Pixmap? {
                     when (key.where) {

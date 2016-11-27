@@ -26,4 +26,6 @@ object Context {
     val comparisonMode = ObservableValue(ComparisonMode.Diff)
 
     val isShowCrosshair = ObservableValue(true)
+    val isFixToolBar = ObservableValue(true)
+    val isShowInfo = ObservableValue(false)
 }

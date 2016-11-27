@@ -8,6 +8,7 @@ import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.WindowClosedMessage
 import kr.edoli.imview.bus.WindowOpenMessage
+import kr.edoli.imview.res.Colors
 import kr.edoli.imview.res.FontAwesomes
 import kr.edoli.imview.ui.*
 import kr.edoli.imview.ui.screen.ImageListScreen
@@ -22,6 +23,8 @@ class Toolbar : Table() {
     val iconSize = 32
 
     val imageListWindowButton = UI.iconButton(FontAwesomes.FaTh, size = iconSize)
+    val isShowInfoButton = Context.isShowInfo.checkButton(FontAwesomes.FaTasks, size = iconSize)
+    val isFixToolBarButton = Context.isFixToolBar.checkButton(FontAwesomes.FaAnchor, size = iconSize)
     val isShowCrosshairButton = Context.isShowCrosshair.checkButton(FontAwesomes.FaCrosshairs, size = iconSize)
     val comparisonModeButtons = Context.comparisonMode.radioButtons(arrayOf(FontAwesomes.FaPhoto, FontAwesomes.FaShield), size = iconSize)
     val titleLabel = Context.mainPath.label().apply {
@@ -29,15 +32,17 @@ class Toolbar : Table() {
     }
 
     init {
-        background = ColorDrawable(Color.valueOf("#00000088"))
+        background = ColorDrawable(Colors.overlayBackground)
 
         pad(0f, 24f, 0f, 24f)
 
         align(Align.left)
         add(titleLabel).expandX().fillX()
         add(UI.optionTable(*comparisonModeButtons))
-        add().width(144f)
-        add(isShowCrosshairButton).size(48f)
+        add().width(96f)
+        add(isShowInfoButton).size(48f).padRight(16f)
+        add(isFixToolBarButton).size(48f).padRight(16f)
+        add(isShowCrosshairButton).size(48f).padRight(16f)
         add(imageListWindowButton).size(48f)
 
 
