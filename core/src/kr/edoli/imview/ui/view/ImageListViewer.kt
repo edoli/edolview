@@ -10,10 +10,7 @@ import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Rectangle
-import com.badlogic.gdx.scenes.scene2d.Actor
-import com.badlogic.gdx.scenes.scene2d.Group
-import com.badlogic.gdx.scenes.scene2d.InputEvent
-import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.*
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
@@ -123,9 +120,23 @@ class ImageListViewer : Table() {
 
             summaryView.clearListeners()
             summaryView.onClick {
-                Context.selectedImage.update(imageSummary!!.pixmap)
-                update()
             }
+            summaryView.addListener(object : ClickListener() {
+                override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+                    return super.touchDown(event, x, y, pointer, button)
+                }
+
+                override fun touchUp(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int) {
+                    Context.selectedImage.update(imageSummary!!.pixmap)
+                    update()
+                    super.touchUp(event, x, y, pointer, button)
+                }
+                override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                    super.clicked(event, x, y)
+                }
+            })
+
+
             val s = summaryView.deleteButton.listeners.size
             if (s > 2) {
                 summaryView.deleteButton.listeners.removeRange(2, s - 1)

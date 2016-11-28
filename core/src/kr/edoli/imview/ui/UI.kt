@@ -105,11 +105,12 @@ fun Actor.onClick(button: Int, onClick: (Actor) -> Unit): Actor {
     val actor = this
 
     addListener(object : ClickListener(button) {
-
+        /*
         override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
             event.stop()
             return super.touchDown(event, x, y, pointer, button)
         }
+        */
 
         override fun clicked(event: InputEvent, x: Float, y: Float) {
             onClick(actor)
