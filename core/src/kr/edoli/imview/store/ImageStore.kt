@@ -33,7 +33,7 @@ object ImageStore {
         while (processedName.contains("//")) {
             processedName = processedName.replace("//", "/")
         }
-        return imageStoreMap[ImageDesc(where, processedName)]
+        return imageStoreMap[ImageDesc(where, name)]
     }
 
     fun put(name: String, pixmap: Pixmap) {
@@ -46,5 +46,35 @@ object ImageStore {
         Internal, Absolute, External, None
     }
 
-    data class ImageDesc(val where: Where, val name: String)
+    class ImageDesc(val where: Where, val name: String) {
+        val processedName = process()
+
+        fun process(): String {
+            var pName = name
+            while (pName.contains("//")) {
+                pName = pName.replace("//", "/")
+            }
+            return pName
+        }
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other?.javaClass != javaClass) return false
+
+            other as ImageDesc
+
+            if (where != other.where) return false
+            if (processedName != other.processedName) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = where.hashCode()
+            result = 31 * result + processedName.hashCode()
+            return result
+        }
+
+
+    }
 }
