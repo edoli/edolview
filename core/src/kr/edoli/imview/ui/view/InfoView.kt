@@ -74,7 +74,7 @@ class InfoView : Table() {
 
         val attr = Files.readAttributes(Paths.get(path), BasicFileAttributes::class.java)
 
-        addItem("size", numberFomatter.format(attr.size().toDouble() / 1024 / 1024) + " mb", "(" + numberFomatter.format(attr.size()) + ") bytes")
+        addItem("size", numberFomatter.format(attr.size().toDouble() / 1024 / 1024) + " mb", "(" + numberFomatter.format(attr.size()) + " bytes)")
 
         addItem("created date", dateFormatter.format(attr.creationTime().toMillis()))
 

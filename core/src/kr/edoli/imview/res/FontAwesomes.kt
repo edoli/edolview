@@ -1,4 +1,4 @@
-package kr.edoli.edoliui.res
+package kr.edoli.imview.res
 
 object FontAwesomes {
     val FaGlass = "\uf000"

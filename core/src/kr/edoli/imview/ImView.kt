@@ -11,6 +11,9 @@ import kr.edoli.imview.ui.screen.MainScreen
 class ImView : Game() {
 
     override fun create() {
+        initPreference()
+
+
         setScreen(MainScreen())
 
 
@@ -36,5 +39,17 @@ class ImView : Game() {
         }
 
         Gdx.app.postRunnable(runnable)
+    }
+
+    private fun initPreference() {
+        val pref = Gdx.app.getPreferences("kr.edoli.imview.context")
+
+        Context.isShowCrosshair.update(pref.getBoolean("isShowCrosshair", true))
+        Context.isFixToolBar.update(pref.getBoolean("isFixToolBar", true))
+        Context.isShowInfo.update(pref.getBoolean("isShowInfo", true))
+
+        Context.isShowCrosshair.subscribe { pref.putBoolean("isShowCrosshair", it).flush() }
+        Context.isFixToolBar.subscribe { pref.putBoolean("isFixToolBar", it).flush() }
+        Context.isShowInfo.subscribe { pref.putBoolean("isShowInfo", it).flush() }
     }
 }
