@@ -4,6 +4,7 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import kr.edoli.edoliui.widget.drawable.ColorDrawable
+import kr.edoli.imview.ComparisonMode
 import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.WindowClosedMessage
@@ -26,7 +27,9 @@ class Toolbar : Table() {
     val isShowInfoButton = Context.isShowInfo.checkButton(FontAwesomes.FaTasks, size = iconSize)
     val isFixToolBarButton = Context.isFixToolBar.checkButton(FontAwesomes.FaAnchor, size = iconSize)
     val isShowCrosshairButton = Context.isShowCrosshair.checkButton(FontAwesomes.FaCrosshairs, size = iconSize)
-    val comparisonModeButtons = Context.comparisonMode.radioButtons(arrayOf(FontAwesomes.FaPhoto, FontAwesomes.FaShield), size = iconSize)
+    val comparisonModeButtons = Context.comparisonMode.radioButtons(arrayOf(FontAwesomes.FaPhoto, FontAwesomes.FaShield)
+            , values = ComparisonMode.values
+            , size = iconSize)
     val titleLabel = Context.mainPath.label().apply {
         setAlignment(Align.left)
     }

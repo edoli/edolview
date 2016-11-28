@@ -15,6 +15,10 @@ fun Float.clamp(min: Float, max: Float): Float = Math.max(min, Math.min(this, ma
 fun Float.floor(): Float = Math.floor(this.toDouble()).toFloat()
 fun Float.ceil(): Float = Math.ceil(this.toDouble()).toFloat()
 
+fun Rectangle.hflip(targetHeight: Float): Rectangle {
+    y = targetHeight - y - height
+    return this
+}
 fun Rectangle.adjust(): Rectangle {
     if (width < 0) {
         width = -width

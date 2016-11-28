@@ -80,7 +80,7 @@ object UI {
             TextButton(iconCode, buttonStyle(ButtonStyleDesc(FontType.Icon, checkable, size)))
                     .cursor(Cursor.SystemCursor.Hand)
     fun textButton(text: String, checkable: Boolean = false, size: Int = 24) =
-            TextButton(text, buttonStyle(ButtonStyleDesc(FontType.Icon, checkable, size)))
+            TextButton(text, buttonStyle(ButtonStyleDesc(FontType.Text, checkable, size)))
                     .cursor(Cursor.SystemCursor.Hand)
     fun label(text: String, size: Int = 16) = Label(text, labelStyle(size))
     fun textField(text: String) = TextField(text, textFieldStyle).cursor(Cursor.SystemCursor.Ibeam)
@@ -90,7 +90,7 @@ object UI {
 
         val border = Image(ColorDrawable("#ffffff"))
 
-        buttons.forEach { table.add(it).size(48f) }
+        buttons.forEach { table.add(it).pad(4f, 8f, 4f, 8f) }
         table.row()
         table.add(border).colspan(buttons.size).height(2f).expandX().fillX()
 

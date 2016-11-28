@@ -69,8 +69,7 @@ class StatusBar : Table() {
         }
 
         Context.selectBox.subscribe {
-            val y = ((Context.mainImage.get() as Pixmap).height - it.y.toInt() - it.height.toInt())
-            boxText = "${it.x.toInt()},${y},${it.width.toInt()},${it.height.toInt()}"
+            boxText = "${it.x.toInt()},${it.y.toInt()},${it.width.toInt()},${it.height.toInt()}"
             boxLabel.text = "selection: ($boxText)"
         }
 

@@ -1,8 +1,9 @@
-package kr.edoli.imview.util
+package kr.edoli.imview.image
 
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.math.Rectangle
 import kr.edoli.imview.Context
+import kr.edoli.imview.util.getChannels
 
 /**
  * Created by daniel on 16. 10. 18.
@@ -94,12 +95,14 @@ object ImageProc {
         return pixmap
     }
 
-    fun psnr(pixmapA: Pixmap, pixmapB: Pixmap, rect: Rectangle): Double {
+    fun psnr(pixmapA: Pixmap, pixmapB: Pixmap, rectangle: Rectangle?): Double {
+        val rect = rectangle ?: Rectangle(0f, 0f, pixmapA.width.toFloat(), pixmapA.height.toFloat())
+
         val pixelsA = pixmapA.pixels
         val pixelsB = pixmapB.pixels
 
         if (pixmapA.width != pixmapB.width || pixmapA.height != pixmapB.height || pixmapA.format != pixmapB.format) {
-            return -1.0;
+            return -1.0
         }
 
         val x = rect.x.toInt()
@@ -136,6 +139,7 @@ object ImageProc {
         return 20 * Math.log10(255.0) - 10 * Math.log10(mse)
     }
 
+    /*
     fun psnr(pixmapA: Pixmap, pixmapB: Pixmap): Double {
         val selectBox = Context.selectBox.get()
         if (selectBox.width != 0f && selectBox.height != 0f) {
@@ -147,6 +151,7 @@ object ImageProc {
         }
         return psnr(pixmapA, pixmapB, Rectangle(0f, 0f, pixmapA.width.toFloat(), pixmapA.height.toFloat()))
     }
+    */
 
     fun diff(pixmapA: Pixmap, pixmapB: Pixmap, rect: Rectangle): Pixmap? {
         val pixelsA = pixmapA.pixels

@@ -21,6 +21,7 @@ import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.ColorCopyMessage
 import kr.edoli.imview.bus.SelectionCopyMessage
+import kr.edoli.imview.image.ImageProc
 import kr.edoli.imview.res.Colors
 import kr.edoli.imview.ui.drawLine
 import kr.edoli.imview.ui.drawRect
@@ -162,10 +163,12 @@ class ImageViewer : Widget() {
         Context.selectBox.once {
             selectDrawBox.set(
                     it.x * imageProperty.scale + imageProperty.x,
-                    it.y * imageProperty.scale + imageProperty.y,
+                    it.y * imageProperty.scale,
                     it.width * imageProperty.scale,
                     it.height * imageProperty.scale)
+                    .hflip(imageProperty.height * imageProperty.scale + imageProperty.y)
         }
+
         if (Context.selectedImage.get() == null) {
             batch.color = selectOverlayRectColor
             batch.drawRect(selectDrawBox)
@@ -183,9 +186,10 @@ class ImageViewer : Widget() {
         Context.zoomBox.once {
             zoomDrawBox.set(
                     it.x * imageProperty.scale + imageProperty.x,
-                    it.y * imageProperty.scale + imageProperty.y,
+                    it.y * imageProperty.scale,
                     it.width * imageProperty.scale,
                     it.height * imageProperty.scale)
+                    .hflip(imageProperty.height * imageProperty.scale + imageProperty.y)
         }
         batch.color = zoomOverlayRectColor
         batch.drawRect(zoomDrawBox)
@@ -291,6 +295,7 @@ class ImageViewer : Widget() {
                         screenToPixelX(initX),
                         screenToPixelY(initY),
                         0f, 0f)
+                            .hflip(imageProperty.height)
                 }
             } else if (UIUtils.shift()) {
                 mode = Mode.select
@@ -299,6 +304,7 @@ class ImageViewer : Widget() {
                         screenToPixelX(initX).floor(),
                         screenToPixelY(initY).floor(),
                         0f, 0f)
+                            .hflip(imageProperty.height)
                 }
             } else {
                 mode = Mode.move
@@ -332,6 +338,7 @@ class ImageViewer : Widget() {
                                 screenToPixelY(initY),
                                 screenToPixelX(x) - screenToPixelX(initX),
                                 screenToPixelY(y) - screenToPixelY(initY))
+                                .hflip(imageProperty.height)
                                 .adjust()
                                 .clamp(0f, 0f, x2, y2)
                     }
@@ -343,6 +350,7 @@ class ImageViewer : Widget() {
                                 screenToPixelY(initY),
                                 (screenToPixelX(x) - screenToPixelX(initX)),
                                 (screenToPixelY(y) - screenToPixelY(initY)))
+                                .hflip(imageProperty.height)
                                 .adjust()
                                 .digitize()
                                 .clamp(0f, 0f, x2, y2)
@@ -368,7 +376,7 @@ class ImageViewer : Widget() {
                         val heightScale = imageViewer.height / it.height
                         imageProperty.scale = Math.min(widthScale, heightScale)
                         imageProperty.x = (imageViewer.width - (it.x * 2 + it.width) * imageProperty.scale) / 2
-                        imageProperty.y = (imageViewer.height - (it.y * 2 + it.height) * imageProperty.scale) / 2
+                        imageProperty.y = -imageProperty.height * imageProperty.scale + it.height * imageProperty.scale - (imageViewer.height - (it.y * 2 + it.height) * imageProperty.scale) / 2
 
                         logScale = Math.log(imageProperty.scale.toDouble()).toFloat()
 

@@ -20,7 +20,7 @@ import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.ui.UI
 import kr.edoli.imview.ui.onClick
 import kr.edoli.imview.util.Clipboard
-import kr.edoli.imview.util.ImageProc
+import kr.edoli.imview.image.ImageProc
 import kr.edoli.imview.util.Windows
 import org.apache.commons.io.FilenameUtils
 import java.util.*
@@ -54,7 +54,7 @@ class ImageListViewer : Table() {
             if (it != null) {
                 for (imageSummary in imageSummaryList) {
                     if (imageSummary.pixmap != null) {
-                        imageSummary.psnr = ImageProc.psnr(it, imageSummary.pixmap!!)
+                        imageSummary.metric = Context.comparisonMetric.get().compute(it, imageSummary.pixmap!!, Context.selectBox.get())
                     }
                 }
             }
@@ -66,7 +66,7 @@ class ImageListViewer : Table() {
             if (mainImage != null) {
                 for (imageSummary in imageSummaryList) {
                     if (imageSummary.pixmap != null) {
-                        imageSummary.psnr = ImageProc.psnr(mainImage, imageSummary.pixmap!!)
+                        imageSummary.metric = Context.comparisonMetric.get().compute(mainImage, imageSummary.pixmap!!, Context.selectBox.get())
                     }
                 }
             }
@@ -191,7 +191,7 @@ class ImageListViewer : Table() {
 
         val mainPixmap = Context.mainImage.get()
         if (mainPixmap != null) {
-            imageSummary.psnr = ImageProc.psnr(mainPixmap, pixmap)
+            imageSummary.metric = Context.comparisonMetric.get().compute(mainPixmap, pixmap, Context.selectBox.get())
         }
 
         imageSummaryList.add(imageSummary)
@@ -203,7 +203,7 @@ class ImageListViewer : Table() {
         var pixmap: Pixmap? = null
         var region: TextureRegion? = null
         var title = ""
-        var psnr: Double = 0.0
+        var metric: Double = 0.0
     }
 
     class ImageSummaryView : Table() {
@@ -243,7 +243,7 @@ class ImageListViewer : Table() {
 
             val psnrCopyButton = UI.iconButton(FontAwesomes.FaCopy).onClick {
                 if (imageSummary != null) {
-                    Clipboard.copy("${String.format("%.2f", (imageSummary as ImageSummary).psnr)}")
+                    Clipboard.copy(String.format("%.2f", (imageSummary as ImageSummary).metric))
                 }
             }
 
@@ -266,7 +266,7 @@ class ImageListViewer : Table() {
             if (imageSummary != null) {
                 titleLabel.setText(imageSummary!!.title)
 
-                val psnr = imageSummary!!.psnr
+                val psnr = imageSummary!!.metric
                 if (psnr > 0) {
                     psnrLabel.setText("PSNR: ${String.format("%.2f", psnr)}")
                 } else {

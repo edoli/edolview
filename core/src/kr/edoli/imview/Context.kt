@@ -24,6 +24,7 @@ object Context {
     val zoomRate = ObservableValue(1f)
 
     val comparisonMode = ObservableValue(ComparisonMode.Diff)
+    val comparisonMetric = ObservableValue(ComparisonMetric.PSNR)
 
     val isShowCrosshair = ObservableValue(true)
     val isFixToolBar = ObservableValue(true)

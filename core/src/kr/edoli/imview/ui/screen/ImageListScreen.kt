@@ -3,13 +3,19 @@ package kr.edoli.imview.ui.screen
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowConfiguration
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowListener
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
+import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.BaseApplicationListener
+import kr.edoli.imview.ComparisonMetric
+import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.FileDropMessage
 import kr.edoli.imview.bus.WindowClosedMessage
 import kr.edoli.imview.bus.WindowOpenMessage
 import kr.edoli.imview.res.Colors
 import kr.edoli.imview.ui.ColorWidget
+import kr.edoli.imview.ui.UI
+import kr.edoli.imview.ui.radioButtons
 import kr.edoli.imview.ui.view.ImageListViewer
 import kr.edoli.imview.util.WindowUtils
 import kr.edoli.imview.util.Windows
@@ -64,12 +70,22 @@ class ImageListScreen : BaseScreen() {
         val background = ColorWidget(Colors.background)
         background.setFillParent(true)
 
-        scrollPane.setFillParent(true)
         imageListViewer.setFillParent(true)
+
+        val imageListToolBar = Table()
+        val buttons = Context.comparisonMetric.radioButtons(
+                arrayOf("PSNR", "SSIM", "RMSE", "MSE"), ComparisonMetric.values, isIcon = false)
+        imageListToolBar.add(UI.optionTable(*buttons))
+
+        val mainTable = Table()
+        mainTable.setFillParent(true)
+
+        mainTable.add(imageListToolBar).height(42f).expandX().fillX().align(Align.left).row()
+        mainTable.add(scrollPane).expand().fill()
 
 
         stage.addActor(background)
-        stage.addActor(scrollPane)
+        stage.addActor(mainTable)
     }
 
     override fun resize(width: Int, height: Int) {

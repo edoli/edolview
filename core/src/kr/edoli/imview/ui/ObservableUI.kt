@@ -2,7 +2,6 @@ package kr.edoli.imview.ui
 
 import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Label
-import kr.edoli.imview.ComparisonMode
 import kr.edoli.imview.util.ObservableValue
 
 /**
@@ -22,11 +21,12 @@ fun ObservableValue<Boolean>.checkButton(icon: String, size: Int = 24, onClick: 
     return button
 }
 
-fun ObservableValue<ComparisonMode>.radioButtons(icons: Array<String>, size: Int = 24, onClick: (ComparisonMode) -> Unit = {}): Array<Button> {
-    val values = ComparisonMode.values
+fun <T> ObservableValue<T>.radioButtons(icons: Array<String>, values: Array<T>, isIcon:Boolean = true, size: Int = 24, onClick: (T) -> Unit = {}): Array<Button> {
     val currentValue = get()
-    val buttons = Array<Button>(values.size) {
+    val buttons = if (isIcon) Array<Button>(values.size) {
         UI.iconButton(icons[it], true, size = size)
+    } else Array<Button>(values.size) {
+        UI.textButton(icons[it], true, size = size)
     }
 
     for ((i, button) in buttons.withIndex()) {
