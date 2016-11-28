@@ -18,7 +18,7 @@ object Context {
     val mainPath = ObservableValue<String>("")
 
     val cursorPosition = ObservableValue(GridPoint2())
-    val cursorRGB = ObservableValue(byteArrayOf())
+    val cursorRGB = ObservableValue(intArrayOf())
     val selectBox = ObservableValue(Rectangle())
     val zoomBox = ObservableValue(Rectangle())
     val zoomRate = ObservableValue(1f)
@@ -26,4 +26,6 @@ object Context {
     val comparisonMode = ObservableValue(ComparisonMode.Diff)
 
     val isShowCrosshair = ObservableValue(true)
+    val isFixToolBar = ObservableValue(true)
+    val isShowInfo = ObservableValue(false)
 }

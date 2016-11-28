@@ -12,12 +12,14 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.ui.Button
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import kr.edoli.imview.ComparisonMode
 import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
+import kr.edoli.imview.bus.ColorCopyMessage
 import kr.edoli.imview.bus.SelectionCopyMessage
 import kr.edoli.imview.res.Colors
 import kr.edoli.imview.ui.drawLine
@@ -59,11 +61,16 @@ class ImageViewer : Widget() {
             if (it != null) {
                 imageProperty.width = it.width.toFloat()
                 imageProperty.height = it.height.toFloat()
+
+                if (imageRegion != null) {
+                    imageRegion?.texture?.dispose()
+                }
                 if (it.format == Pixmap.Format.Alpha) {
                     imageRegion = TextureRegion(Texture(it, Pixmap.Format.LuminanceAlpha, false))
                 } else {
                     imageRegion = TextureRegion(Texture(it))
                 }
+                imageRegion?.texture?.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Nearest)
             } else {
                 imageProperty.width = 0f
                 imageProperty.height = 0f
@@ -120,6 +127,11 @@ class ImageViewer : Widget() {
             if (pixmap != null) {
                 val texture = if (pixmap.format == Pixmap.Format.Alpha) Texture(pixmap, Pixmap.Format.LuminanceAlpha, false)
                 else Texture(pixmap)
+
+                pixmap.dispose()
+                if (overlayRegion.texture != null) {
+                    overlayRegion.texture.dispose()
+                }
 
                 overlayRegion.texture = texture
                 overlayRegion.regionWidth = texture.width
@@ -227,6 +239,7 @@ class ImageViewer : Widget() {
         var prevX = 0f
         var prevY = 0f
         var logScale = 0f
+        var button = -1
 
         init {
             logScale = Math.log(imageProperty.scale.toDouble()).toFloat()
@@ -269,6 +282,7 @@ class ImageViewer : Widget() {
             initY = y
             prevX = x
             prevY = y
+            this.button = button
 
             if (UIUtils.ctrl()) {
                 mode = Mode.zoom
@@ -297,7 +311,7 @@ class ImageViewer : Widget() {
             return true
         }
 
-        override fun touchDragged(event: InputEvent?, x: Float, y: Float, pointer: Int) {
+        override fun touchDragged(event: InputEvent, x: Float, y: Float, pointer: Int) {
             val dx = x - prevX
             val dy = y - prevY
 
@@ -306,8 +320,10 @@ class ImageViewer : Widget() {
 
             when(mode) {
                 Mode.move -> {
-                    imageProperty.x += dx
-                    imageProperty.y += dy
+                    if (button == Input.Buttons.LEFT) {
+                        imageProperty.x += dx
+                        imageProperty.y += dy
+                    }
                 }
                 Mode.zoom -> {
                     Context.zoomBox.update {
@@ -384,23 +400,25 @@ class ImageViewer : Widget() {
             val pixelY = screenToPixelY(y).toInt()
 
             Context.cursorPosition.update {
-                it.set(pixelX, pixelY)
+                val image = Context.mainImage.get()
+                if (image != null) {
+                    return@update it.set(pixelX, image.height - pixelY - 1)
+                }
+                return@update it.set(0, 0)
             }
 
             Context.cursorRGB.update {
-                val image = Context.mainImage.get()
-                if (image == null) {
-                    return@update byteArrayOf()
-                }
+                val image = Context.mainImage.get() ?: return@update intArrayOf()
 
                 val channels = image.getChannels()
-                val rgb = if (it.size == channels) it else ByteArray(channels)
+                val rgb = if (it.size == channels) it else IntArray(channels)
 
-                val pixel = ImageProc.getPixel(image, pixelX, image.height - pixelY)
+                val pixel = ImageProc.getPixel(image, pixelX, image.height - pixelY - 1)
                 for (i in 0..pixel.size-1) {
-                    rgb[i] = pixel[i]
+                    val value = pixel[i].toInt()
+                    rgb[i] = if (value < 0) value + 256 else value
                 }
-                rgb
+                return@update rgb
             }
 
             mousePosition.x = x

@@ -13,6 +13,8 @@ class ColorDrawable(
         private val color: Color,
         private val round: Float = 0f) : BaseDrawable() {
 
+    constructor(color: String, round: Float = 0f) : this(Color.valueOf(color), round)
+
     override fun draw(batch: Batch, x: Float, y: Float, width: Float, height: Float) {
         val preColor = batch.color
 

@@ -6,14 +6,12 @@ import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Cursor
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
-import com.badlogic.gdx.scenes.scene2d.ui.Button
-import com.badlogic.gdx.scenes.scene2d.ui.Label
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton
-import com.badlogic.gdx.scenes.scene2d.ui.TextField
+import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import kr.edoli.edoliui.res.Fonts
 import kr.edoli.edoliui.widget.drawable.ColorDrawable
 import kr.edoli.imview.res.Colors
+import java.util.*
 
 /**
  * Created by daniel on 16. 9. 23.
@@ -22,47 +20,53 @@ object UI {
 
     val round = 2f
 
-    val iconButtonStyle = initStyle(TextButton.TextButtonStyle()) {
-        font = Fonts.iconicFont
-        fontColor = Color.WHITE
-        up = ColorDrawable(Colors.buttonUp, round)
-        over = ColorDrawable(Colors.buttonOver, round)
-        down = ColorDrawable(Colors.buttonDown, round)
-
-        disabled = ColorDrawable(Colors.buttonUp, round)
-        disabledFontColor= Color.GRAY
+    enum class FontType {
+        Text, Icon
     }
 
-    val iconCheckButtonStyle = initStyle(TextButton.TextButtonStyle()) {
-        font = Fonts.iconicFont
-        fontColor = Color.WHITE
-        up = ColorDrawable(Colors.buttonUp, round)
-        over = ColorDrawable(Colors.buttonOver, round)
-        down = ColorDrawable(Colors.buttonDown, round)
-        checked = ColorDrawable(Colors.buttonChecked, round)
+    data class ButtonStyleDesc(
+            val type: FontType,
+            val checkable: Boolean,
+            val size: Int
+    )
 
-        disabled = ColorDrawable(Colors.buttonUp, round)
-        disabledFontColor= Color.GRAY
+    val buttonStyleMap = HashMap<ButtonStyleDesc, TextButton.TextButtonStyle>()
+
+    fun buttonStyle(desc: ButtonStyleDesc): TextButton.TextButtonStyle {
+        if (buttonStyleMap.containsKey(desc)) {
+            return buttonStyleMap[desc] as TextButton.TextButtonStyle
+        }
+        val style = initStyle(TextButton.TextButtonStyle()) {
+            font = if (desc.type == FontType.Icon) Fonts.icon(desc.size) else Fonts.text(desc.size)
+            fontColor = Color.WHITE
+            overFontColor = Color.valueOf("#5bc0eb")
+            if (desc.checkable) {
+                checkedFontColor = Color.valueOf("#fde74c")
+            }
+            disabledFontColor= Color.GRAY
+        }
+        buttonStyleMap.put(desc, style)
+        return style
     }
 
-    val textButtonStyle = initStyle(TextButton.TextButtonStyle()) {
-        font = Fonts.textFont
-        fontColor = Color.WHITE
-        up = ColorDrawable(Colors.buttonUp)
-        over = ColorDrawable(Colors.buttonOver)
-        down = ColorDrawable(Colors.buttonDown)
+    val labelStyleMap = HashMap<Int, Label.LabelStyle>()
 
-        disabled = ColorDrawable(Colors.buttonUp, round)
-        disabledFontColor= Color.GRAY
-    }
+    fun labelStyle(size: Int): Label.LabelStyle {
+        if (labelStyleMap.containsKey(size)) {
+            return labelStyleMap[size] as Label.LabelStyle
+        }
 
-    val labelStyle = initStyle(Label.LabelStyle()) {
-        font = Fonts.textFont
-        fontColor = Color.WHITE
+        val style = initStyle(Label.LabelStyle()) {
+            font = Fonts.text(size)
+            fontColor = Color.WHITE
+        }
+        labelStyleMap.put(size, style)
+
+        return style
     }
 
     val textFieldStyle = initStyle(TextField.TextFieldStyle()) {
-        font = Fonts.textFont
+        font = Fonts.text(16)
         fontColor = Color.WHITE
         selection = ColorDrawable(Colors.textSelect)
     }
@@ -72,13 +76,26 @@ object UI {
         return style
     }
 
-    fun iconButton(iconCode: String, checkable: Boolean = false) =
-            TextButton(iconCode, if (checkable) iconCheckButtonStyle else iconButtonStyle)
+    fun iconButton(iconCode: String, checkable: Boolean = false, size: Int = 24) =
+            TextButton(iconCode, buttonStyle(ButtonStyleDesc(FontType.Icon, checkable, size)))
                     .cursor(Cursor.SystemCursor.Hand)
-    fun textButton(text: String) = TextButton(text, textButtonStyle).cursor(Cursor.SystemCursor.Hand)
-    fun label(text: String) = Label(text, labelStyle)
+    fun textButton(text: String, checkable: Boolean = false, size: Int = 24) =
+            TextButton(text, buttonStyle(ButtonStyleDesc(FontType.Icon, checkable, size)))
+                    .cursor(Cursor.SystemCursor.Hand)
+    fun label(text: String, size: Int = 16) = Label(text, labelStyle(size))
     fun textField(text: String) = TextField(text, textFieldStyle).cursor(Cursor.SystemCursor.Ibeam)
 
+    fun optionTable(vararg buttons: Button): Table {
+        val table = Table()
+
+        val border = Image(ColorDrawable("#ffffff"))
+
+        buttons.forEach { table.add(it).size(48f) }
+        table.row()
+        table.add(border).colspan(buttons.size).height(2f).expandX().fillX()
+
+        return table
+    }
 }
 
 fun <T : Actor> T.cursor(cursor: Cursor.SystemCursor): T {

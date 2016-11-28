@@ -7,12 +7,14 @@ import com.badlogic.gdx.graphics.Color
  */
 
 object Colors {
-    val background = Color.valueOf("#1E1E20")
+    val background = Color.valueOf("#000000")
+    val statusBarBackground = Color.valueOf("#1d2024")
+    val overlayBackground = Color.valueOf("#00000088")
     val border = Color.valueOf("#374140")
 
     val selectOverlay = Color.valueOf("#41EAD4")
     val zoomOverlay = Color.valueOf("#F71735")
-    val mouseCross = Color.valueOf("#A2DE3B")
+    val mouseCross = Color.valueOf("#5eff00")
 
     val buttonUp = Color.valueOf("#1E1E20")
     val buttonOver = Color.valueOf("#D96C65")

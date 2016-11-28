@@ -1,9 +1,7 @@
 package kr.edoli.imview.ui.view
 
-import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.graphics.Colors
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
@@ -14,16 +12,16 @@ import com.badlogic.gdx.scenes.scene2d.*
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
-import kr.edoli.edoliui.res.FontAwesomes
 import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.FileDropMessage
+import kr.edoli.imview.res.FontAwesomes
+import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.ui.UI
 import kr.edoli.imview.ui.onClick
 import kr.edoli.imview.util.Clipboard
 import kr.edoli.imview.util.ImageProc
 import kr.edoli.imview.util.Windows
-import kr.edoli.imview.util.getChannels
 import org.apache.commons.io.FilenameUtils
 import java.util.*
 
@@ -86,13 +84,6 @@ class ImageListViewer : Table() {
         })
     }
 
-
-    override fun layout() {
-        super.layout()
-
-        refresh()
-    }
-
     override fun act(delta: Float) {
         if (isRefresh) {
             refresh()
@@ -146,6 +137,7 @@ class ImageListViewer : Table() {
                 refresh()
             }
         }
+
         for (i in imageSummaryList.size..imageSummaryViewList.size-1) {
             imageSummaryViewList[i].isUsed = false
         }
@@ -167,6 +159,11 @@ class ImageListViewer : Table() {
         }
     }
 
+    override fun sizeChanged() {
+        refresh()
+        super.sizeChanged()
+    }
+
     fun update() {
         for (imageSummaryView in imageSummaryViewList) {
             imageSummaryView.update()
@@ -175,9 +172,11 @@ class ImageListViewer : Table() {
 
 
     fun addImagePath(path: String) {
-        val pixmap = Pixmap(Gdx.files.absolute(path))
+        val pixmap = ImageStore.get(ImageStore.Where.Absolute, path)
 
-        addImage(pixmap, FilenameUtils.getBaseName(path))
+        if (pixmap != null) {
+            addImage(pixmap, FilenameUtils.getBaseName(path))
+        }
     }
 
     fun addImage(pixmap: Pixmap, name: String) {
@@ -257,6 +256,10 @@ class ImageListViewer : Table() {
                 add(psnrLabel).height(24f).width(96f)
             }).expandX().fillX()
             update()
+        }
+
+        fun dispose() {
+            imageSummary?.region?.texture?.dispose()
         }
 
         fun update() {
