@@ -12,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.*
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
+import kr.edoli.edoliui.widget.drawable.ColorDrawable
 import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.FileDropMessage
@@ -21,6 +22,7 @@ import kr.edoli.imview.ui.UI
 import kr.edoli.imview.ui.onClick
 import kr.edoli.imview.util.Clipboard
 import kr.edoli.imview.image.ImageProc
+import kr.edoli.imview.res.Colors
 import kr.edoli.imview.util.Windows
 import org.apache.commons.io.FilenameUtils
 import java.util.*
@@ -51,26 +53,15 @@ class ImageListViewer : Table() {
         }
 
         Context.mainImage.subscribe {
-            if (it != null) {
-                for (imageSummary in imageSummaryList) {
-                    if (imageSummary.pixmap != null) {
-                        imageSummary.metric = Context.comparisonMetric.get().compute(it, imageSummary.pixmap!!, Context.selectBox.get())
-                    }
-                }
-            }
-            update()
+            valueChanged()
         }
 
         Context.selectBox.subscribe {
-            val mainImage = Context.mainImage.get()
-            if (mainImage != null) {
-                for (imageSummary in imageSummaryList) {
-                    if (imageSummary.pixmap != null) {
-                        imageSummary.metric = Context.comparisonMetric.get().compute(mainImage, imageSummary.pixmap!!, Context.selectBox.get())
-                    }
-                }
-            }
-            update()
+            valueChanged()
+        }
+
+        Context.comparisonMetric.subscribe {
+            valueChanged()
         }
 
         addListener(object : ClickListener(Input.Buttons.LEFT) {
@@ -82,6 +73,19 @@ class ImageListViewer : Table() {
                 super.clicked(event, x, y)
             }
         })
+    }
+
+    fun valueChanged() {
+        val mainImage = Context.mainImage.get()
+        if (mainImage != null) {
+            for (imageSummary in imageSummaryList) {
+                if (imageSummary.pixmap != null) {
+                    imageSummary.metric = Context.comparisonMetric.get().compute(mainImage, imageSummary.pixmap!!, Context.selectBox.get())
+                }
+            }
+        }
+        update()
+
     }
 
     override fun act(delta: Float) {
@@ -150,9 +154,10 @@ class ImageListViewer : Table() {
                 continue
             }
 
-            add(imageSummary).size(cellWidth, cellHeight)
+            val cell = add(imageSummary).size(cellWidth, cellHeight).pad(8f, 8f, 0f, 0f)
 
             if (index % numCol == numCol - 1) {
+                cell.padRight(8f)
                 row()
             }
             index += 1
@@ -216,8 +221,15 @@ class ImageListViewer : Table() {
 
         val psnrLabel = UI.label("")
         val titleLabel = UI.label("")
-        val deleteButton = UI.iconButton(FontAwesomes.FaRemove)
-        val imageAspectView = ImageAspectView()
+        val deleteButton = UI.iconButton(FontAwesomes.FaRemove, size = 20)
+        val psnrCopyButton = UI.iconButton(FontAwesomes.FaCopy, size = 20).onClick {
+            if (imageSummary != null) {
+                Clipboard.copy(String.format("%.02f", (imageSummary as ImageSummary).metric))
+            }
+        }
+        val imageAspectView = ImageAspectView().apply {
+            background = ColorDrawable(Color.BLACK)
+        }
 
         var isUsed = false
         var isSelected = false
@@ -232,20 +244,18 @@ class ImageListViewer : Table() {
             titleLabel.setFontScale(0.75f)
 
             psnrLabel.setAlignment(Align.center)
-            titleLabel.setAlignment(Align.center)
+            titleLabel.setAlignment(Align.left)
+
+            background = ColorDrawable(Colors.darkBackground)
 
             clip = true
 
             val titleBar = Table()
 
-            titleBar.add(titleLabel).height(24f).expandX().fillX()
+            titleBar.add(titleLabel).minWidth(0f).expandX().fillX().align(Align.left)
             titleBar.add(deleteButton).size(24f)
 
-            val psnrCopyButton = UI.iconButton(FontAwesomes.FaCopy).onClick {
-                if (imageSummary != null) {
-                    Clipboard.copy(String.format("%.2f", (imageSummary as ImageSummary).metric))
-                }
-            }
+
 
             add(titleBar).expandX().fillX().height(24f)
             row()
@@ -253,8 +263,8 @@ class ImageListViewer : Table() {
             row()
             add(Table().apply {
                 add(psnrCopyButton).size(24f).padRight(8f)
-                add(psnrLabel).height(24f).width(96f)
-            }).expandX().fillX()
+                add(psnrLabel).expandX().fillX()
+            }).expandX().fillX().height(24f)
             update()
         }
 
@@ -268,7 +278,7 @@ class ImageListViewer : Table() {
 
                 val psnr = imageSummary!!.metric
                 if (psnr > 0) {
-                    psnrLabel.setText("PSNR: ${String.format("%.2f", psnr)}")
+                    psnrLabel.setText("PSNR: ${String.format("%.02f", psnr)}")
                 } else {
                     psnrLabel.setText("image size not match")
                 }

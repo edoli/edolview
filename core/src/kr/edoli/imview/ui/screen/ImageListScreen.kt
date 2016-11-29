@@ -67,7 +67,7 @@ class ImageListScreen : BaseScreen() {
     val scrollPane = ScrollPane(imageListViewer)
 
     init {
-        val background = ColorWidget(Colors.background)
+        val background = ColorWidget(Colors.statusBarBackground)
         background.setFillParent(true)
 
         imageListViewer.setFillParent(true)
@@ -80,7 +80,7 @@ class ImageListScreen : BaseScreen() {
         val mainTable = Table()
         mainTable.setFillParent(true)
 
-        mainTable.add(imageListToolBar).height(42f).expandX().fillX().align(Align.left).row()
+        mainTable.add(imageListToolBar).height(42f).expandX().align(Align.left).padLeft(16f).row()
         mainTable.add(scrollPane).expand().fill()
 
 

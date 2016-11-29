@@ -1,7 +1,6 @@
 package kr.edoli.imview.ui.view
 
 import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
@@ -9,7 +8,6 @@ import kr.edoli.edoliui.widget.drawable.ColorDrawable
 import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
 import kr.edoli.imview.bus.ColorCopyMessage
-import kr.edoli.imview.bus.SelectionCopyMessage
 import kr.edoli.imview.res.Colors
 import kr.edoli.imview.res.FontAwesomes
 import kr.edoli.imview.ui.UI

@@ -10,6 +10,7 @@ object Colors {
     val background = Color.valueOf("#000000")
     val statusBarBackground = Color.valueOf("#1d2024")
     val overlayBackground = Color.valueOf("#00000088")
+    val darkBackground = Color.valueOf("#121416")
     val border = Color.valueOf("#374140")
 
     val selectOverlay = Color.valueOf("#41EAD4")
