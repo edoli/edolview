@@ -1,23 +1,14 @@
 package kr.edoli.imview.image;
 
-import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application;
-import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration;
-import com.badlogic.gdx.files.FileHandle;
 import com.badlogic.gdx.graphics.Pixmap;
-import org.opencv.core.Core;
-import org.opencv.highgui.Highgui;
-import org.opencv.imgproc.Imgproc;
-
-import java.io.File;
 
 /**
  * Created by sjjeon on 16. 12. 20.
  */
 public class Test {
     public static void test() {
-        System.out.println("!!!");
+        System.out.println("=======   Test start   =======");
         Pixmap pixmap = new Pixmap(Gdx.files.internal("test.jpg"));
 
         for (int i = 0; i < 3; i++) {
