@@ -2,6 +2,7 @@ package kr.edoli.imview
 
 import com.badlogic.gdx.Game
 import com.badlogic.gdx.Gdx
+import kr.edoli.imview.image.Test
 import kr.edoli.imview.ui.screen.MainScreen
 
 /**
