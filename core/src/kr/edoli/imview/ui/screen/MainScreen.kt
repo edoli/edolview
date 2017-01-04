@@ -175,6 +175,10 @@ class MainScreen : BaseScreen() {
                         Gdx.graphics.setFullscreenMode(Gdx.graphics.displayMode)
                     }
                 }
+
+                if (keycode == Input.Keys.SPACE) {
+                    Context.isShowCrosshair.update { !it }
+                }
                 return super.keyDown(event, keycode)
             }
 
