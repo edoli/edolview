@@ -8,7 +8,7 @@ project.ext.mainClassName = "kr.edoli.imview.desktop.DesktopLauncher"
 project.ext.assetsDir = new File("../core/assets");
 
 task run(dependsOn: classes, type: JavaExec) {
-    systemProperty "java.library.path", "/usr/lib/jni/"
+    systemProperty "java.library.path", "F:/library/opencv3/build/java/x64"
     main = project.mainClassName
     classpath = sourceSets.main.runtimeClasspath
     standardInput = System.in

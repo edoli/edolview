@@ -2,14 +2,19 @@ package kr.edoli.imview
 
 import com.badlogic.gdx.Game
 import com.badlogic.gdx.Gdx
-import kr.edoli.imview.image.Test
 import kr.edoli.imview.ui.screen.MainScreen
+import org.opencv.core.Core
+import java.io.File
 
 /**
  * Created by daniel on 16. 9. 10.
  */
 
 class ImView : Game() {
+
+    init {
+        System.loadLibrary(Core.NATIVE_LIBRARY_NAME)
+    }
 
     override fun create() {
         initPreference()

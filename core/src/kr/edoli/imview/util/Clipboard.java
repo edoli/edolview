@@ -2,6 +2,7 @@ package kr.edoli.imview.util;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Pixmap;
+import org.opencv.core.Mat;
 
 import javax.swing.*;
 import java.awt.*;
@@ -39,25 +40,21 @@ public class Clipboard {
         return null;
     }
 
-    public static void copy(Pixmap pixmap) {
-        copy(pixmap, 0, 0, pixmap.getWidth(), pixmap.getHeight());
+    public static void copy(Mat mat) {
+        copy(mat, 0, 0, mat.cols(), mat.rows());
     }
 
-    public static void copy(Pixmap pixmap, int offsetX, int offsetY, int width, int height) {
+    public static void copy(Mat mat, int offsetX, int offsetY, int width, int height) {
         if (width == 0 || height == 0 ||
                 offsetX < 0 || offsetY < 0 ||
-                offsetX + width > pixmap.getWidth() || offsetY + height > pixmap.getHeight()) {
+                offsetX + width > mat.cols() || offsetY + height > mat.rows()) {
             return;
         }
 
-        ByteBuffer byteBuffer = pixmap.getPixels();
+        byte[] buff = new byte[(int) (mat.total() * mat.channels())];
+        mat.get(0, 0, buff);
 
-        int length = byteBuffer.capacity();
-        byte[] totalArray = new byte[length];
-        byteBuffer.get(totalArray, 0, length);
-        byteBuffer.position(0);
-
-        int numChannels = PixmapExtKt.getChannels(pixmap);
+        int numChannels = mat.channels();
         boolean hasAlpha = (numChannels == 4);
 
         int copyNumChannels = numChannels;
@@ -73,11 +70,12 @@ public class Clipboard {
             int row = index / width;
             int col = index %  width;
 
-            int j = (col + offsetX) * numChannels + (row + offsetY) * numChannels * pixmap.getWidth();
+            int j = (col + offsetX) * numChannels
+                    + (row + offsetY) * numChannels * mat.cols();
 
             for (int k = 0; k < copyNumChannels; k++) {
                 if (k < numChannels) {
-                    subArray[i + k] = totalArray[j + k];
+                    subArray[i + k] = buff[j + k];
                 } else {
                     subArray[i + k] = (byte) 255;
                 }

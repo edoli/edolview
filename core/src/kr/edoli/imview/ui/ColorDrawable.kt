@@ -30,4 +30,20 @@ class ColorDrawable(
 
         super.draw(batch, x, y, width, height)
     }
+
+    fun pad(pad: Float): ColorDrawable {
+        leftWidth = pad
+        rightWidth = pad
+        topHeight = pad
+        bottomHeight = pad
+        return this
+    }
+
+    fun pad(top: Float, right: Float, bottom: Float, left: Float): ColorDrawable {
+        leftWidth = left
+        rightWidth = right
+        topHeight = top
+        bottomHeight = bottom
+        return this
+    }
 }

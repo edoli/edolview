@@ -3,11 +3,9 @@ package kr.edoli.imview.ui.screen
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowListener
-import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
-import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import kr.edoli.imview.Context
@@ -20,6 +18,7 @@ import kr.edoli.imview.ui.view.*
 import kr.edoli.imview.util.PathManager
 import kr.edoli.imview.util.WindowUtils
 import kr.edoli.imview.util.Windows
+import javax.swing.JOptionPane
 
 /**
  * Created by daniel on 16. 9. 10.
@@ -231,10 +230,16 @@ class MainScreen : BaseScreen() {
 
     fun updateImageFromPath(path: String?) {
         if (path != null && Gdx.files.absolute(path).exists()) {
-            Gdx.app.graphics.setTitle(path)
             val pixmap = ImageStore.get(ImageStore.Where.Absolute, path)
-            Context.mainImage.update(pixmap)
-            Context.mainPath.update(path)
+
+            if (pixmap != null) {
+                Gdx.app.graphics.setTitle(path)
+                Context.mainImage.update(pixmap)
+                Context.mainPath.update(path)
+            } else {
+                JOptionPane.showMessageDialog(null,
+                        "존재하지 않는 이미지입니다.");
+            }
         }
     }
 

@@ -96,6 +96,9 @@ object UI {
 
         return table
     }
+
+    fun slider(vertical: Boolean) = Slider(0f, 1f, 0.01f, vertical, Slider.SliderStyle(
+            ColorDrawable(Color.GRAY).pad(4f), ColorDrawable(Color.YELLOW).pad(8f)))
 }
 
 fun <T : Actor> T.cursor(cursor: Cursor.SystemCursor): T {

@@ -22,9 +22,11 @@ import kr.edoli.imview.ui.UI
 import kr.edoli.imview.ui.onClick
 import kr.edoli.imview.util.Clipboard
 import kr.edoli.imview.image.ImageProc
+import kr.edoli.imview.image.ImageUtils
 import kr.edoli.imview.res.Colors
 import kr.edoli.imview.util.Windows
 import org.apache.commons.io.FilenameUtils
+import org.opencv.core.Mat
 import java.util.*
 
 /**
@@ -79,8 +81,9 @@ class ImageListViewer : Table() {
         val mainImage = Context.mainImage.get()
         if (mainImage != null) {
             for (imageSummary in imageSummaryList) {
-                if (imageSummary.pixmap != null) {
-                    imageSummary.metric = Context.comparisonMetric.get().compute(mainImage, imageSummary.pixmap!!, Context.selectBox.get())
+                if (imageSummary.mat != null) {
+                    imageSummary.metric = Context.comparisonMetric.get()
+                            .compute(mainImage, imageSummary.mat!!, Context.selectBox.get())
                 }
             }
         }
@@ -105,40 +108,45 @@ class ImageListViewer : Table() {
         clearChildren()
 
         for ((index, imageSummary) in imageSummaryList.withIndex()) {
-            val pixmap = imageSummary.pixmap
-            val texture = Texture(pixmap)
-            val summaryView = imageSummaryViewList[index]
-            texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-            summaryView.imageSummary = imageSummary
-            summaryView.isUsed = true
+            val mat = imageSummary.mat
+            if (mat != null) {
+                val pixmap = ImageUtils.matToPixmap(mat)
+                val texture = Texture(pixmap)
+                pixmap.dispose()
+
+                val summaryView = imageSummaryViewList[index]
+                texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+                summaryView.imageSummary = imageSummary
+                summaryView.isUsed = true
 
 
-            summaryView.clearListeners()
-            summaryView.onClick {
-            }
-            summaryView.addListener(object : ClickListener() {
-                override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
-                    return super.touchDown(event, x, y, pointer, button)
+                summaryView.clearListeners()
+                summaryView.onClick {
                 }
+                summaryView.addListener(object : ClickListener() {
+                    override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+                        return super.touchDown(event, x, y, pointer, button)
+                    }
 
-                override fun touchUp(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int) {
-                    Context.selectedImage.update(imageSummary!!.pixmap)
-                    update()
-                    super.touchUp(event, x, y, pointer, button)
+                    override fun touchUp(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int) {
+                        Context.selectedImage.update(imageSummary!!.mat)
+                        update()
+                        super.touchUp(event, x, y, pointer, button)
+                    }
+                    override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                        super.clicked(event, x, y)
+                    }
+                })
+
+
+                val s = summaryView.deleteButton.listeners.size
+                if (s > 2) {
+                    summaryView.deleteButton.listeners.removeRange(2, s - 1)
                 }
-                override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                    super.clicked(event, x, y)
+                summaryView.deleteButton.onClick {
+                    imageSummaryList.remove(imageSummary)
+                    refresh()
                 }
-            })
-
-
-            val s = summaryView.deleteButton.listeners.size
-            if (s > 2) {
-                summaryView.deleteButton.listeners.removeRange(2, s - 1)
-            }
-            summaryView.deleteButton.onClick {
-                imageSummaryList.remove(imageSummary)
-                refresh()
             }
         }
 
@@ -184,19 +192,21 @@ class ImageListViewer : Table() {
         }
     }
 
-    fun addImage(pixmap: Pixmap, name: String) {
+    fun addImage(mat: Mat, name: String) {
         val imageSummary = ImageSummary()
 
-        var imageRegion =  if (pixmap.format == Pixmap.Format.Alpha) TextureRegion(Texture(pixmap, Pixmap.Format.LuminanceAlpha, false))
-        else TextureRegion(Texture(pixmap))
+        val pixmap = ImageUtils.matToPixmap(mat)
+        var imageRegion = TextureRegion(Texture(pixmap))
+        pixmap.dispose()
 
-        imageSummary.pixmap = pixmap
+        imageSummary.mat = mat
         imageSummary.region = TextureRegion(imageRegion)
         imageSummary.title = name
 
         val mainPixmap = Context.mainImage.get()
         if (mainPixmap != null) {
-            imageSummary.metric = Context.comparisonMetric.get().compute(mainPixmap, pixmap, Context.selectBox.get())
+            imageSummary.metric = Context.comparisonMetric.get()
+                    .compute(mainPixmap, mat, Context.selectBox.get())
         }
 
         imageSummaryList.add(imageSummary)
@@ -205,7 +215,7 @@ class ImageListViewer : Table() {
     }
 
     class ImageSummary {
-        var pixmap: Pixmap? = null
+        var mat: Mat? = null
         var region: TextureRegion? = null
         var title = ""
         var metric: Double = 0.0
@@ -285,11 +295,7 @@ class ImageListViewer : Table() {
 
                 imageAspectView.region = imageSummary!!.region
 
-                if (Context.selectedImage.get() == imageSummary!!.pixmap) {
-                    isSelected = true
-                } else {
-                    isSelected = false
-                }
+                isSelected = Context.selectedImage.get() == imageSummary!!.mat
             } else {
                 titleLabel.setText("")
                 imageAspectView.region = null

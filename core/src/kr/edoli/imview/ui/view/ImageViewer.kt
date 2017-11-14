@@ -12,21 +12,21 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Touchable
-import com.badlogic.gdx.scenes.scene2d.ui.Button
-import com.badlogic.gdx.scenes.scene2d.ui.Image
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import kr.edoli.imview.ComparisonMode
 import kr.edoli.imview.Context
 import kr.edoli.imview.bus.Bus
-import kr.edoli.imview.bus.ColorCopyMessage
 import kr.edoli.imview.bus.SelectionCopyMessage
 import kr.edoli.imview.image.ImageProc
+import kr.edoli.imview.image.ImageUtils
 import kr.edoli.imview.res.Colors
 import kr.edoli.imview.ui.drawLine
 import kr.edoli.imview.ui.drawRect
 import kr.edoli.imview.ui.drawRectBorder
 import kr.edoli.imview.util.*
+import org.opencv.core.Mat
+import org.opencv.core.Rect
 
 /**
  * Created by daniel on 16. 9. 10.
@@ -49,7 +49,7 @@ class ImageViewer : Widget() {
     val mouseCrossColor = Colors.mouseCross.cpy()
 
 
-    private var image: Pixmap? = null
+    private var image: Mat? = null
     private var imageRegion: TextureRegion? = null
     private var overlayRegion: TextureRegion = TextureRegion()
 
@@ -60,17 +60,16 @@ class ImageViewer : Widget() {
 
         Context.mainImage.subscribe {
             if (it != null) {
-                imageProperty.width = it.width.toFloat()
-                imageProperty.height = it.height.toFloat()
+                imageProperty.width = it.cols().toFloat()
+                imageProperty.height = it.rows().toFloat()
 
                 if (imageRegion != null) {
                     imageRegion?.texture?.dispose()
                 }
-                if (it.format == Pixmap.Format.Alpha) {
-                    imageRegion = TextureRegion(Texture(it, Pixmap.Format.LuminanceAlpha, false))
-                } else {
-                    imageRegion = TextureRegion(Texture(it))
-                }
+
+                val pixmap = ImageUtils.matToPixmap(it)
+                imageRegion = TextureRegion(Texture(pixmap))
+                pixmap.dispose()
                 imageRegion?.texture?.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Nearest)
             } else {
                 imageProperty.width = 0f
@@ -80,18 +79,20 @@ class ImageViewer : Widget() {
         }
 
         Bus.subscribe(SelectionCopyMessage::class.java) {
-            if (image != null) {
+            val currentImage = image
+            if (currentImage != null) {
+
                 Context.selectBox.once {
                     val selectBox = it
 
-                    if (selectBox.width != 0f && selectBox.height != 0f) {
-                        Clipboard.copy(image,
-                                selectBox.x.toInt(),
-                                ((image as Pixmap).height - selectBox.y.toInt() - selectBox.height.toInt()),
-                                selectBox.width.toInt(),
-                                selectBox.height.toInt())
+                    if (selectBox.width != 0 && selectBox.height != 0) {
+                        Clipboard.copy(currentImage,
+                                selectBox.x,
+                                selectBox.y,
+                                selectBox.width,
+                                selectBox.height)
                     } else {
-                        Clipboard.copy(image)
+                        Clipboard.copy(currentImage)
                     }
 
                 }
@@ -109,36 +110,33 @@ class ImageViewer : Widget() {
         }
     }
 
-    fun updateSelectBoxContent(selectBox: Rectangle) {
+    fun updateSelectBoxContent(selectBox: Rect) {
         val selectedImage = Context.selectedImage.get()
         val mainImage = image
         if (mainImage != null && selectedImage != null &&
                 selectBox.width > 0 && selectBox.height > 0 &&
-                selectedImage.width == mainImage.width && selectedImage.height == mainImage.height) {
+                selectedImage.cols() == mainImage.cols() && selectedImage.rows() == mainImage.rows()) {
 
-            val rect = Rectangle(selectBox)
-            rect.y = mainImage.height - rect.y - rect.height
-            val pixmap = when (Context.comparisonMode.get()) {
+            val rect = selectBox.clone()
+            rect.y = mainImage.rows() - rect.y - rect.height
+            val mat = when (Context.comparisonMode.get()) {
                 ComparisonMode.Image -> ImageProc.crop(selectedImage, rect)
                 ComparisonMode.Diff -> ImageProc.diff(mainImage, selectedImage, rect)
             }
 
+            val pixmap = ImageUtils.matToPixmap(mat)
+            val texture = Texture(pixmap)
 
-
-            if (pixmap != null) {
-                val texture = if (pixmap.format == Pixmap.Format.Alpha) Texture(pixmap, Pixmap.Format.LuminanceAlpha, false)
-                else Texture(pixmap)
-
-                pixmap.dispose()
-                if (overlayRegion.texture != null) {
-                    overlayRegion.texture.dispose()
-                }
-
-                overlayRegion.texture = texture
-                overlayRegion.regionWidth = texture.width
-                overlayRegion.regionHeight = texture.height
-
+            pixmap.dispose()
+            mat.release()
+            if (overlayRegion.texture != null) {
+                overlayRegion.texture.dispose()
             }
+
+            overlayRegion.texture = texture
+            overlayRegion.regionWidth = texture.width
+            overlayRegion.regionHeight = texture.height
+
         } else {
             overlayRegion.texture = null
         }
@@ -210,7 +208,7 @@ class ImageViewer : Widget() {
     }
 
     fun selectAll() {
-        Context.selectBox.update { it.set(0f, 0f, imageProperty.width, imageProperty.height) }
+        Context.selectBox.update { it.set(0, 0, imageProperty.width.toInt(), imageProperty.height.toInt()) }
     }
 
 
@@ -292,19 +290,19 @@ class ImageViewer : Widget() {
                 mode = Mode.zoom
                 Context.zoomBox.update {
                     it.set(
-                        screenToPixelX(initX),
-                        screenToPixelY(initY),
-                        0f, 0f)
-                            .hflip(imageProperty.height)
+                        screenToPixelX(initX).toInt(),
+                        screenToPixelY(initY).toInt(),
+                        0, 0)
+                            .hflip(imageProperty.height.toInt())
                 }
             } else if (UIUtils.shift()) {
                 mode = Mode.select
                 Context.selectBox.update {
                     it.set(
-                        screenToPixelX(initX).floor(),
-                        screenToPixelY(initY).floor(),
-                        0f, 0f)
-                            .hflip(imageProperty.height)
+                        screenToPixelX(initX).floor().toInt(),
+                        screenToPixelY(initY).floor().toInt(),
+                        0, 0)
+                            .hflip(imageProperty.height.toInt())
                 }
             } else {
                 mode = Mode.move
@@ -321,8 +319,8 @@ class ImageViewer : Widget() {
             val dx = x - prevX
             val dy = y - prevY
 
-            val x2 = imageProperty.width
-            val y2 = imageProperty.height
+            val x2 = imageProperty.width.toInt()
+            val y2 = imageProperty.height.toInt()
 
             when(mode) {
                 Mode.move -> {
@@ -334,26 +332,25 @@ class ImageViewer : Widget() {
                 Mode.zoom -> {
                     Context.zoomBox.update {
                         it.set(
-                                screenToPixelX(initX),
-                                screenToPixelY(initY),
-                                screenToPixelX(x) - screenToPixelX(initX),
-                                screenToPixelY(y) - screenToPixelY(initY))
-                                .hflip(imageProperty.height)
+                                screenToPixelX(initX).toInt(),
+                                screenToPixelY(initY).toInt(),
+                                (screenToPixelX(x) - screenToPixelX(initX)).toInt(),
+                                (screenToPixelY(y) - screenToPixelY(initY)).toInt())
+                                .hflip(imageProperty.height.toInt())
                                 .adjust()
-                                .clamp(0f, 0f, x2, y2)
+                                .clamp(0, 0, x2, y2)
                     }
                 }
                 Mode.select -> {
                     Context.selectBox.update {
                         it.set(
-                                screenToPixelX(initX),
-                                screenToPixelY(initY),
-                                (screenToPixelX(x) - screenToPixelX(initX)),
-                                (screenToPixelY(y) - screenToPixelY(initY)))
-                                .hflip(imageProperty.height)
+                                screenToPixelX(initX).toInt(),
+                                screenToPixelY(initY).toInt(),
+                                (screenToPixelX(x) - screenToPixelX(initX)).toInt(),
+                                (screenToPixelY(y) - screenToPixelY(initY)).toInt())
+                                .hflip(imageProperty.height.toInt())
                                 .adjust()
-                                .digitize()
-                                .clamp(0f, 0f, x2, y2)
+                                .clamp(0, 0, x2, y2)
                     }
                 }
             }
@@ -369,7 +366,7 @@ class ImageViewer : Widget() {
                 Mode.zoom -> {
                     // Zoom
                     Context.zoomBox.once {
-                        if (it.width == 0f || it.height == 0f) {
+                        if (it.width == 0 || it.height == 0) {
                             return@once
                         }
                         val widthScale = imageViewer.width / it.width
@@ -410,7 +407,7 @@ class ImageViewer : Widget() {
             Context.cursorPosition.update {
                 val image = Context.mainImage.get()
                 if (image != null) {
-                    return@update it.set(pixelX, image.height - pixelY - 1)
+                    return@update it.set(pixelX, image.rows() - pixelY - 1)
                 }
                 return@update it.set(0, 0)
             }
@@ -418,11 +415,11 @@ class ImageViewer : Widget() {
             Context.cursorRGB.update {
                 val image = Context.mainImage.get() ?: return@update intArrayOf()
 
-                val channels = image.getChannels()
+                val channels = image.channels()
                 val rgb = if (it.size == channels) it else IntArray(channels)
 
-                val pixel = ImageProc.getPixel(image, pixelX, image.height - pixelY - 1)
-                for (i in 0..pixel.size-1) {
+                val pixel = ImageProc.getPixel(image, pixelX, image.rows() - pixelY - 1)
+                for (i in 0 until pixel.size) {
                     val value = pixel[i].toInt()
                     rgb[i] = if (value < 0) value + 256 else value
                 }

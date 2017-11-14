@@ -1,26 +1,27 @@
 package kr.edoli.imview
 
-import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.math.Rectangle
 import kr.edoli.imview.image.QualityMetric
+import org.opencv.core.Mat
+import org.opencv.core.Rect
 
 /**
  * Created by sjjeon on 16. 10. 28.
  */
 enum class ComparisonMetric {
     PSNR {
-        override fun compute(pixmapA: Pixmap, pixmapB: Pixmap, rectangle: Rectangle) = QualityMetric.psnr(pixmapA, pixmapB, rectangle)
+        override fun compute(matA: Mat, matB: Mat, rect: Rect) = QualityMetric.psnr(matA, matB, rect)
     }, SSIM {
-        override fun compute(pixmapA: Pixmap, pixmapB: Pixmap, rectangle: Rectangle) = QualityMetric.ssim(pixmapA, pixmapB, rectangle)
+        override fun compute(matA: Mat, matB: Mat, rect: Rect) = QualityMetric.ssim(matA, matB, rect)
     }, RMSE {
-        override fun compute(pixmapA: Pixmap, pixmapB: Pixmap, rectangle: Rectangle) = QualityMetric.rmse(pixmapA, pixmapB, rectangle)
+        override fun compute(matA: Mat, matB: Mat, rect: Rect) = QualityMetric.rmse(matA, matB, rect)
     }, MSE {
-        override fun compute(pixmapA: Pixmap, pixmapB: Pixmap, rectangle: Rectangle) = QualityMetric.mse(pixmapA, pixmapB, rectangle)
+        override fun compute(matA: Mat, matB: Mat, rect: Rect) = QualityMetric.mse(matA, matB, rect)
     };
 
     companion object {
         val values = values()
     }
 
-    abstract fun compute(pixmapA: Pixmap, pixmapB: Pixmap, rectangle: Rectangle): Double
+    abstract fun compute(matA: Mat, matB: Mat, rect: Rect): Double
 }

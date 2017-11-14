@@ -53,9 +53,9 @@ class InfoView : Table() {
 
         val image = Context.mainImage.get() ?: return
 
-        addItem("dimension", image.width.toString() + " × " + image.height.toString())
+        addItem("dimension",  "${image.cols()} × ${image.rows()}")
 
-        addItem("number of channels", image.getChannels().toString())
+        addItem("number of channels", image.channels().toString())
 
 
         if (Context.mainPath.get() == "") {
