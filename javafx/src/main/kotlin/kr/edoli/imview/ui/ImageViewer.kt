@@ -7,20 +7,18 @@ import javafx.scene.input.KeyCode
 import javafx.scene.layout.Pane
 import javafx.scene.paint.Color
 import javafx.scene.paint.Paint
+import javafx.scene.shape.Line
 import javafx.scene.shape.Rectangle
 import javafx.scene.transform.NonInvertibleTransformException
 import kr.edoli.imview.ImContext
-import kr.edoli.imview.image.*
-import org.kordamp.ikonli.dashicons.Dashicons
+import kr.edoli.imview.image.ImageConvert
+import kr.edoli.imview.image.ImageProc
+import kr.edoli.imview.image.set
 import org.kordamp.ikonli.javafx.FontIcon
+import org.kordamp.ikonli.materialdesign.MaterialDesign
 import org.opencv.core.Rect
-import java.io.File
-import javafx.scene.input.Dragboard
-import kr.edoli.imview.store.ImageStore
-import javafx.scene.input.TransferMode
-import javafx.scene.input.DragEvent
-
-
+import tornadofx.add
+import tornadofx.imageview
 
 
 class ImageViewer : Pane() {
@@ -46,18 +44,32 @@ class ImageViewer : Pane() {
     private val imageRegion = Pane()
     private val imageView = PixelatedImageView()
     private val contextMenu = ImContextMenu()
-    private val zoomButton = CircleButton(12.0).apply { graphic = FontIcon(Dashicons.SEARCH) }
+    private val zoomButton = CircleButton(12.0).apply { graphic = FontIcon(MaterialDesign.MDI_MAGNIFY) }
 
     // rectangle for seleciton
     private val geometricRect = Rect()
     private val visualizeRect = Rectangle()
     private var rectActive = false
+    private val crossHairLineA = Line().apply { stroke = Color.LIGHTGREEN }
+    private val crossHairLineB = Line().apply { stroke = Color.LIGHTGREEN }
+
+    private var lastUpdateTime = 0
 
     init {
         ImContext.mainImage.subscribe {
-            if (it != null) {
-                image = ImageConvert.matToImage(it)
-            }
+            updateImage()
+        }
+
+        ImContext.imageContrast.subscribe {
+            updateImage()
+        }
+
+        ImContext.imageBrightness.subscribe {
+            updateImage()
+        }
+
+        ImContext.imageGamma.subscribe {
+            updateImage()
         }
 
         ImContext.zoomRatio.subscribe(this) {
@@ -65,20 +77,31 @@ class ImageViewer : Pane() {
             zoom(it, Point2D(center.x, center.y))
         }
 
-        children.add(imageRegion)
-        children.add(Pane(visualizeRect))
-        children.add(Pane(zoomButton))
+        ImContext.isShowCrosshair.subscribe(this) {
+            crossHairLineA.isVisible = it
+            crossHairLineB.isVisible = it
+        }
+
+        ImContext.centerImage.subscribe {
+            centerImage()
+        }
+
+        add(imageRegion)
+        add(crossHairLineA)
+        add(crossHairLineB)
+        add(Pane(visualizeRect))
+        add(Pane(zoomButton))
 
         visualizeRect.fill = Color.TRANSPARENT
 
         val colorAdjust = ColorAdjust()
-        ImContext.imageBrightness.subscribe { colorAdjust.brightness = it }
-        ImContext.imageContrast.subscribe { colorAdjust.contrast = it }
+        // ImContext.imageBrightness.subscribe { colorAdjust.brightness = it }
+        // ImContext.imageContrast.subscribe { colorAdjust.contrast = it }
 
         imageView.isPreserveRatio = true
         imageView.isSmooth = false
         imageView.effect = colorAdjust
-        imageRegion.children.add(imageView)
+        imageRegion.add(imageView)
 
         updateVisualizeRect()
 
@@ -114,6 +137,10 @@ class ImageViewer : Pane() {
         setOnKeyPressed { e ->
             if (e.code == KeyCode.ESCAPE) {
                 rectActive = false
+                updateVisualizeRect()
+            } else if (e.code == KeyCode.A && e.isControlDown) {
+                rectActive = true
+                selectAll()
                 updateVisualizeRect()
             }
         }
@@ -159,15 +186,6 @@ class ImageViewer : Pane() {
             updateCursor()
         }
 
-        setOnDragOver { e ->
-            val db = e.dragboard
-            if (db.hasFiles()) {
-                e.acceptTransferModes(TransferMode.COPY)
-            } else {
-                e.consume()
-            }
-        }
-
         zoomButton.setOnMouseClicked {
             val centerX = geometricRect.x + geometricRect.width / 2.0
             val centerY = geometricRect.y + geometricRect.height / 2.0
@@ -182,6 +200,21 @@ class ImageViewer : Pane() {
             ImContext.zoomCenter.update(centerPoint)
             ImContext.zoomRatio.update(zoomRatio)
         }
+    }
+
+    fun updateImage() {
+        val mat = ImContext.mainImage.get()
+        if (mat != null) {
+            val newImage = ImageProc.process(mat)
+            if (newImage != null) {
+                image = newImage
+            }
+        }
+    }
+
+    fun centerImage() {
+        val center = Point2D(imageRegion.width / 2, imageRegion.height / 2)
+        centerPosition(center)
     }
 
     private fun resizeGeometricRect() {
@@ -213,6 +246,21 @@ class ImageViewer : Pane() {
 
             ImContext.selectBox.update { it.set(geometricRect) }
         }
+    }
+
+    private fun selectAll() {
+        val image = this.image
+
+        if (image != null) {
+            geometricRect.x = 0
+            geometricRect.y = 0
+            geometricRect.width = image.width.toInt()
+            geometricRect.height = image.height.toInt()
+
+            ImContext.selectBox.update { it.set(geometricRect) }
+
+        }
+
     }
 
     private fun updateVisualizeRect() {
@@ -250,6 +298,18 @@ class ImageViewer : Pane() {
     private fun updateCursor() {
         val cursorPosition = imageRegion.sceneToLocal(mousePosX, mousePosY)
         ImContext.cursorPosition.update(cursorPosition)
+
+        val mouseViewerPos = sceneToLocal(mousePosX, mousePosY)
+        crossHairLineA.startX = mouseViewerPos.x + 0.5
+        crossHairLineA.endX = mouseViewerPos.x + 0.5
+        crossHairLineA.startY = 0.0
+        crossHairLineA.endY = height
+
+        crossHairLineB.startX = 0.0
+        crossHairLineB.endX = width
+        crossHairLineB.startY = mouseViewerPos.y + 0.5
+        crossHairLineB.endY = mouseViewerPos.y + 0.5
+
     }
 
     private fun centerPosition(pointOnImage: Point2D) {
