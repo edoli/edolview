@@ -6,15 +6,6 @@ sourceCompatibility = 1.8
 
 sourceSets.main.java.srcDirs = [ "src/" ]
 
-buildscript {
-    ext.kotlin_version = '1.0.4'
-    repositories {
-        mavenCentral()
-    }
-    dependencies {
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
-}
 repositories {
     mavenCentral()
 }

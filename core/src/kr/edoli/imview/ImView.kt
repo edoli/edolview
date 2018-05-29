@@ -17,6 +17,8 @@ class ImView : Game() {
     }
 
     override fun create() {
+        Gdx.graphics.isContinuousRendering = false
+
         initPreference()
 
 

@@ -1,24 +1,24 @@
 package kr.edoli.imview.image
 
-import com.badlogic.gdx.math.Rectangle
 import org.opencv.core.Core
 import org.opencv.core.Mat
 import org.opencv.core.Rect
+import org.opencv.core.Scalar
 
 /**
  * Created by daniel on 16. 10. 18.
  */
 object ImageProc {
-    fun getPixel(mat: Mat, x: Int, y: Int): ByteArray {
+    fun getPixel(mat: Mat, x: Int, y: Int): FloatArray {
         val width = mat.cols()
         val height = mat.rows()
         val channels = mat.channels()
 
         if (x < 0 || x >= width || y < 0 || y >= height) {
-            return ByteArray(channels, { 0 })
+            return FloatArray(channels, { 0f })
         }
 
-        val buff = ByteArray(channels)
+        val buff = FloatArray(channels)
         mat.get(y, x, buff)
 
         return buff
@@ -37,4 +37,12 @@ object ImageProc {
         Core.subtract(matSubA, matSubB, mat)
         return mat
     }
+
+    /*
+    fun contrast(mat: Mat, value: Float): Mat {
+        val retMat = mat.clone()
+        Core.multiply(mat, Scalar(value.toDouble(), value.toDouble(), value.toDouble(), value.toDouble()), retMat)
+        return retMat
+    }
+    */
 }

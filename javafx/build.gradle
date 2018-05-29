@@ -1,0 +1,43 @@
+apply plugin: "java"
+apply plugin: 'kotlin'
+apply plugin: 'edu.sc.seis.launch4j'
+
+sourceCompatibility = 1.8
+[compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
+
+project.ext.mainClassName = "kr.edoli.imview.Main"
+project.ext.assetsDir = new File("./assets")
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions {
+        languageVersion = "1.1"
+        apiVersion = "1.1"
+        jvmTarget = "1.8"
+        javaParameters = true   // Useful for reflection.
+    }
+}
+
+task run(dependsOn: classes, type: JavaExec) {
+    systemProperty "java.library.path", "F:/library/opencv3/build/java/x64"
+    main = project.mainClassName
+    classpath = sourceSets.main.runtimeClasspath
+    standardInput = System.in
+    workingDir = project.assetsDir
+    ignoreExitValue = true
+}
+
+launch4j {
+    mainClassName = project.mainClassName
+    productName = 'imview'
+    outfile = 'imview.exe'
+}
+
+repositories {
+    mavenCentral()
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    kotlinOptions {
+        jvmTarget = "1.8"
+    }
+}
