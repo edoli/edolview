@@ -52,6 +52,7 @@ dependencies {
     implementation 'org.kordamp.ikonli:ikonli-materialdesign-pack:2.1.1'
     implementation 'no.tornado:tornadofx:1.7.15'
     implementation 'com.drewnoakes:metadata-extractor:2.11.0'
+    implementation 'org.apache.commons:commons-lang3:3.9'
 
     implementation group: 'com.google.guava', name: 'guava', version: '20.0'
 }
