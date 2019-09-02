@@ -15,6 +15,12 @@ class HeaderBar : StackPane() {
         addClass(Style.overlayPane)
 
         hbox {
+
+            button("새로고침") {
+                action {
+                }
+            }
+
             button("클립보드 확인", FontIcon(MaterialDesign.MDI_CLIPBOARD)) {
                 action {
                     ClipboardUtils.showClipboardImage()

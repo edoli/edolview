@@ -150,6 +150,64 @@ operator fun Double.div(mat: Mat): Mat {
     return newMat
 }
 
+fun Mat.min(): Double {
+    val matArray = Array(this.channels()) { Mat() }.toList()
+    Core.split(this, matArray)
+
+    var min = Double.MAX_VALUE
+
+    for (mat in matArray) {
+        val result = Core.minMaxLoc(mat)
+        val tmpMin = result.minVal
+
+        if (tmpMin < min) min = tmpMin
+    }
+
+    return min
+}
+
+
+fun Mat.max(): Double {
+    val matArray = Array(this.channels()) { Mat() }.toList()
+    Core.split(this, matArray)
+
+    var max = Double.MIN_VALUE
+
+    for (mat in matArray) {
+        val result = Core.minMaxLoc(mat)
+        val tmpMax = result.maxVal
+
+        if (tmpMax > max) max = tmpMax
+    }
+
+    return max
+}
+
+
+fun Mat.minMax(): Pair<Double, Double> {
+    val matArray = Array(this.channels()) { Mat() }.toList()
+    Core.split(this, matArray)
+
+    var min = Double.MAX_VALUE
+    var max = Double.MIN_VALUE
+
+    for (mat in matArray) {
+        val result = Core.minMaxLoc(mat)
+        val tmpMin = result.minVal
+        val tmpMax = result.maxVal
+
+        if (tmpMin < min) min = tmpMin
+        if (tmpMax > max) max = tmpMax
+    }
+
+    return Pair(min, max)
+}
+
+fun Mat.normalize(): Mat {
+    val (min, max) = this.minMax()
+    return (this - min) / (max - min)
+}
+
 /* Type conversion */
 
 val IntRange.cv: Range

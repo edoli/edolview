@@ -6,12 +6,18 @@ import kr.edoli.imview.image.SelectBoxUtils
 import kr.edoli.imview.util.ClipboardUtils
 import tornadofx.action
 import tornadofx.item
+import tornadofx.separator
 
 class ImContextMenu : ContextMenu() {
     init {
-        item("Copy Image") {
+        item("Copy Original Image") {
             action {
-                SelectBoxUtils.copyImageToClipboard()
+                SelectBoxUtils.copyImageToClipboard(false)
+            }
+        }
+        item("Copy Visual Image") {
+            action {
+                SelectBoxUtils.copyImageToClipboard(true)
             }
         }
 
@@ -26,6 +32,20 @@ class ImContextMenu : ContextMenu() {
             action {
                 val rect = ImContext.selectBox.get()
                 ClipboardUtils.putString(intArrayOf(rect.x, rect.y, rect.width, rect.height).joinToString(","))
+            }
+        }
+
+        separator()
+
+        item("Save Original Image") {
+            action {
+                SelectBoxUtils.saveImage(false)
+            }
+        }
+
+        item("Save Visual Image") {
+            action {
+                SelectBoxUtils.saveImage(true)
             }
         }
     }

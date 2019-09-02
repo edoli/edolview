@@ -10,7 +10,7 @@ class Style : Stylesheet() {
 
     companion object {
         val overlayPane by cssclass()
-        val controlLabel by cssclass()
+        val controlItem by cssclass()
         val boldLabel by cssclass()
     }
 
@@ -44,8 +44,18 @@ class Style : Stylesheet() {
             }
         }
 
-        controlLabel {
-            textFill = Color.WHITE
+        controlItem {
+            label {
+                textFill = Color.WHITE
+            }
+
+            spinner {
+                textField {
+                    padding = box(2.px)
+                }
+                incrementArrowButton {
+                }
+            }
         }
 
         track {

@@ -14,12 +14,12 @@ import java.io.File
  */
 object ImageStore {
 
-    private val MAX_MEMORY = 1024 * 1024 * 1024L
+    private const val MAX_MEMORY = 1024 * 1024 * 1024L
 
     private val imageStoreMap = CacheBuilder.newBuilder()
             .maximumWeight(MAX_MEMORY)
-            .weigher { k1: ImageDesc, v1: ImageSpec -> (v1.mat.total() * v1.mat.channels()).toInt() }
-            .removalListener<ImageDesc, ImageSpec>{ it.value?.mat?.release() }
+            .weigher { _: ImageDesc, v1: ImageSpec -> (v1.mat.total() * v1.mat.channels()).toInt() }
+            .removalListener<ImageDesc, ImageSpec> { it.value?.mat?.release() }
             .build(object : CacheLoader<ImageDesc, ImageSpec>() {
                 override fun load(key: ImageDesc): ImageSpec {
                     return loadFromPath(key.path)
@@ -29,9 +29,7 @@ object ImageStore {
     private fun loadFromPath(path: String): ImageSpec {
         val mat = Imgcodecs.imread(path, -1)
 
-        val numChannels = mat.channels()
-
-        when (numChannels) {
+        when (mat.channels()) {
             3 -> {
                 Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2RGB)
             }
@@ -47,7 +45,7 @@ object ImageStore {
         imageStoreMap.invalidateAll()
     }
 
-    fun getMaxValue(mat: Mat): Double {
+    private fun getMaxValue(mat: Mat): Double {
         when (mat.type()) {
             CvType.CV_8U -> return 255.0
             CvType.CV_16U -> return 65535.0
@@ -63,26 +61,26 @@ object ImageStore {
         when (mat.channels()) {
             1 -> {
                 val alpha = when (mat.type()) {
-                    CvType.CV_8U -> 1.0/255.0
-                    CvType.CV_16U -> 1.0/65535.0
+                    CvType.CV_8U -> 1.0 / 255.0
+                    CvType.CV_16U -> 1.0 / 65535.0
                     else -> 1.0
                 }
                 mat.convertTo(mat, CvType.CV_32F, alpha)
             }
             3 -> {
                 if (mat.type() == CvType.CV_8UC3) {
-                    mat.convertTo(mat, CvType.CV_32FC3, 1.0/255.0)
+                    mat.convertTo(mat, CvType.CV_32FC3, 1.0 / 255.0)
                 }
                 if (mat.type() == CvType.CV_16UC3) {
-                    mat.convertTo(mat, CvType.CV_32FC3, 1.0/65535.0)
+                    mat.convertTo(mat, CvType.CV_32FC3, 1.0 / 65535.0)
                 }
             }
             4 -> {
                 if (mat.type() == CvType.CV_8UC4) {
-                    mat.convertTo(mat, CvType.CV_32FC4, 1.0/255.0)
+                    mat.convertTo(mat, CvType.CV_32FC4, 1.0 / 255.0)
                 }
                 if (mat.type() == CvType.CV_16UC4) {
-                    mat.convertTo(mat, CvType.CV_32FC4, 1.0/65535.0)
+                    mat.convertTo(mat, CvType.CV_32FC4, 1.0 / 65535.0)
                 }
             }
         }
@@ -94,7 +92,7 @@ object ImageStore {
     }
 
     fun get(path: String, lastModified: Long): ImageSpec {
-        var processedName = process(path)
+        val processedName = process(path)
         return imageStoreMap[ImageDesc(processedName, lastModified)]
     }
 
@@ -106,7 +104,7 @@ object ImageStore {
     }
     */
 
-    fun process(name: String): String {
+    private fun process(name: String): String {
         var pName = name
         while (pName.contains("//")) {
             pName = pName.replace("//", "/")

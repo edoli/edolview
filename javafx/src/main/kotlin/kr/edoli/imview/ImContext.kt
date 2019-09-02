@@ -36,6 +36,7 @@ object ImContext {
     val selectBoxRGB = ObservableValue(doubleArrayOf())
     val zoomRatio = ObservableValue(1.0)
     val zoomCenter = ObservableValue(Point2D(0.0, 0.0))
+    val rotation = ObservableValue(0.0)
 
     val comparisonMode = ObservableValue(ComparisonMode.Diff)
     val comparisonMetric = ObservableValue(ComparisonMetric.PSNR)
@@ -44,6 +45,8 @@ object ImContext {
     val isShowConroller = ObservableValue(true)
     val isShowInfo = ObservableValue(false)
 
+    val enableProfile = ObservableValue(true)
+    val normalize = ObservableValue(false)
     val imageContrast = ObservableValue(0.0)
     val imageBrightness = ObservableValue(0.0)
     val imageGamma = ObservableValue(1.0)
@@ -60,14 +63,23 @@ object ImContext {
         mainPath.update("test.jpg")
 
         mainPath.subscribe {
-            pathManager.setPath(it)
+            val file = File(it)
+            if (file.isDirectory) {
+                pathManager.setPath("$it/.")
+                frameSpeed.update(5.0)
+                nextImage()
+            } else {
+                pathManager.setPath(it)
+                val spec = ImageStore.get(File(it))
+                val mat = spec.mat
+                if (!mat.empty()) {
+                    imageSpec.update(spec)
+                    val normalized = ImageStore.normalize(mat)
+                    mainImage.update(normalized)
 
-            val spec = ImageStore.get(File(it))
-            val mat = spec.mat
-            if (!mat.empty()) {
-                imageSpec.update(spec)
-                val normalized = ImageStore.normalize(mat)
-                mainImage.update(normalized)
+                    updateCursorColor()
+                    selectBoxRGB.update(SelectBoxUtils.selectBoxMeanColor())
+                }
             }
         }
 
@@ -77,12 +89,7 @@ object ImContext {
         }
 
         cursorPosition.subscribe(this) {
-            val mainImage = ImContext.mainImage.get()
-            val point = it.cv
-            if (mainImage != null && mainImage.contains(point)) {
-                val color = mainImage[point]
-                ImContext.cursorRGB.update(color)
-            }
+            updateCursorColor()
         }
 
         selectBox.subscribe(this) {
@@ -112,6 +119,15 @@ object ImContext {
 
             }
         }.start()
+    }
+
+    fun updateCursorColor() {
+        val mainImage = ImContext.mainImage.get()
+        val point = cursorPosition.get().cv
+        if (mainImage != null && mainImage.contains(point)) {
+            val color = mainImage[point]
+            ImContext.cursorRGB.update(color)
+        }
     }
 
     fun loadPreferences() {

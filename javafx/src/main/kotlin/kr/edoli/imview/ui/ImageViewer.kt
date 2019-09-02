@@ -60,6 +60,14 @@ class ImageViewer : Pane() {
             updateImage()
         }
 
+        ImContext.enableProfile.subscribe {
+            updateImage()
+        }
+
+        ImContext.normalize.subscribe {
+            updateImage()
+        }
+
         ImContext.imageContrast.subscribe {
             updateImage()
         }
@@ -94,13 +102,10 @@ class ImageViewer : Pane() {
 
         visualizeRect.fill = Color.TRANSPARENT
 
-        val colorAdjust = ColorAdjust()
-        // ImContext.imageBrightness.subscribe { colorAdjust.brightness = it }
-        // ImContext.imageContrast.subscribe { colorAdjust.contrast = it }
+        ImContext.rotation.subscribe { imageView.rotate = it }
 
         imageView.isPreserveRatio = true
         imageView.isSmooth = false
-        imageView.effect = colorAdjust
         imageRegion.add(imageView)
 
         updateVisualizeRect()
@@ -179,7 +184,7 @@ class ImageViewer : Pane() {
                 }
                 DragState.Select -> {
                     rectActive = true
-                    resizeGeometricRect()
+                    resizeGeometricRect(e.isControlDown)
                 }
             }
             updateVisualizeRect()
@@ -205,10 +210,9 @@ class ImageViewer : Pane() {
     fun updateImage() {
         val mat = ImContext.mainImage.get()
         if (mat != null) {
-            val newImage = ImageProc.process(mat)
-            if (newImage != null) {
-                image = newImage
-            }
+            val netMat = ImageProc.process(mat)
+            val newImage = ImageConvert.matToImage(netMat)
+            image = newImage
         }
     }
 
@@ -217,14 +221,28 @@ class ImageViewer : Pane() {
         centerPosition(center)
     }
 
-    private fun resizeGeometricRect() {
+    private fun resizeGeometricRect(isSquare: Boolean = false) {
         val image = this.image
 
         if (image != null) {
-            val x1 = minOf(mousePosX, mousePressedPosX)
-            val y1 = minOf(mousePosY, mousePressedPosY)
-            val x2 = maxOf(mousePosX, mousePressedPosX)
-            val y2 = maxOf(mousePosY, mousePressedPosY)
+
+            var tx = mousePosX
+            var ty = mousePosY
+
+            if (isSquare){
+                val width = Math.abs(tx - mousePressedPosX)
+                val height = Math.abs(ty - mousePressedPosY)
+
+                val size = maxOf(width, height)
+
+                tx = mousePressedPosX + (tx - mousePressedPosX) / width * size
+                ty = mousePressedPosY + (ty - mousePressedPosY) / height * size
+            }
+
+            val x1 = minOf(tx, mousePressedPosX)
+            val y1 = minOf(ty, mousePressedPosY)
+            val x2 = maxOf(tx, mousePressedPosX)
+            val y2 = maxOf(ty, mousePressedPosY)
 
             val leftTop = imageRegion.sceneToLocal(x1, y1)
             val rightBottom = imageRegion.sceneToLocal(x2, y2)

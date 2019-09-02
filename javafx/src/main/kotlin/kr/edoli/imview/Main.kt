@@ -14,9 +14,13 @@ class Main: Application() {
         init {
             System.loadLibrary(Core.NATIVE_LIBRARY_NAME)
         }
+
+        var mainStage: Stage? = null
     }
 
     override fun start(stage: Stage){
+        mainStage = stage
+
         val root = MainPane()
         val scene = Scene(root,1024.0,512.0)
         scene.stylesheets.add(Style().externalForm)

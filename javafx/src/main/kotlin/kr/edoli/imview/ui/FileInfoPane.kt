@@ -1,5 +1,6 @@
 package kr.edoli.imview.ui
 
+import com.drew.imaging.ImageMetadataReader
 import javafx.scene.layout.VBox
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.util.ImageInfo
@@ -42,8 +43,12 @@ class FileInfoPane : VBox() {
 
 
         val info = ImageInfo()
-        info.setInput(FileUtils.openInputStream(File(path)))
+        val imageFile = File(path)
+        info.setInput(FileUtils.openInputStream(imageFile))
         info.check()
+
+        // val metaData = ImageMetadataReader.readMetadata(imageFile)
+
 
         addItem("dimension",  "${image.cols()} × ${image.rows()}")
 
