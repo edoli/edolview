@@ -21,7 +21,7 @@ object ImContext {
     val args = ObservableValue(arrayOf<String>())
 
     val mainImage = NullableObservableValue<Mat>(null)
-    val mainFile = ObservableValue(File("test_big.hdr"))
+    val mainFile = ObservableValue(File("test.jpg"))
 
     val imageSpec = NullableObservableValue<ImageSpec>(null)
     val selectedImage = NullableObservableValue<Mat>(null)
@@ -32,7 +32,7 @@ object ImContext {
     val selectBox = ObservableValue(Rect())
     val selectBoxActive = ObservableValue(false)
     val selectBoxRGB = ObservableValue(doubleArrayOf())
-    val zoomRatio = ObservableValue(1.0)
+    val zoomLevel = ObservableValue(0)
     val zoomCenter = ObservableValue(Point2D(0.0, 0.0))
     val rotation = ObservableValue(0.0)
 
@@ -42,6 +42,8 @@ object ImContext {
 
     val enableProfile = ObservableValue(true)
     val normalize = ObservableValue(false)
+    val smoothing = ObservableValue(false)
+
     val imageContrast = ObservableValue(1.0f)
     val imageBrightness = ObservableValue(0.0f)
     val imageGamma = ObservableValue(1.0f)

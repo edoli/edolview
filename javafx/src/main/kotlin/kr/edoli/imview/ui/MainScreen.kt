@@ -3,49 +3,27 @@ package kr.edoli.imview.ui
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
-import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.Stage
-import com.badlogic.gdx.scenes.scene2d.ui.Skin
-import com.badlogic.gdx.scenes.scene2d.ui.Slider
 import com.badlogic.gdx.scenes.scene2d.ui.Table
-import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.utils.viewport.ScreenViewport
-import kr.edoli.imview.ImContext
 import org.lwjgl.opengl.GL30
 
 class MainScreen : Screen {
     val stage = Stage(ScreenViewport(), PolygonSpriteBatch())
 
-    val skin = Skin(Gdx.files.internal("uiskin.json"))
-
     init {
-        stage.addActor(ImageViewer())
+        val layoutTable = Table().apply {
+            setFillParent(true)
+        }
 
-        val style = skin.get("default-horizontal", Slider.SliderStyle::class.java)
+        layoutTable.add(ImageViewer().apply {
+            Gdx.app.postRunnable {
+                stage.scrollFocus = this
+            }
+        }).expand().fill()
+        layoutTable.add(ControlPanel()).width(150f).expandY().fillY()
 
-        stage.addActor(Table().apply {
-            y = 30f
-            x = 100f
-            add(Slider(-10f, 10f, 0.1f, false, style).apply {
-                value = ImContext.imageBrightness.get()
-                addListener(object : ChangeListener() {
-                    override fun changed(event: ChangeEvent, actor: Actor) {
-                        val value = this@apply.value
-                        ImContext.imageBrightness.update(value)
-                    }
-                })
-            })
-            row()
-            add(Slider(0f, 10f, 0.1f, false, style).apply {
-                value = ImContext.imageGamma.get()
-                addListener(object : ChangeListener() {
-                    override fun changed(event: ChangeEvent, actor: Actor) {
-                        val value = this@apply.value
-                        ImContext.imageGamma.update(value)
-                    }
-                })
-            })
-        })
+        stage.addActor(layoutTable)
     }
 
     override fun hide() {

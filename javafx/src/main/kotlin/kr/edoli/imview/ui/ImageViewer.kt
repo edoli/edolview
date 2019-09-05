@@ -4,20 +4,25 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.GL30
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
-import com.badlogic.gdx.graphics.g2d.Sprite
-import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.FloatTextureData
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
+import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.InputListener
 import kr.edoli.imview.ImContext
-import org.opencv.core.Core
-import org.opencv.core.CvType
-import org.opencv.core.Mat
+import kotlin.math.pow
 
 class ImageViewer : Actor() {
     var texture: Texture? = null
+    var textureRegion: TextureRegion? = null
     var min = 0f
     var max = 0f
+
+    var imageX = 0f
+    var imageY = 0f
+    var imageScale = 1f
 
     val vertexShader = ("attribute vec4 " + ShaderProgram.POSITION_ATTRIBUTE + ";\n" //
             + "attribute vec4 " + ShaderProgram.COLOR_ATTRIBUTE + ";\n" //
@@ -39,10 +44,15 @@ class ImageViewer : Actor() {
     }
 
     init {
+        // Mat -> Texture using [FloatTextureData]
         ImContext.mainImage.subscribe { mat ->
             if (mat == null) return@subscribe
 
-            val data = FloatArray((mat.total() * 3).toInt())
+            texture?.dispose()
+
+            val numChannels = mat.channels()
+
+            val data = FloatArray((mat.total() * numChannels).toInt())
             mat.get(0, 0, data)
 
             min = Float.MAX_VALUE
@@ -52,13 +62,97 @@ class ImageViewer : Actor() {
                 if (value < min) min = value
             }
 
-            val textureData = FloatTextureData(mat.width(), mat.height(), GL30.GL_RGB32F, GL30.GL_RGB, GL30.GL_FLOAT, false)
+            val internalFormat = when (numChannels) {
+                1 -> GL30.GL_RGB32F
+                2 -> GL30.GL_RGB32F
+                3 -> GL30.GL_RGB32F
+                4 -> GL30.GL_RGBA32F
+                else -> GL30.GL_RGB32F
+            }
+
+            val format = when (numChannels) {
+                1 -> GL30.GL_RGB
+                2 -> GL30.GL_RGB
+                3 -> GL30.GL_RGB
+                4 -> GL30.GL_RGBA
+                else -> GL30.GL_RGB
+            }
+
+            val textureData = FloatTextureData(mat.width(), mat.height(), internalFormat, format, GL30.GL_FLOAT, false)
             textureData.prepare()
-            textureData.buffer.put(data)
+            if (numChannels == 1) {
+                val buffer = FloatArray(data.size * 3)
+                var i = 0
+                data.forEach { v -> repeat(3) { buffer[i++] = v } }
+                textureData.buffer.put(buffer)
+            } else {
+                textureData.buffer.put(data)
+            }
             textureData.buffer.position(0)
 
             texture = Texture(textureData)
+            updateSmoothing()
+            textureRegion = TextureRegion(texture)
         }
+
+        ImContext.smoothing.subscribe { updateSmoothing() }
+
+        // Drag listener
+        addListener(object : InputListener() {
+            var touchDownX = 0f
+            var touchDownY = 0f
+
+            var touchDownImageX = 0f
+            var touchDownImageY = 0f
+
+            override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+                touchDownX = x
+                touchDownY = y
+
+                touchDownImageX = imageX
+                touchDownImageY = imageY
+
+                return true
+            }
+
+            override fun touchDragged(event: InputEvent, x: Float, y: Float, pointer: Int) {
+                imageX = x - touchDownX + touchDownImageX
+                imageY = y - touchDownY + touchDownImageY
+            }
+
+            override fun scrolled(event: InputEvent, x: Float, y: Float, amount: Int): Boolean {
+                ImContext.zoomLevel.update(ImContext.zoomLevel.get() - amount)
+                return super.scrolled(event, x, y, amount)
+            }
+        })
+
+        ImContext.zoomLevel.subscribe { zoomLevel ->
+            val mousePos = Vector2(Gdx.input.x.toFloat(), Gdx.input.y.toFloat())
+            screenToLocalCoordinates(mousePos)
+
+            val mousePosImageX = mousePos.x - imageX
+            val mousePosImageY = mousePos.y - imageY
+            val currentScale = imageScale
+
+            val newScale = 1.1f.pow(zoomLevel)
+
+            val newMousePosImageX = mousePosImageX * newScale / currentScale
+            val newMousePosImageY = mousePosImageY * newScale / currentScale
+
+            imageX = mousePos.x - newMousePosImageX
+            imageY = mousePos.y - newMousePosImageY
+            imageScale = newScale
+        }
+    }
+
+    fun updateSmoothing() {
+        val isSmoothing = ImContext.smoothing.get()
+        if (isSmoothing) {
+            texture?.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+        } else {
+            texture?.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+        }
+
     }
 
     override fun draw(batch: Batch, parentAlpha: Float) {
@@ -72,8 +166,9 @@ class ImageViewer : Actor() {
         shader.setUniformf("min", min)
         shader.setUniformf("max", max)
         shader.setUniformi("normalize", ImContext.normalize.get().let { if (it) 1 else 0 })
-        texture?.let {
-            batch.draw(it, 0f, 0f, 500f, 500f)
+        textureRegion?.let { region ->
+            batch.draw(region, imageX, imageY, 0f, 0f,
+                    region.regionWidth.toFloat(), region.regionHeight.toFloat(), imageScale, imageScale, 0f)
         }
         batch.end()
 
