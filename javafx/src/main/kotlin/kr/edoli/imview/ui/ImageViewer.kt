@@ -1,6 +1,8 @@
 package kr.edoli.imview.ui
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL30
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
@@ -112,6 +114,8 @@ class ImageViewer : Actor() {
                 touchDownImageX = imageX
                 touchDownImageY = imageY
 
+                stage.keyboardFocus = this@ImageViewer
+
                 return true
             }
 
@@ -123,6 +127,16 @@ class ImageViewer : Actor() {
             override fun scrolled(event: InputEvent, x: Float, y: Float, amount: Int): Boolean {
                 ImContext.zoomLevel.update(ImContext.zoomLevel.get() - amount)
                 return super.scrolled(event, x, y, amount)
+            }
+
+            override fun keyDown(event: InputEvent, keycode: Int): Boolean {
+                if (keycode == Input.Keys.LEFT) {
+                    ImContext.prevImage()
+                }
+                if (keycode == Input.Keys.RIGHT) {
+                    ImContext.nextImage()
+                }
+                return super.keyDown(event, keycode)
             }
         })
 
@@ -145,19 +159,19 @@ class ImageViewer : Actor() {
         }
     }
 
-    fun updateSmoothing() {
+    private fun updateSmoothing() {
         val isSmoothing = ImContext.smoothing.get()
         if (isSmoothing) {
             texture?.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
         } else {
             texture?.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
         }
-
     }
 
     override fun draw(batch: Batch, parentAlpha: Float) {
         batch.end()
 
+        batch.color = Color.WHITE
         batch.shader = shader
         batch.begin()
         shader.setUniformf("brightness", ImContext.imageBrightness.get())

@@ -7,7 +7,7 @@ import rx.subjects.Subject
 /**
  * Created by daniel on 16. 10. 2.
  */
-class ObservableValue<T>(initValue: T) {
+class ObservableValue<T>(initValue: T, val name: String = "") {
     private val observable: Subject<T, T> = BehaviorSubject.create<T>()
     private val subjects = HashMap<Any, Subscription>()
     private var value = initValue

@@ -44,9 +44,9 @@ object ImContext {
     val normalize = ObservableValue(false)
     val smoothing = ObservableValue(false)
 
-    val imageContrast = ObservableValue(1.0f)
-    val imageBrightness = ObservableValue(0.0f)
-    val imageGamma = ObservableValue(1.0f)
+    val imageContrast = ObservableValue(1.0f, "Contrast")
+    val imageBrightness = ObservableValue(0.0f, "Brightness")
+    val imageGamma = ObservableValue(1.0f, "Gamma")
 
     val frameSpeed = ObservableValue(0.0f)
 

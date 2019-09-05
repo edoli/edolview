@@ -10,21 +10,21 @@ import java.io.File
 fun File.siblingFile(step: Int, filter: ((file: File) -> Boolean)? = null): File {
 
     val file = this
+    val absFile = file.absoluteFile
 
-    if (file.parentFile == null) {
+    if (absFile.parentFile == null) {
         return file
     }
 
-    val fileNames = (file.parentFile.list() as Array<String>).sortedWith(FilenameComparator())
+    val fileNames = (absFile.parentFile.list() as Array<String>).sortedWith(FilenameComparator())
     val fileName = file.name
-    val parentPath = file.parent + "/"
+    val parentPath = absFile.parent + "/"
 
     var index = fileNames.indexOf(fileName)
     var path: String
 
-    index += step
-
     repeat(fileNames.size) {
+        index += step
         if (index == fileNames.size) {
             index = 0
         }

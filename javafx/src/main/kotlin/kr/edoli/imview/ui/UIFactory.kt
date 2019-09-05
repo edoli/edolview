@@ -3,15 +3,16 @@ package kr.edoli.imview.ui
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
-import com.badlogic.gdx.scenes.scene2d.ui.Skin
-import com.badlogic.gdx.scenes.scene2d.ui.Slider
-import com.badlogic.gdx.scenes.scene2d.ui.TextButton
+import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import kr.edoli.imview.util.ObservableValue
 
 object UIFactory {
     val skin = Skin(Gdx.files.internal("uiskin.json"))
+    val tooltipManager = TooltipManager().apply {
+        initialTime = 0f
+    }
 
     fun createSlider(min: Float, max: Float, stepSize: Float, observable: ObservableValue<Float>): Slider {
         return Slider(min, max, stepSize, false, skin).apply {
@@ -24,6 +25,10 @@ object UIFactory {
                     val value = this@apply.value
                     observable.update(value)
                 }
+            })
+
+            addListener(object : TextTooltip(observable.name, tooltipManager, skin) {
+
             })
         }
     }
