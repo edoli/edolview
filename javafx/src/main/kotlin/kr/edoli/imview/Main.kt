@@ -1,9 +1,9 @@
 package kr.edoli.imview
 
-import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.backends.lwjgl3.*
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowAdapter
 import kr.edoli.imview.ui.App
-import kr.edoli.imview.util.FileManager
 import java.io.File
 
 fun main() {

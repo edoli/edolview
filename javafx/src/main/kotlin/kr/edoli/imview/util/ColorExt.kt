@@ -1,19 +1,19 @@
 package kr.edoli.imview.util
 
-import javafx.scene.paint.Color
+import com.badlogic.gdx.graphics.Color
+
 
 fun DoubleArray.toColor(): Color {
     val length = this.size
     return if (length == 4 || length == 3) {
-        val c = this.map { (it * 255).clamp(0.0, 255.0).toInt() }
-        Color.rgb(c[0], c[1], c[2])
+        Color(this[0].toFloat(), this[1].toFloat(), this[2].toFloat(), 1f)
     } else if (length == 1) {
-        Color.grayRgb(Math.min(this[0] * 255, 255.0).toInt())
+        Color(this[0].toFloat(), this[0].toFloat(), this[0].toFloat(), 1f)
     } else {
         Color.BLACK
     }
 }
 
-fun DoubleArray.toColorStr(maxValue: Double) = map {
-    if (maxValue > 0) (it * maxValue).toInt().toString() else it.format(2)
+fun DoubleArray.toColorStr(scale: Double) = map {
+    if (scale > 0) (it * scale).toInt().toString() else it.format(2)
 }.joinToString(", ")

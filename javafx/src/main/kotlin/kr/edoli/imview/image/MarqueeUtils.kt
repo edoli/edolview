@@ -59,8 +59,8 @@ object MarqueeUtils {
 
     fun boxMeanColor(): DoubleArray {
         val mainImage = ImContext.mainImage.get()
-        val selectBox = ImContext.selectBox.get()
-        val selectBoxActive = ImContext.selectBoxActive.get()
+        val selectBox = ImContext.marqueeBox.get()
+        val selectBoxActive = ImContext.marqueeBoxActive.get()
 
         if (mainImage != null) {
             return if (selectBoxActive) {
@@ -84,8 +84,8 @@ object MarqueeUtils {
 
     private fun croppedImage(doImageProc: Boolean = false): Mat? {
         val mainImage = ImContext.mainImage.get()
-        val selectBox = ImContext.selectBox.get()
-        val selectBoxActive = ImContext.selectBoxActive.get()
+        val selectBox = ImContext.marqueeBox.get()
+        val selectBoxActive = ImContext.marqueeBoxActive.get()
 
         return if (mainImage != null) {
             if (selectBoxActive) {

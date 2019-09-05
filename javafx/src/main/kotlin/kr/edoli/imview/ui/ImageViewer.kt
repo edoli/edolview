@@ -9,14 +9,22 @@ import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.FloatTextureData
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector2
-import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
+import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import kr.edoli.imview.ImContext
+import kr.edoli.imview.geom.Point2D
+import kr.edoli.imview.util.ceil
+import org.opencv.core.Rect
+import kotlin.math.max
+import kotlin.math.min
 import kotlin.math.pow
 
-class ImageViewer : Actor() {
+class ImageViewer : Group() {
     var texture: Texture? = null
     var textureRegion: TextureRegion? = null
     var min = 0f
@@ -25,6 +33,10 @@ class ImageViewer : Actor() {
     var imageX = 0f
     var imageY = 0f
     var imageScale = 1f
+    var imageWidth = 0
+    var imageHeight = 0
+
+    val shapeRenderer = ShapeRenderer()
 
     val vertexShader = ("attribute vec4 " + ShaderProgram.POSITION_ATTRIBUTE + ";\n" //
             + "attribute vec4 " + ShaderProgram.COLOR_ATTRIBUTE + ";\n" //
@@ -45,7 +57,18 @@ class ImageViewer : Actor() {
         require(it.isCompiled) { "Error compiling shader: " + it.log }
     }
 
+    enum class DragMode {
+        marquee, move
+    }
+
     init {
+        touchable = Touchable.enabled
+        isTransform = true
+        // scroll focus
+        Gdx.app.postRunnable {
+            stage.scrollFocus = this
+        }
+
         // Mat -> Texture using [FloatTextureData]
         ImContext.mainImage.subscribe { mat ->
             if (mat == null) return@subscribe
@@ -57,6 +80,8 @@ class ImageViewer : Actor() {
             val data = FloatArray((mat.total() * numChannels).toInt())
             mat.get(0, 0, data)
 
+            imageWidth = mat.width()
+            imageHeight = mat.height()
             min = Float.MAX_VALUE
             max = Float.MIN_VALUE
             data.forEach { value ->
@@ -107,7 +132,22 @@ class ImageViewer : Actor() {
             var touchDownImageX = 0f
             var touchDownImageY = 0f
 
+            var dragMode = DragMode.move
+
+            val imageCoord = Vector2()
+            val imageCoordB = Vector2()
+
             override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+                dragMode = if (UIUtils.shift()) {
+                    ImContext.marqueeBoxActive.update(true)
+                    localToImageCoordinates(imageCoord.set(x, y))
+
+                    ImContext.marqueeBox.update(Rect(imageCoord.x.toInt(), imageCoord.y.toInt(), 0, 0))
+                    DragMode.marquee
+                } else {
+                    DragMode.move
+                }
+
                 touchDownX = x
                 touchDownY = y
 
@@ -120,8 +160,33 @@ class ImageViewer : Actor() {
             }
 
             override fun touchDragged(event: InputEvent, x: Float, y: Float, pointer: Int) {
-                imageX = x - touchDownX + touchDownImageX
-                imageY = y - touchDownY + touchDownImageY
+                if (dragMode == DragMode.move) {
+                    imageX = x - touchDownX + touchDownImageX
+                    imageY = y - touchDownY + touchDownImageY
+                } else if (dragMode == DragMode.marquee) {
+                    localToImageCoordinates(imageCoord.set(touchDownX, touchDownY))
+                    localToImageCoordinates(imageCoordB.set(x, y))
+
+                    val x1 = max(min(imageCoord.x, imageCoordB.x).toInt(), 0)
+                    val y1 = max(min(imageCoord.y, imageCoordB.y).toInt(), 0)
+                    val x2 = min(max(imageCoord.x, imageCoordB.x).ceil().toInt(), imageWidth)
+                    val y2 = min(max(imageCoord.y, imageCoordB.y).ceil().toInt(), imageHeight)
+
+                    ImContext.marqueeBox.update { rect ->
+                        rect.apply {
+                            this.x = x1
+                            this.y = y1
+                            this.width = x2 - x1
+                            this.height = y2 - y1
+                        }
+                    }
+                }
+            }
+
+            override fun mouseMoved(event: InputEvent, x: Float, y: Float): Boolean {
+                localToImageCoordinates(imageCoord.set(x, y))
+                ImContext.cursorPosition.update(Point2D(imageCoord.x.toDouble(), imageCoord.y.toDouble()))
+                return false
             }
 
             override fun scrolled(event: InputEvent, x: Float, y: Float, amount: Int): Boolean {
@@ -159,6 +224,18 @@ class ImageViewer : Actor() {
         }
     }
 
+    private fun localToImageCoordinates(vec: Vector2): Vector2 {
+        vec.x = (vec.x - imageX) / imageScale
+        vec.y = imageHeight - ((vec.y - imageY) / imageScale)
+        return vec
+    }
+
+    private fun imageToLocalCoordinates(vec: Vector2): Vector2 {
+        vec.x = (vec.x * imageScale) + imageX
+        vec.y = ((imageHeight - vec.y) * imageScale) + imageY
+        return vec
+    }
+
     private fun updateSmoothing() {
         val isSmoothing = ImContext.smoothing.get()
         if (isSmoothing) {
@@ -168,7 +245,7 @@ class ImageViewer : Actor() {
         }
     }
 
-    override fun draw(batch: Batch, parentAlpha: Float) {
+    override fun drawChildren(batch: Batch, parentAlpha: Float) {
         batch.end()
 
         batch.color = Color.WHITE
@@ -187,6 +264,16 @@ class ImageViewer : Actor() {
         batch.end()
 
         batch.shader = null
+
+        shapeRenderer.projectionMatrix = batch.projectionMatrix
+        shapeRenderer.transformMatrix = batch.transformMatrix
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
+        val marqueeBox = ImContext.marqueeBox.get()
+        val vecA = imageToLocalCoordinates(Vector2(marqueeBox.x.toFloat(), marqueeBox.y.toFloat()))
+        val vecB = imageToLocalCoordinates(Vector2((marqueeBox.x + marqueeBox.width).toFloat(), (marqueeBox.y + marqueeBox.height).toFloat()))
+        shapeRenderer.rect(vecA.x, vecA.y, vecB.x - vecA.x, vecB.y - vecA.y)
+        shapeRenderer.end()
+
         batch.begin()
     }
 }

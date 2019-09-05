@@ -116,6 +116,21 @@ operator fun Mat.times(value: Double): Mat {
     return newMat
 }
 
+fun Mat.typeMax(): Double {
+    return when (type()) {
+        CvType.CV_8U -> return 255.0
+        CvType.CV_16U -> return 65535.0
+        CvType.CV_32S -> return Int.MAX_VALUE.toDouble()
+        CvType.CV_8UC3 -> return 255.0
+        CvType.CV_16UC3 -> return 65535.0
+        CvType.CV_32SC3 -> return Int.MAX_VALUE.toDouble()
+        CvType.CV_8UC4 -> return 255.0
+        CvType.CV_16UC4 -> return 65535.0
+        CvType.CV_32SC4 -> return Int.MAX_VALUE.toDouble()
+        else -> -1.0
+    }
+}
+
 operator fun Double.times(mat: Mat): Mat {
     val newMat = Mat(mat.rows(), mat.cols(), mat.type())
     Core.multiply(mat, Scalar(DoubleArray(newMat.channels()) { this }), newMat)

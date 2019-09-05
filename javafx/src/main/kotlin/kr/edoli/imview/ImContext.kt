@@ -23,15 +23,17 @@ object ImContext {
     val mainImage = NullableObservableValue<Mat>(null)
     val mainFile = ObservableValue(File("test.jpg"))
 
-    val imageSpec = NullableObservableValue<ImageSpec>(null)
-    val selectedImage = NullableObservableValue<Mat>(null)
+    val mainImageSpec = NullableObservableValue<ImageSpec>(null)
+    val marqueeImage = NullableObservableValue<Mat>(null)
 
 
     val cursorPosition = ObservableValue(Point2D(0.0, 0.0))
     val cursorRGB = ObservableValue(doubleArrayOf())
-    val selectBox = ObservableValue(Rect())
-    val selectBoxActive = ObservableValue(false)
-    val selectBoxRGB = ObservableValue(doubleArrayOf())
+
+    val marqueeBox = ObservableValue(Rect())
+    val marqueeBoxActive = ObservableValue(false)
+    val marqueeBoxRGB = ObservableValue(doubleArrayOf())
+
     val zoomLevel = ObservableValue(0)
     val zoomCenter = ObservableValue(Point2D(0.0, 0.0))
     val rotation = ObservableValue(0.0)
@@ -67,30 +69,30 @@ object ImContext {
                 val spec = ImageStore.get(file)
                 val mat = spec.mat
                 if (!mat.empty()) {
-                    imageSpec.update(spec)
+                    mainImageSpec.update(spec)
                     val normalized = ImageStore.normalize(mat)
                     mainImage.update(normalized)
 
                     updateCursorColor()
-                    selectBoxRGB.update(MarqueeUtils.boxMeanColor())
+                    marqueeBoxRGB.update(MarqueeUtils.boxMeanColor())
                 }
             }
         }
 
         mainImage.subscribe {
             cursorRGB.update(doubleArrayOf())
-            selectBoxRGB.update(doubleArrayOf())
+            marqueeBoxRGB.update(doubleArrayOf())
         }
 
         cursorPosition.subscribe(this) {
             updateCursorColor()
         }
 
-        selectBox.subscribe(this) {
+        marqueeBox.subscribe(this) {
             val mainImage = mainImage.get()
             if (it.width > 0 && it.height > 0 && mainImage != null) {
-                selectedImage.update(mainImage[it])
-                selectBoxRGB.update(MarqueeUtils.boxMeanColor())
+                marqueeImage.update(mainImage[it])
+                marqueeBoxRGB.update(MarqueeUtils.boxMeanColor())
             }
         }
 
@@ -116,11 +118,11 @@ object ImContext {
     }
 
     fun updateCursorColor() {
-        val mainImage = ImContext.mainImage.get()
+        val mainImage = mainImage.get()
         val point = cursorPosition.get().cvPoint
         if (mainImage != null && mainImage.contains(point)) {
             val color = mainImage[point]
-            ImContext.cursorRGB.update(color)
+            cursorRGB.update(color)
         }
     }
 

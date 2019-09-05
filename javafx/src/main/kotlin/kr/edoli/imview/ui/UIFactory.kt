@@ -6,7 +6,14 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import kr.edoli.imview.ImContext
+import kr.edoli.imview.geom.Point2D
+import kr.edoli.imview.image.max
+import kr.edoli.imview.image.typeMax
 import kr.edoli.imview.util.ObservableValue
+import kr.edoli.imview.util.toColor
+import kr.edoli.imview.util.toColorStr
+import org.opencv.core.Rect
 
 object UIFactory {
     val skin = Skin(Gdx.files.internal("uiskin.json"))
@@ -51,6 +58,38 @@ object UIFactory {
                     action()
                 }
             })
+        }
+    }
+
+    fun createColorRect(observable: ObservableValue<DoubleArray>): ColorRect {
+        return ColorRect().apply {
+            observable.subscribe { newValue -> color = newValue.toColor() }
+        }
+    }
+
+    fun createColorLabel(observable: ObservableValue<DoubleArray>): Label {
+        return Label("", skin).apply {
+            observable.subscribe { newValue ->
+                ImContext.mainImageSpec.get()?.let { imageSpec ->
+                    setText("(${newValue.toColorStr(imageSpec.maxValue)})")
+                }
+            }
+        }
+    }
+
+    fun createRectLabel(observable: ObservableValue<Rect>): Label {
+        return Label("", skin).apply {
+            observable.subscribe { newValue ->
+                setText("(${newValue.x}, ${newValue.y}, ${newValue.width}, ${newValue.height})")
+            }
+        }
+    }
+
+    fun createPointLabel(observable: ObservableValue<Point2D>): Label {
+        return Label("", skin).apply {
+            observable.subscribe { newValue ->
+                setText("(${newValue.x.toInt()}, ${newValue.y.toInt()})")
+            }
         }
     }
 }

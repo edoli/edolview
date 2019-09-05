@@ -16,12 +16,13 @@ class MainScreen : Screen {
             setFillParent(true)
         }
 
-        layoutTable.add(ImageViewer().apply {
-            Gdx.app.postRunnable {
-                stage.scrollFocus = this
-            }
+        layoutTable.add(Table().apply {
+            add(ImageViewer()).expand().fill()
+            add(ControlPanel()).width(150f).expandY().fillY()
         }).expand().fill()
-        layoutTable.add(ControlPanel()).width(150f).expandY().fillY()
+
+        layoutTable.row()
+        layoutTable.add(StatusBar()).height(StatusBar.barHeight + 2f).expandX().fillX()
 
         stage.addActor(layoutTable)
     }
@@ -49,7 +50,7 @@ class MainScreen : Screen {
     }
 
     override fun resize(width: Int, height: Int) {
-        stage.viewport.update(width, height)
+        stage.viewport.update(width, height, true)
     }
 
     override fun dispose() {

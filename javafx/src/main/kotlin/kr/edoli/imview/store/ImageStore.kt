@@ -3,6 +3,7 @@ package kr.edoli.imview.store
 import com.google.common.cache.CacheBuilder
 import com.google.common.cache.CacheLoader
 import kr.edoli.imview.image.ImageSpec
+import kr.edoli.imview.image.typeMax
 import org.opencv.core.CvType
 import org.opencv.core.Mat
 import org.opencv.imgcodecs.Imgcodecs
@@ -38,23 +39,11 @@ object ImageStore {
             }
         }
 
-        return ImageSpec(mat, getMaxValue(mat), mat.channels(), ImageSpec.bitsPerPixel(mat))
+        return ImageSpec(mat, mat.typeMax(), mat.channels(), ImageSpec.bitsPerPixel(mat))
     }
 
     fun clearCache() {
         imageStoreMap.invalidateAll()
-    }
-
-    private fun getMaxValue(mat: Mat): Double {
-        when (mat.type()) {
-            CvType.CV_8U -> return 255.0
-            CvType.CV_16U -> return 65535.0
-            CvType.CV_8UC3 -> return 255.0
-            CvType.CV_16UC3 -> return 65535.0
-            CvType.CV_8UC4 -> return 255.0
-            CvType.CV_16UC4 -> return 65535.0
-        }
-        return -1.0
     }
 
     fun normalize(mat: Mat): Mat {
