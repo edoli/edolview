@@ -14,12 +14,12 @@ class StatusBar : Table() {
         background = NinePatchDrawable(UIFactory.skin.atlas.createPatch("default-pane"))
 
         align(Align.left and Align.center)
-        add(UIFactory.createColorRect(ImContext.cursorRGB)).width(barHeight).height(barHeight)
-        add(UIFactory.createColorLabel(ImContext.cursorRGB)).width(196f).height(barHeight)
-        add(UIFactory.createColorRect(ImContext.marqueeBoxRGB)).width(barHeight).height(barHeight)
-        add(UIFactory.createColorLabel(ImContext.marqueeBoxRGB)).width(196f).height(barHeight)
-        add(UIFactory.createRectLabel(ImContext.marqueeBox)).width(196f).height(barHeight)
-        add(UIFactory.createPointLabel(ImContext.cursorPosition)).width(196f).height(barHeight)
+        add(UIFactory.createColorRect(ImContext.cursorRGB).tooltip("Cursors RGB")).width(barHeight).height(barHeight)
+        add(UIFactory.createColorLabel(ImContext.cursorRGB).tooltip("Cursors RGB")).width(196f).height(barHeight)
+        add(UIFactory.createColorRect(ImContext.marqueeBoxRGB).tooltip("Marquee RGB")).width(barHeight).height(barHeight)
+        add(UIFactory.createColorLabel(ImContext.marqueeBoxRGB).tooltip("Marquee RGB")).width(196f).height(barHeight)
+        add(UIFactory.createRectLabel(ImContext.marqueeBox).tooltip("Marquee bound")).width(196f).height(barHeight)
+        add(UIFactory.createPointLabel(ImContext.cursorPosition).tooltip("Cursor position")).width(196f).height(barHeight)
         add().expandX().fillX()
 
     }

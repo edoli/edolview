@@ -16,5 +16,8 @@ class ControlPanel : Table() {
         add(UIFactory.createSlider(-10f, 10f, 0.1f, ImContext.imageContrast))
         row()
         add(UIFactory.createSlider(0f, 10f, 0.1f, ImContext.imageGamma))
+
+        row()
+        add(InfoTable())
     }
 }
