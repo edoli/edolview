@@ -7,7 +7,7 @@ import java.io.File
  * Created by daniel on 16. 9. 10.
  */
 
-fun File.siblingFile(modifier: Int) : File {
+fun File.siblingFile(step: Int, filter: ((file: File) -> Boolean)? = null): File {
 
     val file = this
 
@@ -15,40 +15,43 @@ fun File.siblingFile(modifier: Int) : File {
         return file
     }
 
-    val fileNames = file.parentFile.list()
+    val fileNames = (file.parentFile.list() as Array<String>).sortedWith(FilenameComparator())
     val fileName = file.name
-    fileNames.sort()
+    val parentPath = file.parent + "/"
 
     var index = fileNames.indexOf(fileName)
     var path: String
 
-    do {
-        index += modifier
+    index += step
 
+    repeat(fileNames.size) {
         if (index == fileNames.size) {
             index = 0
         }
+
         if (index == -1) {
             index = fileNames.size - 1
         }
+        path = parentPath + fileNames[index]
+        val nextFile = File(path)
 
-        path = file.parent + "/" + fileNames[index]
-    } while (!File(path).isImage())
+        // Filtering
+        filter?.let { filter ->
+            if (!filter(nextFile) || !nextFile.exists()) {
+                return@repeat
+            }
+        }
 
-    return File(path)
+        return nextFile
+    }
+
+    return this
 }
 
-fun File.nextFile() : File {
-    return siblingFile(1)
+fun File.nextFile(filter: ((file: File) -> Boolean)? = null): File {
+    return siblingFile(1, filter)
 }
 
-fun File.prevFile() : File {
-    return siblingFile(-1)
-}
-
-fun File.isImage() : Boolean {
-    val ext = FilenameUtils.getExtension(path)
-    val exts = arrayOf("png", "PNG", "jpg", "JPG")
-
-    return exts.contains(ext)
+fun File.prevFile(filter: ((file: File) -> Boolean)? = null): File {
+    return siblingFile(-1, filter)
 }

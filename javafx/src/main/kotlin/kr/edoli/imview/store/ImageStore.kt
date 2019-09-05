@@ -96,14 +96,6 @@ object ImageStore {
         return imageStoreMap[ImageDesc(processedName, lastModified)]
     }
 
-    /*
-    fun put(path: String, mat: Mat) {
-        val desc = ImageDesc(Where.None, path)
-        imageStoreMap[desc]?.release()
-        imageStoreMap.put(desc, mat)
-    }
-    */
-
     private fun process(name: String): String {
         var pName = name
         while (pName.contains("//")) {

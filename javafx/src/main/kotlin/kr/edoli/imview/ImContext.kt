@@ -6,7 +6,7 @@ import kr.edoli.imview.image.*
 import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.util.NullableObservableValue
 import kr.edoli.imview.util.ObservableValue
-import kr.edoli.imview.util.PathManager
+import kr.edoli.imview.util.FileManager
 import org.opencv.core.Mat
 import org.opencv.core.Rect
 import rx.subjects.PublishSubject
@@ -38,9 +38,6 @@ object ImContext {
     val zoomCenter = ObservableValue(Point2D(0.0, 0.0))
     val rotation = ObservableValue(0.0)
 
-    val comparisonMode = ObservableValue(ComparisonMode.Diff)
-    val comparisonMetric = ObservableValue(ComparisonMetric.PSNR)
-
     val isShowCrosshair = ObservableValue(true)
     val isShowConroller = ObservableValue(true)
     val isShowInfo = ObservableValue(false)
@@ -55,7 +52,7 @@ object ImContext {
 
     val centerImage = PublishSubject.create<Boolean>()
 
-    val pathManager = PathManager()
+    val pathManager = FileManager()
 
     init {
         loadPreferences()
@@ -78,7 +75,7 @@ object ImContext {
                     mainImage.update(normalized)
 
                     updateCursorColor()
-                    selectBoxRGB.update(SelectBoxUtils.selectBoxMeanColor())
+                    selectBoxRGB.update(MarqueeUtils.boxMeanColor())
                 }
             }
         }
@@ -96,7 +93,7 @@ object ImContext {
             val mainImage = mainImage.get()
             if (it.width > 0 && it.height > 0 && mainImage != null) {
                 selectedImage.update(mainImage[it])
-                selectBoxRGB.update(SelectBoxUtils.selectBoxMeanColor())
+                selectBoxRGB.update(MarqueeUtils.boxMeanColor())
             }
         }
 

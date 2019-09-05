@@ -3,9 +3,6 @@ package kr.edoli.imview.image
 import javafx.stage.FileChooser
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.Main
-import kr.edoli.imview.main
-import kr.edoli.imview.util.ClipboardUtils
-import kr.edoli.imview.util.PathManager
 import org.opencv.core.Core
 import org.opencv.core.Mat
 import org.opencv.imgcodecs.Imgcodecs
@@ -13,10 +10,10 @@ import org.opencv.imgproc.Imgproc
 import java.io.File
 import java.io.IOException
 
-object SelectBoxUtils {
+object MarqueeUtils {
 
     fun copyImageToClipboard(doImageProc: Boolean = false) {
-        val mat = getSelectedImage(doImageProc)
+        val mat = croppedImage(doImageProc)
         if (mat != null) {
             ClipboardUtils.putImage(mat)
         }
@@ -37,7 +34,7 @@ object SelectBoxUtils {
 
         if (dest != null) {
             try {
-                val selectedMat = getSelectedImage(doImageProc)
+                val selectedMat = croppedImage(doImageProc)
                 if (selectedMat != null) {
                     val mat = selectedMat.clone()
                     val factor = when (dest.extension.toLowerCase()) {
@@ -62,7 +59,7 @@ object SelectBoxUtils {
         }
     }
 
-    fun selectBoxMeanColor(): DoubleArray {
+    fun boxMeanColor(): DoubleArray {
         val mainImage = ImContext.mainImage.get()
         val selectBox = ImContext.selectBox.get()
         val selectBoxActive = ImContext.selectBoxActive.get()
@@ -87,7 +84,7 @@ object SelectBoxUtils {
         return doubleArrayOf(0.0)
     }
 
-    private fun getSelectedImage(doImageProc: Boolean = false): Mat? {
+    private fun croppedImage(doImageProc: Boolean = false): Mat? {
         val mainImage = ImContext.mainImage.get()
         val selectBox = ImContext.selectBox.get()
         val selectBoxActive = ImContext.selectBoxActive.get()

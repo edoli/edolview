@@ -35,6 +35,7 @@ class ObservableValue<T>(initValue: T) {
 
     fun unsubscribe(subject: Any) {
         subjects[subject]?.unsubscribe()
+        subjects.remove(subject)
     }
 
     fun update(action: (T) -> T) {

@@ -1,9 +1,6 @@
 package kr.edoli.imview.util
 
-/**
- * Created by daniel on 16. 9. 10.
- */
+import java.util.UUID
 
-var lastId = 0
 
-fun generateId(): Int { return lastId++ }
+fun generateId(): Long { return UUID.randomUUID().mostSignificantBits and java.lang.Long.MAX_VALUE }
