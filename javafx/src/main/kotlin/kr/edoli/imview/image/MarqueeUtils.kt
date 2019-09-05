@@ -2,12 +2,10 @@ package kr.edoli.imview.image
 
 import javafx.stage.FileChooser
 import kr.edoli.imview.ImContext
-import kr.edoli.imview.Main
 import org.opencv.core.Core
 import org.opencv.core.Mat
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
-import java.io.File
 import java.io.IOException
 
 object MarqueeUtils {
@@ -23,14 +21,14 @@ object MarqueeUtils {
         ImContext.mainImage.get() ?: return
 
         val fileChooser = FileChooser()
-        fileChooser.initialDirectory = File(ImContext.mainPath.get()).parentFile
+        fileChooser.initialDirectory = ImContext.mainFile.get().parentFile
         fileChooser.title = "Save file"
         fileChooser.extensionFilters.addAll(
                 FileChooser.ExtensionFilter("Portable Network Graphics", "*.png"),
                 FileChooser.ExtensionFilter("JPEG", "*.jpg"),
                 FileChooser.ExtensionFilter("OpenEXR", "*.exr")
         )
-        val dest = fileChooser.showSaveDialog(Main.mainStage)
+        val dest = fileChooser.showSaveDialog(null)
 
         if (dest != null) {
             try {

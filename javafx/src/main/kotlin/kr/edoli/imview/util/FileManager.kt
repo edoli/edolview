@@ -11,8 +11,8 @@ class FileManager {
 
     private var currentFile: File? = null
 
-    fun setPath(path: String) {
-        currentFile = File(path)
+    fun setFile(file: File) {
+        currentFile = file
     }
 
     fun next(): File? {

@@ -1,5 +1,8 @@
 package kr.edoli.imview.image
 
+import com.badlogic.gdx.graphics.GL20
+import com.badlogic.gdx.graphics.Pixmap
+import com.badlogic.gdx.graphics.Texture
 import javafx.scene.image.Image
 import javafx.scene.image.PixelFormat
 import javafx.scene.image.WritableImage

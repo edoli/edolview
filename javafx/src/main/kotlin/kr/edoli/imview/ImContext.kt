@@ -1,7 +1,6 @@
 package kr.edoli.imview
 
-import javafx.animation.AnimationTimer
-import javafx.geometry.Point2D
+import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.*
 import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.util.NullableObservableValue
@@ -22,10 +21,9 @@ object ImContext {
     val args = ObservableValue(arrayOf<String>())
 
     val mainImage = NullableObservableValue<Mat>(null)
-    val mainPath = ObservableValue("")
+    val mainFile = ObservableValue(File("test_big.hdr"))
 
     val imageSpec = NullableObservableValue<ImageSpec>(null)
-    val processedImage = NullableObservableValue<Mat>(null)
     val selectedImage = NullableObservableValue<Mat>(null)
 
 
@@ -44,30 +42,27 @@ object ImContext {
 
     val enableProfile = ObservableValue(true)
     val normalize = ObservableValue(false)
-    val imageContrast = ObservableValue(0.0)
-    val imageBrightness = ObservableValue(0.0)
-    val imageGamma = ObservableValue(1.0)
+    val imageContrast = ObservableValue(1.0f)
+    val imageBrightness = ObservableValue(0.0f)
+    val imageGamma = ObservableValue(1.0f)
 
-    val frameSpeed = ObservableValue(0.0)
+    val frameSpeed = ObservableValue(0.0f)
 
     val centerImage = PublishSubject.create<Boolean>()
 
-    val pathManager = FileManager()
+    val fileManager = FileManager()
 
     init {
         loadPreferences()
 
-        mainPath.update("test.jpg")
-
-        mainPath.subscribe {
-            val file = File(it)
+        mainFile.subscribe { file ->
             if (file.isDirectory) {
-                pathManager.setPath("$it/.")
-                frameSpeed.update(5.0)
+                fileManager.setFile(file)
+                frameSpeed.update(5.0f)
                 nextImage()
             } else {
-                pathManager.setPath(it)
-                val spec = ImageStore.get(File(it))
+                fileManager.setFile(file)
+                val spec = ImageStore.get(file)
                 val mat = spec.mat
                 if (!mat.empty()) {
                     imageSpec.update(spec)
@@ -101,26 +96,26 @@ object ImContext {
         isShowConroller.subscribe { savePreferences() }
         isShowInfo.subscribe { savePreferences() }
 
-        object : AnimationTimer() {
-            var lastTime = 0L
-
-            override fun handle(now: Long) {
-                val fps = frameSpeed.get()
-                if (fps != 0.0) {
-                    val waitTime = 1 / fps * 1000 * 1000 * 1000
-                    if (now > lastTime + waitTime) {
-                        nextImage()
-                        lastTime = now
-                    }
-                }
-
-            }
-        }.start()
+        // object : AnimationTimer() {
+        //     var lastTime = 0L
+        //
+        //     override fun handle(now: Long) {
+        //         val fps = frameSpeed.get()
+        //         if (fps != 0.0) {
+        //             val waitTime = 1 / fps * 1000 * 1000 * 1000
+        //             if (now > lastTime + waitTime) {
+        //                 nextImage()
+        //                 lastTime = now
+        //             }
+        //         }
+        //
+        //     }
+        // }.start()
     }
 
     fun updateCursorColor() {
         val mainImage = ImContext.mainImage.get()
-        val point = cursorPosition.get().cv
+        val point = cursorPosition.get().cvPoint
         if (mainImage != null && mainImage.contains(point)) {
             val color = mainImage[point]
             ImContext.cursorRGB.update(color)
@@ -142,16 +137,16 @@ object ImContext {
     }
 
     fun nextImage() {
-        val nextPath = pathManager.next()
-        if (nextPath != null) {
-            mainPath.update(nextPath)
+        val nextFile = fileManager.next()
+        if (nextFile != null) {
+            mainFile.update(nextFile)
         }
     }
 
     fun prevImage() {
-        val prevPath = pathManager.prev()
-        if (prevPath != null) {
-            mainPath.update(prevPath)
+        val prevFile = fileManager.prev()
+        if (prevFile != null) {
+            mainFile.update(prevFile)
         }
     }
 }
