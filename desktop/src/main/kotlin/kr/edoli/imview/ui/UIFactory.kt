@@ -82,17 +82,17 @@ object UIFactory {
         }.tooltip(observable.name)
     }
 
-    fun createIconButton(text: String, action: () -> Unit) =
+    fun createIconButton(text: String, action: (button: Button) -> Unit) =
             createTextButton(text, action).apply {
                 style = iconButtonStyle
                 align(Align.center)
             }
 
-    fun createTextButton(text: String, action: () -> Unit): TextButton {
+    fun createTextButton(text: String, action: (button: Button) -> Unit): TextButton {
         return TextButton(text, skin).apply {
             addListener(object : ClickListener() {
                 override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                    action()
+                    action(this@apply)
                 }
             })
         }
