@@ -50,7 +50,10 @@ object ClipboardUtils {
     fun getImage(): Image? {
         val clipboard = Toolkit.getDefaultToolkit().systemClipboard
         val content = clipboard.getContents(null)
-        return content?.getTransferData(DataFlavor.imageFlavor) as Image?
+        if (!content.isDataFlavorSupported(DataFlavor.imageFlavor)) {
+            return  null
+        }
+        return content.getTransferData(DataFlavor.imageFlavor) as Image?
     }
 
     fun showClipboardImage() {

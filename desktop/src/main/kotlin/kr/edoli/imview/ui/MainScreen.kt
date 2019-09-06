@@ -17,7 +17,7 @@ class MainScreen : Screen {
             setFillParent(true)
         }
         // Top
-        layoutTable.add(ToolBar()).height(StatusBar.barHeight + 2f).expandX().fillX()
+        layoutTable.add(ToolBar()).height(ToolBar.barHeight + 2f).expandX().fillX()
         layoutTable.row()
 
         // middle

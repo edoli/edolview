@@ -11,7 +11,7 @@ buildscript {
         kotlin_version = '1.3.50'
         openjfx_version = '0.0.8'
         gdx_version = "1.9.10"
-        ikonli_version = "1.9.10"
+        ikonli_version = "11.3.4"
     }
 
     dependencies {
@@ -51,10 +51,6 @@ dependencies {
 
     implementation "io.reactivex:rxjava:1.1.6"
     implementation "commons-io:commons-io:2.4"
-
-    implementation "org.kordamp.ikonli:ikonli-swing:$ikonli_version"
-    implementation "org.kordamp.ikonli:ikonli-materialdesign-pack:$ikonli_version"
-    implementation "org.kordamp.ikonli:ikonli-ionicons-pack:$ikonli_version"
 
     implementation 'no.tornado:tornadofx:1.7.17'
     implementation 'com.drewnoakes:metadata-extractor:2.11.0'

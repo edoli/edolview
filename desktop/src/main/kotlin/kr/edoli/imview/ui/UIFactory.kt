@@ -1,11 +1,13 @@
 package kr.edoli.imview.ui
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.max
@@ -20,6 +22,21 @@ object UIFactory {
     val tooltipManager = TooltipManager().apply {
         initialTime = 0f
     }
+
+    val defaultTextButtonStyle = skin.get(TextButton.TextButtonStyle::class.java)
+    val toggleTextButtonStyle = skin.get("toggle", TextButton.TextButtonStyle::class.java)
+    val iconButtonStyle = TextButton.TextButtonStyle().apply {
+        font = Font.ioniconsFont
+        fontColor = Color.WHITE
+        downFontColor = Color.RED
+    }
+    val iconToggleButtonStyle = TextButton.TextButtonStyle().apply {
+        font = Font.ioniconsFont
+        fontColor = Color.WHITE
+        downFontColor = Color.RED
+        checkedFontColor = Color.GREEN
+    }
+
 
     fun createSlider(min: Float, max: Float, stepSize: Float, observable: ObservableValue<Float>): Slider {
         return Slider(min, max, stepSize, false, skin).apply {
@@ -40,6 +57,12 @@ object UIFactory {
         }
     }
 
+    fun createToggleIconButton(text: String, observable: ObservableValue<Boolean>) =
+            createToggleTextButton(text, observable).apply {
+                style = iconToggleButtonStyle
+                align(Align.center)
+            }
+
     fun createToggleTextButton(text: String, observable: ObservableValue<Boolean>): TextButton {
         return TextButton(text, skin.get("toggle", TextButton.TextButtonStyle::class.java)).apply {
             observable.subscribe { newValue -> isChecked = newValue }
@@ -50,6 +73,12 @@ object UIFactory {
             })
         }
     }
+
+    fun createIconButton(text: String, action: () -> Unit) =
+            createTextButton(text, action).apply {
+                style = iconButtonStyle
+                align(Align.center)
+            }
 
     fun createTextButton(text: String, action: () -> Unit): TextButton {
         return TextButton(text, skin).apply {

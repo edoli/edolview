@@ -206,8 +206,6 @@ class ImageViewer : Group() {
                 if (keycode == Input.Keys.C && UIUtils.ctrl()) {
                     ImContext.marqueeImage.get()?.let { mat ->
                         ClipboardUtils.putImage(mat)
-                        // ClipboardUtils.showClipboardImage()
-                        MarqueeUtils.saveImage(false)
                     }
                 }
                 return super.keyDown(event, keycode)
