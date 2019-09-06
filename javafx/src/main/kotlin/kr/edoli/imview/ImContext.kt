@@ -1,11 +1,14 @@
 package kr.edoli.imview
 
 import kr.edoli.imview.geom.Point2D
-import kr.edoli.imview.image.*
+import kr.edoli.imview.image.ImageSpec
+import kr.edoli.imview.image.MarqueeUtils
+import kr.edoli.imview.image.contains
+import kr.edoli.imview.image.get
 import kr.edoli.imview.store.ImageStore
+import kr.edoli.imview.util.FileManager
 import kr.edoli.imview.util.NullableObservableValue
 import kr.edoli.imview.util.ObservableValue
-import kr.edoli.imview.util.FileManager
 import org.opencv.core.Mat
 import org.opencv.core.Rect
 import rx.subjects.PublishSubject
@@ -55,6 +58,17 @@ object ImContext {
     val centerImage = PublishSubject.create<Boolean>()
 
     val fileManager = FileManager()
+
+    val isValidMarquee: Boolean
+        get() {
+            mainImage.get()?.let { mat ->
+                val marqueeRect = marqueeBox.get()
+                return (marqueeRect.x >= 0 && marqueeRect.y >= 0
+                        && (marqueeRect.x + marqueeRect.width) <= mat.width()
+                        && (marqueeRect.y + marqueeRect.height) <= mat.height())
+            }
+            return false
+        }
 
     init {
         loadPreferences()

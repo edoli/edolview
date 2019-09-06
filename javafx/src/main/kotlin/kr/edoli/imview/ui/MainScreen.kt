@@ -12,18 +12,27 @@ class MainScreen : Screen {
     val stage = Stage(ScreenViewport(), PolygonSpriteBatch())
 
     init {
+        val imageViewer = ImageViewer()
         val layoutTable = Table().apply {
             setFillParent(true)
         }
+        // Top
+        layoutTable.add(ToolBar()).height(StatusBar.barHeight + 2f).expandX().fillX()
+        layoutTable.row()
 
-        layoutTable.add(Table().apply {
-            add(ImageViewer()).expand().fill()
+        // middle
+        val middleTable = Table().apply {
+            add(imageViewer).expand().fill()
             add(ControlPanel()).width(150f).expandY().fillY()
-        }).expand().fill()
+        }
+        layoutTable.add(middleTable).expand().fill()
 
+        // bottom
         layoutTable.row()
         layoutTable.add(StatusBar()).height(StatusBar.barHeight + 2f).expandX().fillX()
 
+        imageViewer.zIndex = 0
+        middleTable.zIndex = 0
         stage.addActor(layoutTable)
     }
 
