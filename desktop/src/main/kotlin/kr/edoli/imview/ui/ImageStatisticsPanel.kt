@@ -2,26 +2,28 @@ package kr.edoli.imview.ui
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.ui.Label
-import com.badlogic.gdx.scenes.scene2d.ui.Table
 import kr.edoli.imview.ImContext
-import kr.edoli.imview.image.ImageConvert
-import org.opencv.core.CvType
-import kotlin.math.min
+import kr.edoli.imview.util.format
+import kotlin.math.sqrt
 
-class ImageStatisticsPanel : Table() {
+class ImageStatisticsPanel : Panel(false) {
     init {
         val minLabel = Label("", UIFactory.skin).tooltip("Min value of image")
         val maxLabel = Label("", UIFactory.skin).tooltip("Max value of image")
         val meanLabel = Label("", UIFactory.skin).tooltip("Mean value of image")
-        val varianceLabel = Label("", UIFactory.skin).tooltip("Variance value of image")
+        val stdLabel = Label("", UIFactory.skin).tooltip("Variance value of image")
+
+        add("Min")
+        add("Max")
+        add("Mean")
+        add("Std")
+
+        row()
 
         add(minLabel)
-        row()
         add(maxLabel)
-        row()
         add(meanLabel)
-        row()
-        add(varianceLabel)
+        add(stdLabel)
 
         ImContext.mainImage.subscribe { mat ->
             if (mat == null) return@subscribe
@@ -47,12 +49,13 @@ class ImageStatisticsPanel : Table() {
 
                 val mean = sum / num
                 val variance = (squareSum / num - mean * mean) * (num / (num - 1))
+                val standardDeviation = sqrt(variance)
 
                 Gdx.app.postRunnable {
-                    minLabel.setText(minValue.toString())
-                    maxLabel.setText(maxValue.toString())
-                    meanLabel.setText(mean.toString())
-                    varianceLabel.setText(variance.toString())
+                    minLabel.setText(minValue.format(2))
+                    maxLabel.setText(maxValue.format(2))
+                    meanLabel.setText(mean.format(2))
+                    stdLabel.setText(standardDeviation.format(2))
                 }
             }.start()
         }

@@ -1,10 +1,13 @@
 package kr.edoli.imview.ui
 
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
 
 class ControlPanel : Panel() {
     init {
+        align(Align.top)
+
         add("View controller")
         row()
         add(Table().apply {
@@ -18,6 +21,7 @@ class ControlPanel : Panel() {
         add(UIFactory.createSlider(Ionicons.ionMdContrast, -10f, 10f, 0.01f, ImContext.imageContrast))
         row()
         add(UIFactory.createSlider(Ionicons.ionMdNuclear, 0f, 10f, 0.01f, ImContext.imageGamma))
+
 
         row().padTop(32f)
         add("Image statistics")
