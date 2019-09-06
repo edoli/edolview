@@ -151,6 +151,8 @@ class ImageViewer : Group() {
             val imageCoordB = Vector2()
 
             override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+                stage.scrollFocus = this@ImageViewer
+
                 if (button == Input.Buttons.RIGHT) {
                     return false
                 }
@@ -209,37 +211,6 @@ class ImageViewer : Group() {
             override fun scrolled(event: InputEvent, x: Float, y: Float, amount: Int): Boolean {
                 ImContext.zoomLevel.update(ImContext.zoomLevel.get() - amount)
                 return super.scrolled(event, x, y, amount)
-            }
-
-            override fun keyDown(event: InputEvent, keycode: Int): Boolean {
-                if (keycode == Input.Keys.LEFT) {
-                    ImContext.prevImage()
-                }
-                if (keycode == Input.Keys.RIGHT) {
-                    ImContext.nextImage()
-                }
-                if (keycode == Input.Keys.C && UIUtils.ctrl()) {
-                    ImContext.marqueeImage.get()?.let { mat ->
-                        ClipboardUtils.putImage(mat)
-                    }
-                }
-                if (keycode == Input.Keys.ESCAPE) {
-                    ImContext.marqueeBox.update { rect ->
-                        rect.reset()
-                    }
-                }
-                if (keycode == Input.Keys.A && UIUtils.ctrl()) {
-                    ImContext.mainImage.get()?.let { mat ->
-                        ImContext.marqueeBox.update { rect ->
-                            rect.x = 0
-                            rect.y = 0
-                            rect.width = mat.width()
-                            rect.height = mat.height()
-                            rect
-                        }
-                    }
-                }
-                return super.keyDown(event, keycode)
             }
         })
 

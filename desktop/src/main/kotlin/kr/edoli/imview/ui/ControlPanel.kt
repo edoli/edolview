@@ -28,7 +28,7 @@ class ControlPanel : Panel() {
 
         add("Image statistics")
         row()
-        add(StatisticsPanel(ImContext.mainImage))
+        add(StatisticsPanel(ImContext.mainImage)).fillX()
 
         row()
         addHorizontalDivider().pad(8f)
@@ -36,7 +36,7 @@ class ControlPanel : Panel() {
 
         add("Selection statistics")
         row()
-        add(StatisticsPanel(ImContext.marqueeImage))
+        add(StatisticsPanel(ImContext.marqueeImage)).fillX()
 
         row()
         addHorizontalDivider().pad(8f)
@@ -44,7 +44,7 @@ class ControlPanel : Panel() {
 
         add("File information")
         row()
-        add(FileInfoPanel())
+        add(FileInfoPanel()).fillX()
 
         ImContext.isShowController.subscribe {
             isVisible = it

@@ -1,13 +1,19 @@
 package kr.edoli.imview.ui
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Input
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
-import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import kr.edoli.imview.ImContext
+import kr.edoli.imview.image.ClipboardUtils
+import kr.edoli.imview.util.reset
 import org.lwjgl.opengl.GL30
 
 class MainScreen : Screen {
@@ -26,7 +32,9 @@ class MainScreen : Screen {
         // middle
         val middleTable = Table().apply {
             add().expand().fill()
-            add(ControlPanel()).width(180f).expandY().fillY()
+            add(ScrollPane(ControlPanel()).apply {
+                setOverscroll(false, false)
+            }).width(180f).expandY().fillY()
         }
         layoutTable.add(middleTable).expand().fill()
 
@@ -42,6 +50,40 @@ class MainScreen : Screen {
 
         imageViewer.zIndex = 0
         middleTable.zIndex = 0
+
+        // Keyboard
+        stage.addListener(object : InputListener() {
+            override fun keyDown(event: InputEvent?, keycode: Int): Boolean {
+                if (keycode == Input.Keys.LEFT) {
+                    ImContext.prevImage()
+                }
+                if (keycode == Input.Keys.RIGHT) {
+                    ImContext.nextImage()
+                }
+                if (keycode == Input.Keys.C && UIUtils.ctrl()) {
+                    ImContext.marqueeImage.get()?.let { mat ->
+                        ClipboardUtils.putImage(mat)
+                    }
+                }
+                if (keycode == Input.Keys.ESCAPE) {
+                    ImContext.marqueeBox.update { rect ->
+                        rect.reset()
+                    }
+                }
+                if (keycode == Input.Keys.A && UIUtils.ctrl()) {
+                    ImContext.mainImage.get()?.let { mat ->
+                        ImContext.marqueeBox.update { rect ->
+                            rect.x = 0
+                            rect.y = 0
+                            rect.width = mat.width()
+                            rect.height = mat.height()
+                            rect
+                        }
+                    }
+                }
+                return super.keyDown(event, keycode)
+            }
+        })
     }
 
     override fun hide() {
@@ -67,6 +109,7 @@ class MainScreen : Screen {
     }
 
     override fun resize(width: Int, height: Int) {
+        (stage.viewport as ScreenViewport).unitsPerPixel = 0.75f / Gdx.graphics.density
         stage.viewport.update(width, height, true)
     }
 

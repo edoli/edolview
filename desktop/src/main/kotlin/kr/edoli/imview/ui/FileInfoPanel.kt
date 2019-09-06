@@ -1,7 +1,5 @@
 package kr.edoli.imview.ui
 
-import com.badlogic.gdx.scenes.scene2d.ui.Label
-import com.badlogic.gdx.scenes.scene2d.ui.Table
 import kr.edoli.imview.ImContext
 
 class FileInfoPanel : Panel(false) {
@@ -10,8 +8,8 @@ class FileInfoPanel : Panel(false) {
         val maxValueLabel = NumberLabel("Max value for type", UIFactory.skin, Formatters.intFormatter)
         val numChannelsLabel = NumberLabel("Number of channels", UIFactory.skin, Formatters.intFormatter)
 
-        add("Bits")
-        add("Max")
+        add("Bits").spaceRight(8f)
+        add("Max").spaceRight(8f)
         add("Channels")
 
         row()

@@ -8,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ui.ColorDrawable
+import kr.edoli.imview.ui.Font
 import kr.edoli.imview.ui.Panel
 import kotlin.math.max
 import kotlin.math.min
@@ -36,7 +37,7 @@ class ContextMenuPanel : Panel() {
             ColorDrawable(Color(0f, 0f, 0f, 0f)),
             ColorDrawable(Color(1f, 1f, 1f, 0.2f)),
             null,
-            skin.getFont("default-font")
+            Font.defaultFont
     ).apply {
         over = ColorDrawable(Color(0f, 0f, 0f, 0.2f))
     }

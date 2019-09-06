@@ -13,20 +13,20 @@ import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.ui.contextmenu.ContextMenuManager
 import kr.edoli.imview.util.ObservableValue
-import kr.edoli.imview.util.format
 import kr.edoli.imview.util.toColor
 import kr.edoli.imview.util.toColorStr
 import org.opencv.core.Rect
 
 object UIFactory {
-    val skin = Skin(Gdx.files.internal("uiskin.json"))
+    val skin = Skin(Gdx.files.internal("uiskin.json")).apply {
+        val defaultLabelStyle = Label.LabelStyle(Font.defaultFont, Color.WHITE)
+        add("default", defaultLabelStyle)
+        add("default", TextTooltip.TextTooltipStyle(defaultLabelStyle, getDrawable("default-pane")))
+    }
     val tooltipManager = TooltipManager().apply {
         initialTime = 0f
     }
     val contextMenuManager = ContextMenuManager()
-
-    val defaultTextButtonStyle = skin.get(TextButton.TextButtonStyle::class.java)
-    val toggleTextButtonStyle = skin.get("toggle", TextButton.TextButtonStyle::class.java)
 
     val iconLabelStyle = Label.LabelStyle(Font.ioniconsFont, Color.WHITE)
     val iconButtonStyle = TextButton.TextButtonStyle().apply {

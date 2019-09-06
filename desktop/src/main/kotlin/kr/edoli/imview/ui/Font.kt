@@ -1,6 +1,7 @@
 package kr.edoli.imview.ui
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 
@@ -19,8 +20,11 @@ object Font {
         }
         return generator.generateFont(parameter).apply {
             data.markupEnabled = true
+            region.texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+            data.setScale(0.5f)
         }
     }
 
-    val ioniconsFont = fontGenerator("ionicons.ttf", 22)
+    val ioniconsFont = fontGenerator("ionicons.ttf", 44)
+    val defaultFont = fontGenerator("netmarbleM.ttf", 32)
 }

@@ -1,10 +1,8 @@
 package kr.edoli.imview.ui
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.scenes.scene2d.ui.Label
 import kr.edoli.imview.util.NullableObservableValue
 import kr.edoli.imview.util.forever
-import kr.edoli.imview.util.format
 import org.opencv.core.Mat
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
@@ -19,10 +17,11 @@ class StatisticsPanel(imageObservable: NullableObservableValue<Mat>) : Panel(fal
         val meanLabel = NumberLabel("Mean value of image", UIFactory.skin)
         val stdLabel = NumberLabel("Standard deviation value of image", UIFactory.skin)
 
-        add("Min")
-        add("Max")
-        add("Mean")
-        add("Std")
+
+        add("Min").expandX()
+        add("Max").expandX()
+        add("Mean").expandX()
+        add("Std").expandX()
 
         row()
 
