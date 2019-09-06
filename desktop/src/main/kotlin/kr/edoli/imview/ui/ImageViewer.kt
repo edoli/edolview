@@ -20,6 +20,7 @@ import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.util.ceil
+import kr.edoli.imview.util.reset
 import org.opencv.core.Rect
 import kotlin.math.log
 import kotlin.math.max
@@ -210,11 +211,7 @@ class ImageViewer : Group() {
                 }
                 if (keycode == Input.Keys.ESCAPE) {
                     ImContext.marqueeBox.update { rect ->
-                        rect.x = 0
-                        rect.y = 0
-                        rect.width = 0
-                        rect.height = 0
-                        rect
+                        rect.reset()
                     }
                 }
                 if (keycode == Input.Keys.A && UIUtils.ctrl()) {
