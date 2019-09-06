@@ -14,10 +14,10 @@ class StatisticsPanel(imageObservable: NullableObservableValue<Mat>) : Panel(fal
     val imageQueue = LinkedBlockingQueue<Mat>()
 
     init {
-        val minLabel = Label("", UIFactory.skin).tooltip("Min value of image")
-        val maxLabel = Label("", UIFactory.skin).tooltip("Max value of image")
-        val meanLabel = Label("", UIFactory.skin).tooltip("Mean value of image")
-        val stdLabel = Label("", UIFactory.skin).tooltip("Variance value of image")
+        val minLabel = NumberLabel("Min value of image", UIFactory.skin)
+        val maxLabel = NumberLabel("Max value of image", UIFactory.skin)
+        val meanLabel = NumberLabel("Mean value of image", UIFactory.skin)
+        val stdLabel = NumberLabel("Standard deviation value of image", UIFactory.skin)
 
         add("Min")
         add("Max")
@@ -62,10 +62,10 @@ class StatisticsPanel(imageObservable: NullableObservableValue<Mat>) : Panel(fal
                 val standardDeviation = sqrt(variance)
 
                 Gdx.app.postRunnable {
-                    minLabel.setText(minValue.format(2))
-                    maxLabel.setText(maxValue.format(2))
-                    meanLabel.setText(mean.format(2))
-                    stdLabel.setText(standardDeviation.format(2))
+                    minLabel.value = minValue
+                    maxLabel.value = maxValue
+                    meanLabel.value = mean
+                    stdLabel.value = standardDeviation
                 }
             }
         }

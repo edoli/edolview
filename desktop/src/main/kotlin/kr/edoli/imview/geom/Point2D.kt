@@ -8,4 +8,8 @@ class Point2D(
 ) {
     val cvPoint: Point
         get() = Point(x, y)
+
+    override fun toString(): String {
+        return "($x, $y)"
+    }
 }

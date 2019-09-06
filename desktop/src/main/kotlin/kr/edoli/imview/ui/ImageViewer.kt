@@ -151,6 +151,10 @@ class ImageViewer : Group() {
             val imageCoordB = Vector2()
 
             override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+                if (button == Input.Buttons.RIGHT) {
+                    return false
+                }
+
                 dragMode = if (UIUtils.shift()) {
                     ImContext.marqueeBoxActive.update(true)
                     localToImageCoordinates(imageCoord.set(x, y))
@@ -238,6 +242,14 @@ class ImageViewer : Group() {
                 return super.keyDown(event, keycode)
             }
         })
+
+        contextMenu {
+            addMenu("Copy cursor position") {}
+            addMenu("Copy rect bound") {}
+            addMenu("Copy marquee RGB") {}
+            addMenu("Copy cursor RGB") {}
+            addMenu("Copy marquee image") {}
+        }
 
         ImContext.zoomLevel.subscribe { zoomLevel ->
             val mousePos = Vector2(Gdx.input.x.toFloat(), Gdx.input.y.toFloat())

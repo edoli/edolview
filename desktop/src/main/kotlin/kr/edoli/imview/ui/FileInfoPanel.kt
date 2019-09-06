@@ -6,9 +6,9 @@ import kr.edoli.imview.ImContext
 
 class FileInfoPanel : Panel(false) {
     init {
-        val bitPerPixelLabel = Label("", UIFactory.skin).tooltip("Bits per pixel")
-        val maxValueLabel = Label("", UIFactory.skin).tooltip("Max value for type")
-        val numChannelsLabel = Label("", UIFactory.skin).tooltip("Number of channels")
+        val bitPerPixelLabel = NumberLabel("Bits per pixel", UIFactory.skin, Formatters.intFormatter)
+        val maxValueLabel = NumberLabel("Max value for type", UIFactory.skin, Formatters.intFormatter)
+        val numChannelsLabel = NumberLabel("Number of channels", UIFactory.skin, Formatters.intFormatter)
 
         add("Bits")
         add("Max")
@@ -23,9 +23,9 @@ class FileInfoPanel : Panel(false) {
         ImContext.mainImageSpec.subscribe { imageSpec ->
             if (imageSpec == null) return@subscribe
 
-            bitPerPixelLabel.setText("${imageSpec.bitsPerPixel}")
-            maxValueLabel.setText("${imageSpec.maxValue}")
-            numChannelsLabel.setText("${imageSpec.numChannels}")
+            bitPerPixelLabel.value = imageSpec.bitsPerPixel.toDouble()
+            maxValueLabel.value = imageSpec.maxValue
+            numChannelsLabel.value = imageSpec.numChannels.toDouble()
         }
     }
 }
