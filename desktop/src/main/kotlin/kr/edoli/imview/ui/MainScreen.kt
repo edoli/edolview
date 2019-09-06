@@ -4,8 +4,10 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
 import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.viewport.ScreenViewport
+import kr.edoli.imview.ImContext
 import org.lwjgl.opengl.GL30
 
 class MainScreen : Screen {
@@ -16,14 +18,15 @@ class MainScreen : Screen {
         val layoutTable = Table().apply {
             setFillParent(true)
         }
+
         // Top
         layoutTable.add(ToolBar()).height(ToolBar.barHeight + 2f).expandX().fillX()
         layoutTable.row()
 
         // middle
         val middleTable = Table().apply {
-            add(imageViewer).expand().fill()
-            add(ControlPanel()).width(150f).expandY().fillY()
+            add().expand().fill()
+            add(ControlPanel()).width(180f).expandY().fillY()
         }
         layoutTable.add(middleTable).expand().fill()
 
@@ -31,9 +34,14 @@ class MainScreen : Screen {
         layoutTable.row()
         layoutTable.add(StatusBar()).height(StatusBar.barHeight + 2f).expandX().fillX()
 
+        stage.addActor(Table().apply {
+            setFillParent(true)
+            add(imageViewer).expand().fill()
+        })
+        stage.addActor(layoutTable)
+
         imageViewer.zIndex = 0
         middleTable.zIndex = 0
-        stage.addActor(layoutTable)
     }
 
     override fun hide() {

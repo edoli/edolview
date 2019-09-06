@@ -25,6 +25,8 @@ object UIFactory {
 
     val defaultTextButtonStyle = skin.get(TextButton.TextButtonStyle::class.java)
     val toggleTextButtonStyle = skin.get("toggle", TextButton.TextButtonStyle::class.java)
+
+    val iconLabelStyle = Label.LabelStyle(Font.ioniconsFont, Color.WHITE)
     val iconButtonStyle = TextButton.TextButtonStyle().apply {
         font = Font.ioniconsFont
         fontColor = Color.WHITE
@@ -38,23 +40,22 @@ object UIFactory {
     }
 
 
-    fun createSlider(min: Float, max: Float, stepSize: Float, observable: ObservableValue<Float>): Slider {
-        return Slider(min, max, stepSize, false, skin).apply {
-            observable.subscribe { newValue ->
-                this.value = newValue
-            }
-
-            addListener(object : ChangeListener() {
-                override fun changed(event: ChangeEvent, actor: Actor) {
-                    val value = this@apply.value
-                    observable.update(value)
+    fun createSlider(icon: String, min: Float, max: Float, stepSize: Float, observable: ObservableValue<Float>): Table {
+        return Table().apply {
+            add(Label(icon, iconLabelStyle)).padRight(8f)
+            add(Slider(min, max, stepSize, false, UIFactory.skin).apply {
+                observable.subscribe { newValue ->
+                    this.value = newValue
                 }
-            })
 
-            addListener(object : TextTooltip(observable.name, tooltipManager, skin) {
-
+                addListener(object : ChangeListener() {
+                    override fun changed(event: ChangeEvent, actor: Actor) {
+                        val value = this@apply.value
+                        observable.update(value)
+                    }
+                })
             })
-        }
+        }.tooltip(observable.name)
     }
 
     fun createToggleIconButton(text: String, observable: ObservableValue<Boolean>) =

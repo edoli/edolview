@@ -5,7 +5,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
 
-class StatusBar : Table() {
+class StatusBar : Panel() {
     companion object {
         const val barHeight = 24f
     }

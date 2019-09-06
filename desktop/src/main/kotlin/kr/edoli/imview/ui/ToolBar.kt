@@ -1,13 +1,12 @@
 package kr.edoli.imview.ui
 
-import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.image.MarqueeUtils
 
-class ToolBar : Table() {
+class ToolBar : Panel() {
 
     companion object {
         const val barHeight = 24f
@@ -28,8 +27,17 @@ class ToolBar : Table() {
         }.tooltip("Show clipboard")).width(iconWidth)
 
         add().width(32f)
-        add(UIFactory.createToggleIconButton(Ionicons.ionMdPaper, ImContext.isShowInfo)).width(iconWidth)
-        add(UIFactory.createToggleIconButton(Ionicons.ionMdOptions, ImContext.isShowConroller)).width(iconWidth)
-        add(UIFactory.createToggleIconButton(Ionicons.ionMdAdd, ImContext.isShowCrosshair)).width(iconWidth)
+
+        add(UIFactory.createIconButton(Ionicons.ionMdExpand) {
+            ImContext.fitImage
+        }.tooltip("Fit selection to view")).width(iconWidth)
+        add(UIFactory.createIconButton(Ionicons.ionMdContract) {
+            ImContext.centerImage
+        }.tooltip("Center selection view")).width(iconWidth)
+
+        add().width(32f)
+        add(UIFactory.createToggleIconButton(Ionicons.ionMdPaper, ImContext.isShowInfo).tooltip("Show information")).width(iconWidth)
+        add(UIFactory.createToggleIconButton(Ionicons.ionMdOptions, ImContext.isShowController).tooltip("Show controller")).width(iconWidth)
+        add(UIFactory.createToggleIconButton(Ionicons.ionMdAdd, ImContext.isShowCrosshair).tooltip("Show crosshair")).width(iconWidth)
     }
 }

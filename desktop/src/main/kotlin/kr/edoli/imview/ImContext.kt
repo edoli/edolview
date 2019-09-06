@@ -42,7 +42,7 @@ object ImContext {
     val rotation = ObservableValue(0.0)
 
     val isShowCrosshair = ObservableValue(true)
-    val isShowConroller = ObservableValue(true)
+    val isShowController = ObservableValue(true)
     val isShowInfo = ObservableValue(false)
 
     val enableProfile = ObservableValue(true)
@@ -56,6 +56,7 @@ object ImContext {
     val frameSpeed = ObservableValue(0.0f)
 
     val centerImage = PublishSubject.create<Boolean>()
+    val fitImage = PublishSubject.create<Boolean>()
 
     val fileManager = FileManager()
 
@@ -111,7 +112,7 @@ object ImContext {
         }
 
         isShowCrosshair.subscribe { savePreferences() }
-        isShowConroller.subscribe { savePreferences() }
+        isShowController.subscribe { savePreferences() }
         isShowInfo.subscribe { savePreferences() }
 
         // object : AnimationTimer() {
@@ -143,13 +144,13 @@ object ImContext {
     fun loadPreferences() {
         preferences.sync()
         isShowCrosshair.update(preferences.getBoolean("isShowCrossHair", false))
-        isShowConroller.update(preferences.getBoolean("isShowConroller", false))
+        isShowController.update(preferences.getBoolean("isShowConroller", false))
         isShowInfo.update(preferences.getBoolean("isShowInfo", false))
     }
 
     fun savePreferences() {
         preferences.putBoolean("isShowCrossHair", isShowCrosshair.get())
-        preferences.putBoolean("isShowConroller", isShowConroller.get())
+        preferences.putBoolean("isShowConroller", isShowController.get())
         preferences.putBoolean("isShowInfo", isShowInfo.get())
         preferences.flush()
     }
