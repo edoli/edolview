@@ -15,7 +15,10 @@ open class Panel(showBackground: Boolean = true) : Table(UIFactory.skin) {
     }
 
     fun addHorizontalDivider(): Cell<ColorRect> {
-        return add(ColorRect(Color.DARK_GRAY)).expandX().fillX().height(1f)
+        row()
+        val cell = add(ColorRect(Color.DARK_GRAY)).expandX().fillX().height(1f)
+        row()
+        return cell
     }
 
     fun addVerticalDivider(): Cell<ColorRect> {

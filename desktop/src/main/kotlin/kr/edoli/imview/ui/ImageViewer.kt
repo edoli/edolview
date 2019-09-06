@@ -22,6 +22,7 @@ import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.util.ceil
 import kr.edoli.imview.util.reset
+import kr.edoli.imview.util.toColorStr
 import org.opencv.core.CvType
 import org.opencv.core.Rect
 import kotlin.math.log
@@ -215,11 +216,31 @@ class ImageViewer : Group() {
         })
 
         contextMenu {
-            addMenu("Copy cursor position") {}
-            addMenu("Copy rect bound") {}
-            addMenu("Copy marquee RGB") {}
-            addMenu("Copy cursor RGB") {}
-            addMenu("Copy marquee image") {}
+            addMenu("Copy cursor position") {
+                ClipboardUtils.putString(ImContext.cursorPosition.get().toString())
+            }
+            addMenu("Copy cursor RGB") {
+                ImContext.mainImageSpec.get()?.let { imageSpec ->
+                    ClipboardUtils.putString(ImContext.cursorRGB.get().toColorStr(imageSpec.maxValue))
+                }
+            }
+
+            if (ImContext.isValidMarquee) {
+                addHorizontalDivider().pad(4f, 0f, 4f, 0f)
+                addMenu("Copy rect bound") {
+                    ClipboardUtils.putString(ImContext.marqueeBox.get().toString())
+                }
+                addMenu("Copy marquee RGB") {
+                    ImContext.mainImageSpec.get()?.let { imageSpec ->
+                        ClipboardUtils.putString(ImContext.marqueeBoxRGB.get().toColorStr(imageSpec.maxValue))
+                    }
+                }
+                addMenu("Copy marquee image") {
+                    ImContext.marqueeImage.get()?.let { mat ->
+                        ClipboardUtils.putImage(mat)
+                    }
+                }
+            }
         }
 
         ImContext.zoomLevel.subscribe { zoomLevel ->
