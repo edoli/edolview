@@ -1,5 +1,6 @@
 package kr.edoli.imview.image
 
+import javafx.application.Platform
 import javafx.scene.Scene
 import javafx.scene.control.Label
 import javafx.scene.image.Image
@@ -8,6 +9,8 @@ import javafx.scene.input.Clipboard
 import javafx.scene.input.ClipboardContent
 import javafx.stage.Stage
 import org.opencv.core.Mat
+import java.awt.Toolkit
+import java.awt.datatransfer.Transferable
 
 object ClipboardUtils {
 
@@ -16,10 +19,12 @@ object ClipboardUtils {
     }
 
     fun putImage(image: Image) {
-        val clipboard = Clipboard.getSystemClipboard()
-        val content = ClipboardContent()
-        content.putImage(image)
-        clipboard.setContent(content)
+        Platform.runLater {
+            val clipboard = Clipboard.getSystemClipboard()
+            val content = ClipboardContent()
+            content.putImage(image)
+            clipboard.setContent(content)
+        }
     }
 
     fun getImage(): Image? {
@@ -28,9 +33,11 @@ object ClipboardUtils {
     }
 
     fun showClipboardImage() {
-        val image = getImage()
-        if (image != null) {
-            showImage(image)
+        Platform.runLater {
+            val image = getImage()
+            if (image != null) {
+                showImage(image)
+            }
         }
     }
 
