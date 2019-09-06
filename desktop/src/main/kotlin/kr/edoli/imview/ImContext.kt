@@ -24,7 +24,7 @@ object ImContext {
     val args = ObservableValue(arrayOf<String>())
 
     val mainImage = NullableObservableValue<Mat>(null)
-    val mainFile = ObservableValue(File("test.jpg"))
+    val mainFile = ObservableValue(File("test.png"))
 
     val mainImageSpec = NullableObservableValue<ImageSpec>(null)
     val marqueeImage = NullableObservableValue<Mat>(null)
@@ -37,23 +37,23 @@ object ImContext {
     val marqueeBoxActive = ObservableValue(false)
     val marqueeBoxRGB = ObservableValue(doubleArrayOf())
 
-    val zoomLevel = ObservableValue(0)
+    val zoomLevel = ObservableValue(0, "Zoom level")
     val zoomCenter = ObservableValue(Point2D(0.0, 0.0))
     val rotation = ObservableValue(0.0)
 
-    val isShowCrosshair = ObservableValue(true)
-    val isShowController = ObservableValue(true)
-    val isShowInfo = ObservableValue(false)
+    val isShowCrosshair = ObservableValue(true, "Show crosshair")
+    val isShowController = ObservableValue(true, "Show controller")
+    val isShowInfo = ObservableValue(false, "Show info")
 
-    val enableProfile = ObservableValue(true)
-    val normalize = ObservableValue(false)
-    val smoothing = ObservableValue(false)
+    val enableProfile = ObservableValue(true, "Enable profile")
+    val normalize = ObservableValue(false, "Normalize")
+    val smoothing = ObservableValue(false, "Smoothing")
 
     val imageContrast = ObservableValue(1.0f, "Contrast")
     val imageBrightness = ObservableValue(0.0f, "Brightness")
     val imageGamma = ObservableValue(1.0f, "Gamma")
 
-    val frameSpeed = ObservableValue(0.0f)
+    val frameSpeed = ObservableValue(0.0f, "Frame speed")
 
     val centerImage = PublishSubject.create<Boolean>()
     val fitImage = PublishSubject.create<Boolean>()

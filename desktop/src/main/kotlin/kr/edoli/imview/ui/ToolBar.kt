@@ -36,8 +36,10 @@ class ToolBar : Panel() {
         }.tooltip("Center selection view")).width(iconWidth)
 
         add().width(32f)
-        add(UIFactory.createToggleIconButton(Ionicons.ionMdPaper, ImContext.isShowInfo).tooltip("Show information")).width(iconWidth)
-        add(UIFactory.createToggleIconButton(Ionicons.ionMdOptions, ImContext.isShowController).tooltip("Show controller")).width(iconWidth)
-        add(UIFactory.createToggleIconButton(Ionicons.ionMdAdd, ImContext.isShowCrosshair).tooltip("Show crosshair")).width(iconWidth)
+        add(UIFactory.createToggleIconButton(Ionicons.ionMdPaper, ImContext.isShowInfo)).width(iconWidth)
+        add(UIFactory.createToggleIconButton(Ionicons.ionMdAdd, ImContext.isShowCrosshair)).width(iconWidth)
+
+        add().expandX()
+        add(UIFactory.createToggleIconButton(Ionicons.ionMdOptions, ImContext.isShowController)).width(iconWidth)
     }
 }

@@ -72,7 +72,7 @@ object UIFactory {
                     observable.update(this@apply.isChecked)
                 }
             })
-        }
+        }.tooltip(observable.name)
     }
 
     fun createIconButton(text: String, action: () -> Unit) =

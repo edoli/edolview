@@ -55,22 +55,20 @@ object ImageStore {
                     CvType.CV_16U -> 1.0 / 65535.0
                     else -> 1.0
                 }
-                mat.convertTo(mat, CvType.CV_32F, alpha)
+                mat.convertTo(mat, CvType.CV_64FC3, alpha)
             }
             3 -> {
-                if (mat.type() == CvType.CV_8UC3) {
-                    mat.convertTo(mat, CvType.CV_32FC3, 1.0 / 255.0)
-                }
-                if (mat.type() == CvType.CV_16UC3) {
-                    mat.convertTo(mat, CvType.CV_32FC3, 1.0 / 65535.0)
+                when {
+                    mat.type() == CvType.CV_8UC3 -> mat.convertTo(mat, CvType.CV_64FC3, 1.0 / 255.0)
+                    mat.type() == CvType.CV_16UC3 -> mat.convertTo(mat, CvType.CV_64FC3, 1.0 / 65535.0)
+                    else -> mat.convertTo(mat, CvType.CV_64FC3)
                 }
             }
             4 -> {
-                if (mat.type() == CvType.CV_8UC4) {
-                    mat.convertTo(mat, CvType.CV_32FC4, 1.0 / 255.0)
-                }
-                if (mat.type() == CvType.CV_16UC4) {
-                    mat.convertTo(mat, CvType.CV_32FC4, 1.0 / 65535.0)
+                when {
+                    mat.type() == CvType.CV_8UC4 -> mat.convertTo(mat, CvType.CV_64FC3, 1.0 / 255.0)
+                    mat.type() == CvType.CV_16UC4 -> mat.convertTo(mat, CvType.CV_64FC3, 1.0 / 65535.0)
+                    else -> mat.convertTo(mat, CvType.CV_64FC3)
                 }
             }
         }

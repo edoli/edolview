@@ -5,8 +5,7 @@ import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL30
 import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.g2d.Batch
-import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.graphics.g2d.*
 import com.badlogic.gdx.graphics.glutils.FloatTextureData
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
@@ -21,6 +20,7 @@ import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.util.ceil
 import kr.edoli.imview.util.reset
+import org.opencv.core.CvType
 import org.opencv.core.Rect
 import kotlin.math.log
 import kotlin.math.max
@@ -30,8 +30,8 @@ import kotlin.math.pow
 class ImageViewer : Group() {
     var texture: Texture? = null
     var textureRegion: TextureRegion? = null
-    var min = 0f
-    var max = 0f
+    var min = 0.0f
+    var max = 0.0f
 
     var imageX = 0f
     var imageY = 0f
@@ -59,6 +59,7 @@ class ImageViewer : Group() {
     val shader = ShaderProgram(vertexShader, Gdx.files.internal("imageShader.frag").readString()).also {
         require(it.isCompiled) { "Error compiling shader: " + it.log }
     }
+    val defaultShader = SpriteBatch.createDefaultShader()
 
     enum class DragMode {
         marquee, move
@@ -81,16 +82,23 @@ class ImageViewer : Group() {
             val numChannels = mat.channels()
 
             val data = FloatArray((mat.total() * numChannels).toInt())
-            mat.get(0, 0, data)
+            val tmpMat = mat.clone()
+
+            when (numChannels) {
+                1 -> tmpMat.convertTo(tmpMat, CvType.CV_32FC1)
+                2 -> tmpMat.convertTo(tmpMat, CvType.CV_32FC2)
+                3 -> tmpMat.convertTo(tmpMat, CvType.CV_32FC3)
+                4 -> tmpMat.convertTo(tmpMat, CvType.CV_32FC4)
+            }
+
+            tmpMat.get(0, 0, data)
 
             imageWidth = mat.width()
             imageHeight = mat.height()
             min = Float.MAX_VALUE
             max = Float.MIN_VALUE
-            data.forEach { value ->
-                if (value > max) max = value
-                if (value < min) min = value
-            }
+
+            calcNormalization()
 
             val internalFormat = when (numChannels) {
                 1 -> GL30.GL_RGB32F
@@ -251,6 +259,10 @@ class ImageViewer : Group() {
             centerMarquee()
         }
 
+        ImContext.normalize.subscribe {
+            calcNormalization()
+        }
+
         ImContext.fitImage.subscribe {
             if (!ImContext.isValidMarquee) {
                 return@subscribe
@@ -268,6 +280,30 @@ class ImageViewer : Group() {
             ImContext.zoomLevel.update(log(imageScale.toDouble(), 1.1).toInt())
 
             centerMarquee()
+        }
+    }
+
+    fun calcNormalization() {
+        if (ImContext.normalize.get() && max == Float.MIN_VALUE && min == Float.MAX_VALUE) {
+            Thread {
+                val textureData = texture?.textureData as FloatTextureData
+                val buffer = textureData.buffer
+                buffer.position(0)
+
+                var localMin = Float.MAX_VALUE
+                var localMax = Float.MIN_VALUE
+
+                while (buffer.hasRemaining()) {
+                    val value = buffer.get()
+                    if (value > localMax) localMax = value
+                    if (value < localMin) localMin = value
+                }
+
+                Gdx.app.postRunnable {
+                    min = localMin
+                    max = localMax
+                }
+            }.start()
         }
     }
 
@@ -306,29 +342,37 @@ class ImageViewer : Group() {
         if (isSmoothing) {
             texture?.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
         } else {
-            texture?.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
+            texture?.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Nearest)
         }
     }
 
     override fun drawChildren(batch: Batch, parentAlpha: Float) {
-        batch.end()
-
         batch.color = Color.WHITE
-        batch.shader = shader
-        batch.begin()
-        shader.setUniformf("brightness", ImContext.imageBrightness.get())
-        shader.setUniformf("contrast", ImContext.imageContrast.get())
-        shader.setUniformf("gamma", ImContext.imageGamma.get())
-        shader.setUniformf("min", min)
-        shader.setUniformf("max", max)
-        shader.setUniformi("normalize", ImContext.normalize.get().let { if (it) 1 else 0 })
-        textureRegion?.let { region ->
-            batch.draw(region, imageX, imageY, 0f, 0f,
-                    region.regionWidth.toFloat(), region.regionHeight.toFloat(), imageScale, imageScale, 0f)
+        if (ImContext.enableProfile.get()) {
+            batch.end()
+
+            batch.shader = shader
+            batch.begin()
+            shader.setUniformf("brightness", ImContext.imageBrightness.get())
+            shader.setUniformf("contrast", ImContext.imageContrast.get())
+            shader.setUniformf("gamma", ImContext.imageGamma.get())
+            shader.setUniformf("min", min)
+            shader.setUniformf("max", max)
+            shader.setUniformi("normalize", ImContext.normalize.get().let { if (it) 1 else 0 })
+            textureRegion?.let { region ->
+                batch.draw(region, imageX, imageY, 0f, 0f,
+                        region.regionWidth.toFloat(), region.regionHeight.toFloat(), imageScale, imageScale, 0f)
+            }
+
+            batch.shader = defaultShader
+        } else {
+            textureRegion?.let { region ->
+                batch.draw(region, imageX, imageY, 0f, 0f,
+                        region.regionWidth.toFloat(), region.regionHeight.toFloat(), imageScale, imageScale, 0f)
+            }
         }
         batch.end()
 
-        batch.shader = null
 
         shapeRenderer.projectionMatrix = batch.projectionMatrix
         shapeRenderer.transformMatrix = batch.transformMatrix
