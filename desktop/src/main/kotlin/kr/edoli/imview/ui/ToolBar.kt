@@ -22,7 +22,7 @@ class ToolBar : Panel() {
             MarqueeUtils.saveImage(false)
         }.tooltip("Save selected image")).width(iconWidth)
 
-        add(UIFactory.createIconButton(Ionicons.ionMdClipboard) {
+        add(UIFactory.createIconButton(Ionicons.ionMdImage) {
             ClipboardUtils.showClipboardImage()
         }.tooltip("Show clipboard")).width(iconWidth)
 

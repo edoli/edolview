@@ -4,6 +4,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
+import kr.edoli.imview.util.format
+import java.lang.Math.pow
+import kotlin.math.pow
 
 class StatusBar : Panel() {
     companion object {
@@ -21,6 +24,7 @@ class StatusBar : Panel() {
         add(UIFactory.createRectLabel(ImContext.marqueeBox).tooltip("Marquee bound")).width(196f).height(barHeight)
         add(UIFactory.createPointLabel(ImContext.cursorPosition).tooltip("Cursor position")).width(196f).height(barHeight)
         add().expandX().fillX()
+        add(UIFactory.createLabel(ImContext.zoomLevel) { "${(1.1.pow(it.toDouble()) * 100).format(2)}%" }).height(barHeight)
 
     }
 }

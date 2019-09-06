@@ -122,4 +122,12 @@ object UIFactory {
             }
         }
     }
+
+    fun <T> createLabel(observable: ObservableValue<T>, text: (value: T) -> String): Label {
+        return Label("", skin).apply {
+            observable.subscribe { newValue ->
+                setText(text(newValue))
+            }
+        }
+    }
 }

@@ -208,6 +208,15 @@ class ImageViewer : Group() {
                         ClipboardUtils.putImage(mat)
                     }
                 }
+                if (keycode == Input.Keys.ESCAPE) {
+                    ImContext.marqueeBox.update { rect ->
+                        rect.x = 0
+                        rect.y = 0
+                        rect.width = 0
+                        rect.height = 0
+                        rect
+                    }
+                }
                 if (keycode == Input.Keys.A && UIUtils.ctrl()) {
                     ImContext.mainImage.get()?.let { mat ->
                         ImContext.marqueeBox.update { rect ->
