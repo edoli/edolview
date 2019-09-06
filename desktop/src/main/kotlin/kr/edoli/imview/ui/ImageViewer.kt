@@ -270,7 +270,7 @@ class ImageViewer : Group() {
                 return@subscribe
             }
 
-            val marqueeBox = ImContext.marqueeBox.get() ?: return@subscribe
+            val marqueeBox = ImContext.marqueeBox.get()
 
             val vecA = Vector2(marqueeBox.x.toFloat(), (marqueeBox.y + marqueeBox.height).toFloat())
             val vecB = Vector2((marqueeBox.x + marqueeBox.width).toFloat(), marqueeBox.y.toFloat())
@@ -285,7 +285,7 @@ class ImageViewer : Group() {
         }
     }
 
-    fun calcNormalization() {
+    private fun calcNormalization() {
         if (ImContext.normalize.get() && max == Float.MIN_VALUE && min == Float.MAX_VALUE) {
             val textureData = texture?.textureData as FloatTextureData
             val buffer = textureData.buffer
@@ -307,12 +307,12 @@ class ImageViewer : Group() {
         }
     }
 
-    fun centerMarquee() {
+    private fun centerMarquee() {
         if (!ImContext.isValidMarquee) {
             return
         }
 
-        val marqueeBox = ImContext.marqueeBox.get() ?: return
+        val marqueeBox = ImContext.marqueeBox.get()
         val vecA = Vector2(marqueeBox.x.toFloat(), (marqueeBox.y + marqueeBox.height).toFloat())
         val vecB = Vector2((marqueeBox.x + marqueeBox.width).toFloat(), marqueeBox.y.toFloat())
 
