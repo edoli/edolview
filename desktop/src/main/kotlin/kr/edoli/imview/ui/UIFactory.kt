@@ -2,11 +2,13 @@ package kr.edoli.imview.ui
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
@@ -18,13 +20,16 @@ import kr.edoli.imview.util.toColorStr
 import org.opencv.core.Rect
 
 object UIFactory {
+    val uiAtals = TextureAtlas(Gdx.files.internal("ui.atlas"))
     val skin = Skin(Gdx.files.internal("uiskin.json")).apply {
         val defaultLabelStyle = Label.LabelStyle(Font.defaultFont, Color.WHITE)
         add("default", defaultLabelStyle)
-        add("default", TextTooltip.TextTooltipStyle(defaultLabelStyle, getDrawable("default-pane")))
+        add("default", TextTooltip.TextTooltipStyle(defaultLabelStyle, NinePatchDrawable(uiAtals.createPatch("tooltip_background"))))
     }
     val tooltipManager = TooltipManager().apply {
-        initialTime = 0f
+        initialTime = 0.3f
+        subsequentTime = 0.1f
+        animations = false
     }
     val contextMenuManager = ContextMenuManager()
 

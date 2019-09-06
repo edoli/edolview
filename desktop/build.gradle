@@ -59,7 +59,7 @@ dependencies {
     implementation group: 'com.google.guava', name: 'guava', version: '20.0'
 }
 
-project.ext.mainClassName = "kr.edoli.imview.Main"
+project.ext.mainClassName = "kr.edoli.imview.MainKt"
 project.ext.assetsDir = new File("./assets")
 
 application {

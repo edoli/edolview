@@ -150,9 +150,8 @@ class ImageViewer : Group() {
             val imageCoord = Vector2()
             val imageCoordB = Vector2()
 
-            override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
-                stage.scrollFocus = this@ImageViewer
 
+            override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
                 if (button == Input.Buttons.RIGHT) {
                     return false
                 }
@@ -203,6 +202,7 @@ class ImageViewer : Group() {
             }
 
             override fun mouseMoved(event: InputEvent, x: Float, y: Float): Boolean {
+                stage.scrollFocus = this@ImageViewer
                 localToImageCoordinates(imageCoord.set(x, y))
                 ImContext.cursorPosition.update(Point2D(imageCoord.x.toDouble(), imageCoord.y.toDouble()))
                 return false

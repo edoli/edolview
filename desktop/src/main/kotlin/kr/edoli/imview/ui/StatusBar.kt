@@ -1,5 +1,8 @@
 package kr.edoli.imview.ui
 
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.ui.Cell
+import com.badlogic.gdx.scenes.scene2d.ui.Container
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.utils.Align
@@ -18,13 +21,18 @@ class StatusBar : Panel() {
 
         align(Align.left and Align.center)
         add(UIFactory.createColorRect(ImContext.cursorRGB).tooltip("Cursors RGB")).width(barHeight).height(barHeight)
-        add(UIFactory.createColorLabel(ImContext.cursorRGB).tooltip("Cursors RGB")).width(196f).height(barHeight)
+        addContainer(UIFactory.createColorLabel(ImContext.cursorRGB).tooltip("Cursors RGB")).width(196f).height(barHeight)
         add(UIFactory.createColorRect(ImContext.marqueeBoxRGB).tooltip("Marquee RGB")).width(barHeight).height(barHeight)
-        add(UIFactory.createColorLabel(ImContext.marqueeBoxRGB).tooltip("Marquee RGB")).width(196f).height(barHeight)
-        add(UIFactory.createRectLabel(ImContext.marqueeBox).tooltip("Marquee bound")).width(196f).height(barHeight)
-        add(UIFactory.createPointLabel(ImContext.cursorPosition).tooltip("Cursor position")).width(196f).height(barHeight)
+        addContainer(UIFactory.createColorLabel(ImContext.marqueeBoxRGB).tooltip("Marquee RGB")).width(196f).height(barHeight)
+        addContainer(UIFactory.createRectLabel(ImContext.marqueeBox).tooltip("Marquee bound")).width(196f).height(barHeight)
+        addContainer(UIFactory.createPointLabel(ImContext.cursorPosition).tooltip("Cursor position")).width(196f).height(barHeight)
         add().expandX().fillX()
         add(UIFactory.createLabel(ImContext.zoomLevel) { "${(1.1.pow(it.toDouble()) * 100).format(2)}%" }).height(barHeight)
+    }
 
+    fun addContainer(actor: Actor): Cell<Actor> {
+        return add(Container(actor).apply {
+            align(Align.left)
+        })
     }
 }
