@@ -2,11 +2,17 @@ package kr.edoli.imview.ui
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.scenes.scene2d.ui.Label
-import kr.edoli.imview.ImContext
+import kr.edoli.imview.util.NullableObservableValue
+import kr.edoli.imview.util.forever
 import kr.edoli.imview.util.format
+import org.opencv.core.Mat
+import java.util.concurrent.LinkedBlockingQueue
+import kotlin.concurrent.thread
 import kotlin.math.sqrt
 
-class ImageStatisticsPanel : Panel(false) {
+class StatisticsPanel(imageObservable: NullableObservableValue<Mat>) : Panel(false) {
+    val imageQueue = LinkedBlockingQueue<Mat>()
+
     init {
         val minLabel = Label("", UIFactory.skin).tooltip("Min value of image")
         val maxLabel = Label("", UIFactory.skin).tooltip("Max value of image")
@@ -25,18 +31,18 @@ class ImageStatisticsPanel : Panel(false) {
         add(meanLabel)
         add(stdLabel)
 
-        ImContext.mainImage.subscribe { mat ->
-            if (mat == null) return@subscribe
+        thread {
+            forever {
+                val mat = imageQueue.take()
 
-            Thread {
                 val channels = mat.channels()
                 val num = (mat.total() * channels).toInt()
 
                 val rawData = DoubleArray(num)
                 mat.get(0, 0, rawData)
 
-                var minValue =  Double.MAX_VALUE
-                var maxValue =  Double.MIN_VALUE
+                var minValue = Double.MAX_VALUE
+                var maxValue = Double.MIN_VALUE
                 var sum = 0.0
                 var squareSum = 0.0
 
@@ -45,6 +51,10 @@ class ImageStatisticsPanel : Panel(false) {
                     if (v > maxValue) maxValue = v
                     sum += v
                     squareSum += v * v
+
+                    if (imageQueue.isNotEmpty()) {
+                        return@forever
+                    }
                 }
 
                 val mean = sum / num
@@ -57,7 +67,12 @@ class ImageStatisticsPanel : Panel(false) {
                     meanLabel.setText(mean.format(2))
                     stdLabel.setText(standardDeviation.format(2))
                 }
-            }.start()
+            }
+        }
+
+        imageObservable.subscribe { mat ->
+            if (mat == null) return@subscribe
+            imageQueue.put(mat)
         }
     }
 }

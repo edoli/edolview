@@ -5,7 +5,9 @@ import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.GL30
 import com.badlogic.gdx.graphics.Texture
-import com.badlogic.gdx.graphics.g2d.*
+import com.badlogic.gdx.graphics.g2d.Batch
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.FloatTextureData
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
@@ -285,25 +287,23 @@ class ImageViewer : Group() {
 
     fun calcNormalization() {
         if (ImContext.normalize.get() && max == Float.MIN_VALUE && min == Float.MAX_VALUE) {
-            Thread {
-                val textureData = texture?.textureData as FloatTextureData
-                val buffer = textureData.buffer
-                buffer.position(0)
+            val textureData = texture?.textureData as FloatTextureData
+            val buffer = textureData.buffer
+            buffer.position(0)
 
-                var localMin = Float.MAX_VALUE
-                var localMax = Float.MIN_VALUE
+            var localMin = Float.MAX_VALUE
+            var localMax = Float.MIN_VALUE
 
-                while (buffer.hasRemaining()) {
-                    val value = buffer.get()
-                    if (value > localMax) localMax = value
-                    if (value < localMin) localMin = value
-                }
+            while (buffer.hasRemaining()) {
+                val value = buffer.get()
+                if (value > localMax) localMax = value
+                if (value < localMin) localMin = value
+            }
 
-                Gdx.app.postRunnable {
-                    min = localMin
-                    max = localMax
-                }
-            }.start()
+            Gdx.app.postRunnable {
+                min = localMin
+                max = localMax
+            }
         }
     }
 

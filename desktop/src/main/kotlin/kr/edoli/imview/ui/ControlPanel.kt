@@ -22,13 +22,26 @@ class ControlPanel : Panel() {
         row()
         add(UIFactory.createSlider(Ionicons.ionMdNuclear, 0f, 10f, 0.01f, ImContext.imageGamma))
 
+        row()
+        addHorizontalDivider().pad(8f)
+        row()
 
-        row().padTop(32f)
         add("Image statistics")
         row()
-        add(ImageStatisticsPanel())
+        add(StatisticsPanel(ImContext.mainImage))
 
-        row().padTop(32f)
+        row()
+        addHorizontalDivider().pad(8f)
+        row()
+
+        add("Selection statistics")
+        row()
+        add(StatisticsPanel(ImContext.marqueeImage))
+
+        row()
+        addHorizontalDivider().pad(8f)
+        row()
+
         add("File information")
         row()
         add(FileInfoPanel())

@@ -6,7 +6,13 @@ import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.Actor
 
-class ColorRect : Actor() {
+class ColorRect(initColor: Color? = null) : Actor() {
+    init {
+        if (initColor != null) {
+            this.color.set(initColor)
+        }
+    }
+
     companion object {
         val white = produceWhiteTexture()
 
