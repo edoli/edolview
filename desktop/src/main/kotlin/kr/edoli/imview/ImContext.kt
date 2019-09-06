@@ -65,6 +65,8 @@ object ImContext {
             mainImage.get()?.let { mat ->
                 val marqueeRect = marqueeBox.get()
                 return (marqueeRect.x >= 0 && marqueeRect.y >= 0
+                        && marqueeRect.width > 0
+                        && marqueeRect.height > 0
                         && (marqueeRect.x + marqueeRect.width) <= mat.width()
                         && (marqueeRect.y + marqueeRect.height) <= mat.height())
             }

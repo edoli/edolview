@@ -19,9 +19,9 @@ import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
-import kr.edoli.imview.image.MarqueeUtils
 import kr.edoli.imview.util.ceil
 import org.opencv.core.Rect
+import kotlin.math.log
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
@@ -208,6 +208,17 @@ class ImageViewer : Group() {
                         ClipboardUtils.putImage(mat)
                     }
                 }
+                if (keycode == Input.Keys.A && UIUtils.ctrl()) {
+                    ImContext.mainImage.get()?.let { mat ->
+                        ImContext.marqueeBox.update { rect ->
+                            rect.x = 0
+                            rect.y = 0
+                            rect.width = mat.width()
+                            rect.height = mat.height()
+                            rect
+                        }
+                    }
+                }
                 return super.keyDown(event, keycode)
             }
         })
@@ -229,6 +240,47 @@ class ImageViewer : Group() {
             imageY = mousePos.y - newMousePosImageY
             imageScale = newScale
         }
+
+        ImContext.centerImage.subscribe {
+            centerMarquee()
+        }
+
+        ImContext.fitImage.subscribe {
+            if (!ImContext.isValidMarquee) {
+                return@subscribe
+            }
+
+            val marqueeBox = ImContext.marqueeBox.get() ?: return@subscribe
+
+            val vecA = Vector2(marqueeBox.x.toFloat(), (marqueeBox.y + marqueeBox.height).toFloat())
+            val vecB = Vector2((marqueeBox.x + marqueeBox.width).toFloat(), marqueeBox.y.toFloat())
+
+            imageToLocalCoordinates(vecA)
+            imageToLocalCoordinates(vecB)
+            imageScale *= height / (vecB.y - vecA.y)
+
+            ImContext.zoomLevel.update(log(imageScale.toDouble(), 1.1).toInt())
+
+            centerMarquee()
+        }
+    }
+
+    fun centerMarquee() {
+        if (!ImContext.isValidMarquee) {
+            return
+        }
+
+        val marqueeBox = ImContext.marqueeBox.get() ?: return
+        val vecA = Vector2(marqueeBox.x.toFloat(), (marqueeBox.y + marqueeBox.height).toFloat())
+        val vecB = Vector2((marqueeBox.x + marqueeBox.width).toFloat(), marqueeBox.y.toFloat())
+
+        imageToLocalCoordinates(vecA)
+        imageToLocalCoordinates(vecB)
+
+        val marqueeWidth = vecB.x - vecA.x
+        val marqueeHeight = vecB.y - vecA.y
+        imageX = imageX + (width - marqueeWidth) / 2 - vecA.x
+        imageY = imageY + (height - marqueeHeight) / 2 - vecA.y
     }
 
     private fun localToImageCoordinates(vec: Vector2): Vector2 {

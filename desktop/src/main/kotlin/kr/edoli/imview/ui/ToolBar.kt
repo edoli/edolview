@@ -29,10 +29,10 @@ class ToolBar : Panel() {
         add().width(32f)
 
         add(UIFactory.createIconButton(Ionicons.ionMdExpand) {
-            ImContext.fitImage
+            ImContext.fitImage.onNext(true)
         }.tooltip("Fit selection to view")).width(iconWidth)
         add(UIFactory.createIconButton(Ionicons.ionMdContract) {
-            ImContext.centerImage
+            ImContext.centerImage.onNext(true)
         }.tooltip("Center selection view")).width(iconWidth)
 
         add().width(32f)
