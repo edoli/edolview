@@ -4,7 +4,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import kr.edoli.imview.ImContext
 
-class InfoTable : Table() {
+class FileInfoPanel : Table() {
     init {
         val bitPerPixelLabel = Label("", UIFactory.skin).tooltip("Bits per pixel")
         val maxValueLabel = Label("", UIFactory.skin).tooltip("Max value for type")
