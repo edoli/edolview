@@ -19,6 +19,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
+import kr.edoli.imview.image.MarqueeUtils
 import kr.edoli.imview.util.ceil
 import org.opencv.core.Rect
 import kotlin.math.max
@@ -205,6 +206,8 @@ class ImageViewer : Group() {
                 if (keycode == Input.Keys.C && UIUtils.ctrl()) {
                     ImContext.marqueeImage.get()?.let { mat ->
                         ClipboardUtils.putImage(mat)
+                        // ClipboardUtils.showClipboardImage()
+                        MarqueeUtils.saveImage(false)
                     }
                 }
                 return super.keyDown(event, keycode)

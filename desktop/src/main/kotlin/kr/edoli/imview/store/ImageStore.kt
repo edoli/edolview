@@ -3,6 +3,7 @@ package kr.edoli.imview.store
 import com.google.common.cache.CacheBuilder
 import com.google.common.cache.CacheLoader
 import kr.edoli.imview.image.ImageSpec
+import kr.edoli.imview.image.bitsPerPixel
 import kr.edoli.imview.image.typeMax
 import org.opencv.core.CvType
 import org.opencv.core.Mat
@@ -39,7 +40,7 @@ object ImageStore {
             }
         }
 
-        return ImageSpec(mat, mat.typeMax(), mat.channels(), ImageSpec.bitsPerPixel(mat))
+        return ImageSpec(mat, mat.typeMax(), mat.channels(), mat.bitsPerPixel())
     }
 
     fun clearCache() {

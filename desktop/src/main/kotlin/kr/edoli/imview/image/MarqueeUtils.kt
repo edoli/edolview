@@ -1,11 +1,13 @@
 package kr.edoli.imview.image
 
-import javafx.stage.FileChooser
 import kr.edoli.imview.ImContext
 import org.opencv.core.Core
 import org.opencv.core.Mat
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
+import java.awt.FileDialog
+import java.awt.Frame
+import java.io.File
 import java.io.IOException
 
 object MarqueeUtils {
@@ -20,16 +22,28 @@ object MarqueeUtils {
     fun saveImage(doImageProc: Boolean = false) {
         ImContext.mainImage.get() ?: return
 
-        val fileChooser = FileChooser()
-        fileChooser.initialDirectory = ImContext.mainFile.get().parentFile
-        fileChooser.title = "Save file"
-        fileChooser.extensionFilters.addAll(
-                FileChooser.ExtensionFilter("Portable Network Graphics", "*.png"),
-                FileChooser.ExtensionFilter("JPEG", "*.jpg"),
-                FileChooser.ExtensionFilter("OpenEXR", "*.exr")
-        )
-        val dest = fileChooser.showSaveDialog(null)
+        // UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
+        // val fileChooser = JFileChooser()
+        // fileChooser.showSaveDialog(null)
 
+        val frame: Frame? = null
+        val fileChooser = FileDialog(frame, "Save file", FileDialog.SAVE)
+        fileChooser.directory = ImContext.mainFile.get().absoluteFile.parent
+        fileChooser.isVisible = true
+
+        val filePath = fileChooser.file
+        val dest = filePath?.let { File(fileChooser.file) } ?: null
+
+        // val fileChooser = FileChooser()
+        // fileChooser.initialDirectory = ImContext.mainFile.get().parentFile
+        // fileChooser.title = "Save file"
+        // fileChooser.extensionFilters.addAll(
+        //         FileChooser.ExtensionFilter("Portable Network Graphics", "*.png"),
+        //         FileChooser.ExtensionFilter("JPEG", "*.jpg"),
+        //         FileChooser.ExtensionFilter("OpenEXR", "*.exr")
+        // )
+        // val dest = fileChooser.showSaveDialog(null)
+        //
         if (dest != null) {
             try {
                 val selectedMat = croppedImage(doImageProc)
@@ -37,6 +51,7 @@ object MarqueeUtils {
                     val mat = selectedMat.clone()
                     val factor = when (dest.extension.toLowerCase()) {
                         "png" -> 255.0
+                        "tiff" -> 255.0
                         "jpg" -> 255.0
                         else -> 1.0
                     }
