@@ -149,6 +149,16 @@ operator fun Double.div(mat: Mat): Mat {
     return newMat
 }
 
+fun Mat.split(): List<Mat> {
+    if (this.channels() == 1) {
+        return listOf(this)
+    }
+    val matArray = Array(this.channels()) { Mat() }.toList()
+    Core.split(this, matArray)
+
+    return matArray
+}
+
 fun Mat.min(): Double {
     val matArray = Array(this.channels()) { Mat() }.toList()
     Core.split(this, matArray)

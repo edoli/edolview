@@ -32,9 +32,9 @@ class MainScreen : Screen {
         // middle
         val middleTable = Table().apply {
             add().expand().fill()
-            add(ScrollPane(ControlPanel()).apply {
+            add(ScrollPane(SidePanel()).apply {
                 setOverscroll(false, false)
-            }).width(180f).expandY().fillY()
+            }).width(200f).expandY().fillY()
         }
         layoutTable.add(middleTable).expand().fill()
 
@@ -80,6 +80,9 @@ class MainScreen : Screen {
                             rect
                         }
                     }
+                }
+                if (keycode == Input.Keys.F4) {
+                    stage.isDebugAll = !stage.isDebugAll
                 }
                 return super.keyDown(event, keycode)
             }

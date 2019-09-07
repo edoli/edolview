@@ -33,6 +33,21 @@ object UIFactory {
     }
     val contextMenuManager = ContextMenuManager()
 
+    val textButtonStyle = TextButton.TextButtonStyle().apply {
+        font = Font.defaultFont
+        fontColor = Color.WHITE
+        downFontColor = Color.RED
+    }
+    val textToggleButtonStyle = TextButton.TextButtonStyle().apply {
+        font = Font.defaultFont
+        fontColor = Color.WHITE
+        downFontColor = Color.RED
+
+        up = skin.getDrawable("default-round")
+        down = skin.getDrawable("default-round-down")
+        checked = skin.getDrawable("default-round-down")
+    }
+
     val iconLabelStyle = Label.LabelStyle(Font.ioniconsFont, Color.WHITE)
     val iconButtonStyle = TextButton.TextButtonStyle().apply {
         font = Font.ioniconsFont

@@ -3,8 +3,9 @@ package kr.edoli.imview.ui
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
+import kr.edoli.imview.ui.histogram.HistogramPanel
 
-class ControlPanel : Panel() {
+class SidePanel : Panel() {
     init {
         align(Align.top)
 
@@ -22,23 +23,21 @@ class ControlPanel : Panel() {
             add(UIFactory.createSlider(Ionicons.ionMdNuclear, 0f, 10f, 0.01f, ImContext.imageGamma))
         })).fillX()
 
-        row()
         addHorizontalDivider().pad(4f)
-        row()
 
         add(CollapsiblePanel("Image statistics", StatisticsPanel(ImContext.mainImage))).fillX()
 
-        row()
         addHorizontalDivider().pad(4f)
-        row()
 
         add(CollapsiblePanel("Selection statistics", StatisticsPanel(ImContext.marqueeImage))).fillX()
 
-        row()
         addHorizontalDivider().pad(4f)
-        row()
 
         add(CollapsiblePanel("File information", FileInfoPanel())).fillX()
+
+        addHorizontalDivider().pad(4f)
+
+        add(CollapsiblePanel("Histogram", HistogramPanel())).fillX()
 
         ImContext.isShowController.subscribe {
             isVisible = it
