@@ -58,4 +58,8 @@ class ContextMenuPanel : Panel() {
         }).fillX()
         row()
     }
+
+    fun addMenuDivider() {
+        addHorizontalDivider().pad(3f, 0f, 3f, 0f)
+    }
 }

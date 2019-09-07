@@ -55,8 +55,11 @@ object ImContext {
 
     val frameSpeed = ObservableValue(0.0f, "Frame speed")
 
+    val centerCursor = PublishSubject.create<Boolean>()
     val centerImage = PublishSubject.create<Boolean>()
     val fitImage = PublishSubject.create<Boolean>()
+    val centerSelection = PublishSubject.create<Boolean>()
+    val fitSelection = PublishSubject.create<Boolean>()
 
     val fileManager = FileManager()
 

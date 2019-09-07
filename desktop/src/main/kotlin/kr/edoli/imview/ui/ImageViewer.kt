@@ -20,8 +20,8 @@ import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
+import kr.edoli.imview.image.bound
 import kr.edoli.imview.util.ceil
-import kr.edoli.imview.util.reset
 import kr.edoli.imview.util.toColorStr
 import org.opencv.core.CvType
 import org.opencv.core.Rect
@@ -216,6 +216,27 @@ class ImageViewer : Group() {
         })
 
         contextMenu {
+            addMenu("Center cursor") {
+                ImContext.centerCursor.onNext(true)
+            }
+            addMenu("Center image") {
+                ImContext.centerImage.onNext(true)
+            }
+            addMenu("Fit image") {
+                ImContext.fitImage.onNext(true)
+            }
+
+            if (ImContext.isValidMarquee) {
+                addMenuDivider()
+                addMenu("Center selection") {
+                    ImContext.centerSelection.onNext(true)
+                }
+                addMenu("Fit selection") {
+                    ImContext.fitSelection.onNext(true)
+                }
+            }
+
+            addMenuDivider()
             addMenu("Copy cursor position") {
                 ClipboardUtils.putString(ImContext.cursorPosition.get().toString())
             }
@@ -227,15 +248,15 @@ class ImageViewer : Group() {
 
             if (ImContext.isValidMarquee) {
                 addHorizontalDivider().pad(4f, 0f, 4f, 0f)
-                addMenu("Copy rect bound") {
+                addMenu("Copy selection bound") {
                     ClipboardUtils.putString(ImContext.marqueeBox.get().toString())
                 }
-                addMenu("Copy marquee RGB") {
+                addMenu("Copy selection RGB") {
                     ImContext.mainImageSpec.get()?.let { imageSpec ->
                         ClipboardUtils.putString(ImContext.marqueeBoxRGB.get().toColorStr(imageSpec.maxValue))
                     }
                 }
-                addMenu("Copy marquee image") {
+                addMenu("Copy selection image") {
                     ImContext.marqueeImage.get()?.let { mat ->
                         ClipboardUtils.putImage(mat)
                     }
@@ -261,32 +282,26 @@ class ImageViewer : Group() {
             imageScale = newScale
         }
 
-        ImContext.centerImage.subscribe {
-            centerMarquee()
-        }
-
         ImContext.normalize.subscribe {
             calcNormalization()
         }
 
-        ImContext.fitImage.subscribe {
-            if (!ImContext.isValidMarquee) {
-                return@subscribe
-            }
-
-            val marqueeBox = ImContext.marqueeBox.get()
-
-            val vecA = Vector2(marqueeBox.x.toFloat(), (marqueeBox.y + marqueeBox.height).toFloat())
-            val vecB = Vector2((marqueeBox.x + marqueeBox.width).toFloat(), marqueeBox.y.toFloat())
-
-            imageToLocalCoordinates(vecA)
-            imageToLocalCoordinates(vecB)
-            imageScale *= height / (vecB.y - vecA.y)
-
-            ImContext.zoomLevel.update(log(imageScale.toDouble(), 1.1).toInt())
-
-            centerMarquee()
+        ImContext.centerCursor.subscribe {
+            val mousePos = Vector2(Gdx.input.x.toFloat(), Gdx.input.y.toFloat())
+            localToImageCoordinates(screenToLocalCoordinates(mousePos))
+            centerRect(Rect(mousePos.x.toInt(), mousePos.y.toInt(), 0, 0))
         }
+        ImContext.centerImage.subscribe {
+            val mat = ImContext.mainImage.get() ?: return@subscribe
+            centerRect(mat.bound())
+        }
+        ImContext.fitImage.subscribe {
+            val mat = ImContext.mainImage.get() ?: return@subscribe
+            fitRect(mat.bound())
+        }
+
+        ImContext.centerSelection.subscribe { centerMarquee() }
+        ImContext.fitSelection.subscribe { fitMarquee() }
     }
 
     private fun calcNormalization() {
@@ -316,9 +331,33 @@ class ImageViewer : Group() {
             return
         }
 
-        val marqueeBox = ImContext.marqueeBox.get()
-        val vecA = Vector2(marqueeBox.x.toFloat(), (marqueeBox.y + marqueeBox.height).toFloat())
-        val vecB = Vector2((marqueeBox.x + marqueeBox.width).toFloat(), marqueeBox.y.toFloat())
+        centerRect(ImContext.marqueeBox.get())
+    }
+
+    private fun fitMarquee() {
+        if (!ImContext.isValidMarquee) {
+            return
+        }
+
+        fitRect(ImContext.marqueeBox.get())
+    }
+
+    private fun fitRect(rect: Rect) {
+        val vecA = Vector2(rect.x.toFloat(), (rect.y + rect.height).toFloat())
+        val vecB = Vector2((rect.x + rect.width).toFloat(), rect.y.toFloat())
+
+        imageToLocalCoordinates(vecA)
+        imageToLocalCoordinates(vecB)
+        imageScale *= height / (vecB.y - vecA.y)
+
+        ImContext.zoomLevel.update(log(imageScale.toDouble(), 1.1).toInt())
+
+        centerRect(rect)
+    }
+
+    private fun centerRect(rect: Rect) {
+        val vecA = Vector2(rect.x.toFloat(), (rect.y + rect.height).toFloat())
+        val vecB = Vector2((rect.x + rect.width).toFloat(), rect.y.toFloat())
 
         imageToLocalCoordinates(vecA)
         imageToLocalCoordinates(vecB)

@@ -217,6 +217,10 @@ fun Mat.normalize(): Mat {
     return (this - min) / (max - min)
 }
 
+fun Mat.bound(): Rect {
+    return Rect(0, 0, width(), height())
+}
+
 
 fun Mat.typeMax(): Double {
     return when (type()) {
