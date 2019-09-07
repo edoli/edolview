@@ -391,7 +391,7 @@ class ImageViewer : Group() {
 
     override fun drawChildren(batch: Batch, parentAlpha: Float) {
         batch.color = Color.WHITE
-        if (ImContext.enableProfile.get()) {
+        if (ImContext.enableDisplayProfile.get()) {
             batch.end()
 
             batch.shader = shader

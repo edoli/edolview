@@ -45,7 +45,7 @@ object ImContext {
     val isShowController = ObservableValue(true, "Show controller")
     val isShowInfo = ObservableValue(false, "Show info")
 
-    val enableProfile = ObservableValue(true, "Enable profile")
+    val enableDisplayProfile = ObservableValue(true, "Enable display profile")
     val normalize = ObservableValue(false, "Normalize")
     val smoothing = ObservableValue(false, "Smoothing")
 

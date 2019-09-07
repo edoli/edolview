@@ -1,9 +1,7 @@
 package kr.edoli.imview.image
 
 import kr.edoli.imview.ImContext
-import org.opencv.core.Core
 import org.opencv.core.Mat
-import org.opencv.imgproc.Imgproc
 
 
 object ImageProc {
@@ -17,7 +15,7 @@ object ImageProc {
     var cachedMat = Mat()
 
     fun process(mat: Mat, useCahced: Boolean = true): Mat {
-        val enableProfile = ImContext.enableProfile.get()
+        val enableProfile = ImContext.enableDisplayProfile.get()
         val normalize = ImContext.normalize.get()
         val path = ImContext.mainFile.get()
         val contrast = ImContext.imageContrast.get()

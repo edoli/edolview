@@ -37,11 +37,13 @@ object UIFactory {
         font = Font.defaultFont
         fontColor = Color.WHITE
         downFontColor = Color.RED
+        overFontColor = Color.LIGHT_GRAY
     }
     val textToggleButtonStyle = TextButton.TextButtonStyle().apply {
         font = Font.defaultFont
         fontColor = Color.WHITE
         downFontColor = Color.RED
+        overFontColor = Color.LIGHT_GRAY
 
         up = skin.getDrawable("default-round")
         down = skin.getDrawable("default-round-down")
@@ -53,12 +55,14 @@ object UIFactory {
         font = Font.ioniconsFont
         fontColor = Color.WHITE
         downFontColor = Color.RED
+        overFontColor = Color.LIGHT_GRAY
     }
     val iconToggleButtonStyle = TextButton.TextButtonStyle().apply {
         font = Font.ioniconsFont
         fontColor = Color.WHITE
         downFontColor = Color.RED
         checkedFontColor = Color.GREEN
+        overFontColor = Color.LIGHT_GRAY
     }
 
 

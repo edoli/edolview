@@ -11,7 +11,7 @@ class SidePanel : Panel() {
 
         add(CollapsiblePanel("View controller", Table().apply {
             add(Table().apply {
-                add(UIFactory.createToggleIconButton(Ionicons.ionMdAperture, ImContext.enableProfile)).width(28f)
+                add(UIFactory.createToggleIconButton(Ionicons.ionMdAperture, ImContext.enableDisplayProfile)).width(28f)
                 add(UIFactory.createToggleIconButton(Ionicons.ionMdBrush, ImContext.smoothing)).width(28f)
                 add(UIFactory.createToggleIconButton(Ionicons.ionMdSwitch, ImContext.normalize)).width(28f)
             })
