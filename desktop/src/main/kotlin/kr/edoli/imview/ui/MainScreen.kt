@@ -4,10 +4,12 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
+import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
+import kr.edoli.imview.ui.custom.SplitPane
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import com.badlogic.gdx.utils.viewport.ScreenViewport
@@ -30,11 +32,22 @@ class MainScreen : Screen {
         layoutTable.row()
 
         // middle
-        val middleTable = Table().apply {
-            add().expand().fill()
-            add(ScrollPane(SidePanel()).apply {
+//        val middleTable = Table().apply {
+//            add().expand().fill()
+//            add(ScrollPane(SidePanel()).apply {
+//                setOverscroll(false, false)
+//            }).width(200f).expandY().fillY()
+//        }
+        val middleTable = SplitPane(null, object : ScrollPane(SidePanel()) {
+            init {
                 setOverscroll(false, false)
-            }).width(200f).expandY().fillY()
+            }
+
+            override fun getMinWidth(): Float {
+                return 200f
+            }
+        }, false, UIFactory.skin).apply {
+            splitAmount = 1f
         }
         layoutTable.add(middleTable).expand().fill()
 

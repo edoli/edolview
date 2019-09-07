@@ -16,6 +16,7 @@ import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
@@ -30,7 +31,7 @@ import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.pow
 
-class ImageViewer : Group() {
+class ImageViewer : WidgetGroup() {
     var texture: Texture? = null
     var textureRegion: TextureRegion? = null
     var min = 0.0f

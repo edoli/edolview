@@ -27,7 +27,7 @@ com.badlogic.gdx.scenes.scene2d.ui.SelectBox$SelectBoxStyle: {
 		listStyle: { font: default-font, selection: default-select-selection }
 	}
 },
-com.badlogic.gdx.scenes.scene2d.ui.SplitPane$SplitPaneStyle: {
+kr.edoli.imview.ui.custom.SplitPane$SplitPaneStyle: {
 	default-vertical: { handle: default-splitpane-vertical },
 	default-horizontal: { handle: default-splitpane }
 },
