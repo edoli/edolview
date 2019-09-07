@@ -125,7 +125,9 @@ class MainScreen : Screen {
     }
 
     override fun resize(width: Int, height: Int) {
-        (stage.viewport as ScreenViewport).unitsPerPixel = 0.75f / Gdx.graphics.density
+        if (Gdx.graphics.density > 0.75f) {
+            (stage.viewport as ScreenViewport).unitsPerPixel = 0.75f / Gdx.graphics.density
+        }
         stage.viewport.update(width, height, true)
     }
 
