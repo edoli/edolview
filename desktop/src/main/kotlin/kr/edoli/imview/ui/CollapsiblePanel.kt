@@ -25,7 +25,7 @@ open class CollapsiblePanel(val title: String, val panel: Table) : Panel(false) 
             add(titleTable).expandX().fillX().pad(0f, 4f, 0f, 4f)
             if (!value) {
                 row()
-                add(panel)
+                add(panel).expandX().fillX()
             }
             field = value
         }

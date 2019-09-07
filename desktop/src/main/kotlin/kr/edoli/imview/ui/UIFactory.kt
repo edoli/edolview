@@ -62,13 +62,24 @@ object UIFactory {
                     }
                 })
             })
-        }.tooltip(observable.name)
+        }.tooltip(observable.name).contextMenu {
+            addMenu("Reset value") {
+                observable.reset()
+            }
+            addMenu("Copy value") {
+                ClipboardUtils.putString(observable.get().toString())
+            }
+        }
     }
 
     fun createToggleIconButton(text: String, observable: ObservableValue<Boolean>) =
             createToggleTextButton(text, observable).apply {
                 style = iconToggleButtonStyle
                 align(Align.center)
+            }.tooltip(observable.name).contextMenu {
+                addMenu("Copy value") {
+                    ClipboardUtils.putString(observable.get().toString())
+                }
             }
 
     fun createToggleTextButton(text: String, observable: ObservableValue<Boolean>): TextButton {
@@ -79,7 +90,11 @@ object UIFactory {
                     observable.update(this@apply.isChecked)
                 }
             })
-        }.tooltip(observable.name)
+        }.tooltip(observable.name).contextMenu {
+            addMenu("Copy value") {
+                ClipboardUtils.putString(observable.get().toString())
+            }
+        }
     }
 
     fun createIconButton(text: String, action: (button: Button) -> Unit) =
