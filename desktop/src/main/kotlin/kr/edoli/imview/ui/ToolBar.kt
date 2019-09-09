@@ -26,6 +26,8 @@ class ToolBar : Panel() {
             ClipboardUtils.showClipboardImage()
         }.tooltip("Show clipboard")).width(iconWidth)
 
+        add(UIFactory.createToggleIconButton(Ionicons.ionMdInformationCircleOutline, ImContext.isShowFileInfo)).width(iconWidth)
+
         add().width(32f)
 
         add(UIFactory.createIconButton(Ionicons.ionMdExpand) {
@@ -36,7 +38,6 @@ class ToolBar : Panel() {
         }.tooltip("Center selection view")).width(iconWidth)
 
         add().width(32f)
-        add(UIFactory.createToggleIconButton(Ionicons.ionMdPaper, ImContext.isShowInfo)).width(iconWidth)
         add(UIFactory.createToggleIconButton(Ionicons.ionMdAdd, ImContext.isShowCrosshair)).width(iconWidth)
 
         add().expandX()

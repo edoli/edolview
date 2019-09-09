@@ -4,17 +4,17 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
-import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
-import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
-import kr.edoli.imview.ui.custom.SplitPane
-import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.actions.Actions
+import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.image.ClipboardUtils
+import kr.edoli.imview.ui.custom.SplitPane
 import kr.edoli.imview.util.reset
 import org.lwjgl.opengl.GL30
 
@@ -38,7 +38,10 @@ class MainScreen : Screen {
 //                setOverscroll(false, false)
 //            }).width(200f).expandY().fillY()
 //        }
-        val middleTable = SplitPane(null, object : ScrollPane(SidePanel()) {
+
+        val middleTable = SplitPane(WidgetGroup().apply {
+            touchable = Touchable.childrenOnly
+        }, object : ScrollPane(SidePanel()) {
             init {
                 setOverscroll(false, false)
             }
@@ -60,6 +63,21 @@ class MainScreen : Screen {
             add(imageViewer).expand().fill()
         })
         stage.addActor(layoutTable)
+
+        stage.addActor(Window("File info", UIFactory.skin).apply {
+            add(FileInfoPanel())
+            addAction(Actions.run {
+                y = stage.height - height - 32f
+            })
+            titleTable.add().expandX()
+            titleTable.add(UIFactory.createIconButton(Ionicons.ionMdClose) {
+                ImContext.isShowFileInfo.update(false)
+            })
+
+            isResizable = true
+            setKeepWithinStage(true)
+            ImContext.isShowFileInfo.subscribe { isVisible = it }
+        })
 
         imageViewer.zIndex = 0
         middleTable.zIndex = 0

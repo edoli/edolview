@@ -1,6 +1,7 @@
 package kr.edoli.imview.ui
 
 import com.badlogic.gdx.Gdx
+import kr.edoli.imview.ui.custom.NumberLabel
 import kr.edoli.imview.util.NullableObservableValue
 import kr.edoli.imview.util.forever
 import org.opencv.core.Mat

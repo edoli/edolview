@@ -1,8 +1,10 @@
-package kr.edoli.imview.ui
+package kr.edoli.imview.ui.custom
 
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import kr.edoli.imview.image.ClipboardUtils
+import kr.edoli.imview.ui.contextMenu
+import kr.edoli.imview.ui.tooltip
 import kr.edoli.imview.util.format
 
 typealias NumberFormatter = (value: Double) -> String

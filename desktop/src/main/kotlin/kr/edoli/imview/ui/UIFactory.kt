@@ -169,7 +169,7 @@ object UIFactory {
         return createLabel(observable) { newValue -> "(${newValue.x.toInt()}, ${newValue.y.toInt()})" }
     }
 
-    fun <T> createLabel(observable: ObservableValue<T>, text: (value: T) -> String): Label {
+    fun <T> createLabel(observable: ObservableValue<T>, text: (value: T) -> String = { it.toString() }): Label {
         return {
             var lastValue: T? = null
             Label("", skin).apply {
@@ -178,13 +178,15 @@ object UIFactory {
                     setText(text(newValue))
                 }
             }.tooltip(observable.name).contextMenu {
-                addMenu("Copy value") {
-                    val value = lastValue
-                    val res = checkArray(value)
-                    if (res != null) {
-                        ClipboardUtils.putString("[$res]")
-                    } else {
-                        ClipboardUtils.putString(lastValue.toString())
+                if (lastValue !is String) {
+                    addMenu("Copy value") {
+                        val value = lastValue
+                        val res = checkArray(value)
+                        if (res != null) {
+                            ClipboardUtils.putString("[$res]")
+                        } else {
+                            ClipboardUtils.putString(lastValue.toString())
+                        }
                     }
                 }
                 addMenu("Copy text") {

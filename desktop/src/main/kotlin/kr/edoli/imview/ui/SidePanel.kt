@@ -33,10 +33,6 @@ class SidePanel : Panel() {
 
         addHorizontalDivider().pad(4f)
 
-        add(CollapsiblePanel("File information", FileInfoPanel())).fillX()
-
-        addHorizontalDivider().pad(4f)
-
         add(CollapsiblePanel("Histogram", HistogramPanel())).fillX()
 
         ImContext.isShowController.subscribe {

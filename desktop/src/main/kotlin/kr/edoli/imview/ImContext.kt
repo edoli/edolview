@@ -25,6 +25,8 @@ object ImContext {
 
     val mainImage = NullableObservableValue<Mat>(null)
     val mainFile = ObservableValue(File("test.png"))
+    val mainFileName = ObservableValue("", "File name")
+    val mainFileDirectory = ObservableValue("", "File directory")
 
     val mainImageSpec = NullableObservableValue<ImageSpec>(null)
     val marqueeImage = NullableObservableValue<Mat>(null)
@@ -41,10 +43,6 @@ object ImContext {
     val zoomCenter = ObservableValue(Point2D(0.0, 0.0))
     val rotation = ObservableValue(0.0)
 
-    val isShowCrosshair = ObservableValue(true, "Show crosshair")
-    val isShowController = ObservableValue(true, "Show controller")
-    val isShowInfo = ObservableValue(false, "Show info")
-
     val enableDisplayProfile = ObservableValue(true, "Enable display profile")
     val normalize = ObservableValue(false, "Normalize")
     val smoothing = ObservableValue(false, "Smoothing")
@@ -54,6 +52,11 @@ object ImContext {
     val imageGamma = ObservableValue(1.0f, "Gamma")
 
     val frameSpeed = ObservableValue(0.0f, "Frame speed")
+
+    // UI
+    val isShowCrosshair = ObservableValue(true, "Show crosshair")
+    val isShowController = ObservableValue(true, "Show controller")
+    val isShowFileInfo = ObservableValue(false, "Show file info")
 
     val centerCursor = PublishSubject.create<Boolean>()
     val centerImage = PublishSubject.create<Boolean>()
@@ -85,6 +88,8 @@ object ImContext {
                 frameSpeed.update(5.0f)
                 nextImage()
             } else {
+                mainFileName.update(file.name)
+                mainFileDirectory.update(file.absoluteFile.parent)
                 fileManager.setFile(file)
                 val spec = ImageStore.get(file)
                 val mat = spec.mat
@@ -118,7 +123,7 @@ object ImContext {
 
         isShowCrosshair.subscribe { savePreferences() }
         isShowController.subscribe { savePreferences() }
-        isShowInfo.subscribe { savePreferences() }
+        isShowFileInfo.subscribe { savePreferences() }
 
         // object : AnimationTimer() {
         //     var lastTime = 0L
@@ -150,13 +155,13 @@ object ImContext {
         preferences.sync()
         isShowCrosshair.update(preferences.getBoolean("isShowCrossHair", false))
         isShowController.update(preferences.getBoolean("isShowConroller", false))
-        isShowInfo.update(preferences.getBoolean("isShowInfo", false))
+        isShowFileInfo.update(preferences.getBoolean("isShowInfo", false))
     }
 
     fun savePreferences() {
         preferences.putBoolean("isShowCrossHair", isShowCrosshair.get())
         preferences.putBoolean("isShowConroller", isShowController.get())
-        preferences.putBoolean("isShowInfo", isShowInfo.get())
+        preferences.putBoolean("isShowInfo", isShowFileInfo.get())
         preferences.flush()
     }
 
