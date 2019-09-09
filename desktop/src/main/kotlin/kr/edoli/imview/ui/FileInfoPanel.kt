@@ -2,8 +2,11 @@ package kr.edoli.imview.ui
 
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import kr.edoli.imview.ImContext
+import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.ui.custom.Formatters
 import kr.edoli.imview.ui.custom.NumberLabel
+import java.awt.Desktop
+import java.io.File
 
 class FileInfoPanel : Panel(false) {
     init {
@@ -16,6 +19,10 @@ class FileInfoPanel : Panel(false) {
         add(fileNameLabel)
         row()
         add(fileDirLabel)
+        row()
+        add(UIFactory.createIconButton(Ionicons.ionMdFolder) {
+            Desktop.getDesktop().open(File(ImContext.mainFileDirectory.get()))
+        })
         row()
 
         add(Table(skin).apply {
