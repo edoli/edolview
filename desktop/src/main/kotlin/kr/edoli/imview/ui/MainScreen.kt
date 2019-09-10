@@ -52,6 +52,10 @@ class MainScreen : Screen {
             }
         }, false, UIFactory.skin).apply {
             splitAmount = 1f
+
+            ImContext.isShowController.subscribe {
+                isVisible = it
+            }
         }
         layoutTable.add(middleTable).expand().fill()
 
