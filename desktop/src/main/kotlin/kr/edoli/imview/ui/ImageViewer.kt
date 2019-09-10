@@ -12,7 +12,6 @@ import com.badlogic.gdx.graphics.glutils.FloatTextureData
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector2
-import com.badlogic.gdx.scenes.scene2d.Group
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Touchable
@@ -22,10 +21,12 @@ import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.image.bound
+import kr.edoli.imview.image.split
 import kr.edoli.imview.util.ceil
 import kr.edoli.imview.util.toColorStr
 import org.opencv.core.CvType
 import org.opencv.core.Rect
+import rx.Subscription
 import kotlin.math.log
 import kotlin.math.max
 import kotlin.math.min
@@ -77,8 +78,12 @@ class ImageViewer : WidgetGroup() {
             stage.scrollFocus = this
         }
 
+        var channelSubscrption: Subscription? = null
+
         // Mat -> Texture using [FloatTextureData]
         ImContext.mainImage.subscribe { mat ->
+            channelSubscrption?.unsubscribe()
+
             if (mat == null) return@subscribe
 
             texture?.dispose()

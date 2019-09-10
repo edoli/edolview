@@ -1,8 +1,10 @@
-package kr.edoli.imview.ui
+package kr.edoli.imview.ui.panel
 
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import kr.edoli.imview.ImContext
-import kr.edoli.imview.image.ClipboardUtils
+import kr.edoli.imview.ui.Ionicons
+import kr.edoli.imview.ui.Panel
+import kr.edoli.imview.ui.UIFactory
 import kr.edoli.imview.ui.custom.Formatters
 import kr.edoli.imview.ui.custom.NumberLabel
 import java.awt.Desktop

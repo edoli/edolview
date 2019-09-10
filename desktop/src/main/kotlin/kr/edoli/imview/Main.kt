@@ -7,14 +7,15 @@ import com.badlogic.gdx.graphics.glutils.HdpiMode
 import com.badlogic.gdx.tools.texturepacker.TexturePacker
 import kr.edoli.imview.ui.App
 import java.io.File
+import kotlin.system.exitProcess
 
 
 fun main(args: Array<String>) {
-    val setting = TexturePacker.Settings()
-    setting.useIndexes = false
-    setting.maxWidth = 2048
-    setting.maxHeight = 2048
-    TexturePacker.processIfModified(setting, "../../inputdir/ui", ".", "ui")
+    // val setting = TexturePacker.Settings()
+    // setting.useIndexes = false
+    // setting.maxWidth = 2048
+    // setting.maxHeight = 2048
+    // TexturePacker.processIfModified(setting, "../../inputdir/ui", ".", "ui")
 
     val config = Lwjgl3ApplicationConfiguration()
     config.useOpenGL3(true, 3, 2)
@@ -25,6 +26,10 @@ fun main(args: Array<String>) {
             if (ImContext.fileManager.isImage(file.name)) {
                 ImContext.mainFile.update(file)
             }
+        }
+
+        override fun closeRequested(): Boolean {
+            exitProcess(0)
         }
     })
     config.setWindowedMode(1280, 720)

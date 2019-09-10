@@ -1,6 +1,8 @@
-package kr.edoli.imview.ui
+package kr.edoli.imview.ui.panel
 
 import com.badlogic.gdx.Gdx
+import kr.edoli.imview.ui.Panel
+import kr.edoli.imview.ui.UIFactory
 import kr.edoli.imview.ui.custom.NumberLabel
 import kr.edoli.imview.util.NullableObservableValue
 import kr.edoli.imview.util.forever

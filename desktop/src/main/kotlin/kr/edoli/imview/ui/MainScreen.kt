@@ -15,6 +15,7 @@ import com.badlogic.gdx.utils.viewport.ScreenViewport
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.ui.custom.SplitPane
+import kr.edoli.imview.ui.panel.FileInfoPanel
 import kr.edoli.imview.util.reset
 import org.lwjgl.opengl.GL30
 

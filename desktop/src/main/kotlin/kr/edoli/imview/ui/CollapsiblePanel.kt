@@ -5,16 +5,16 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 
 open class CollapsiblePanel(val title: String, val panel: Table) : Panel(false) {
-    val titleLabel = Label(title, UIFactory.skin).apply {
+    private val titleLabel = Label(title, UIFactory.skin).apply {
         setAlignment(Align.left)
     }
-    val collapseButton = UIFactory.createIconButton(Ionicons.ionMdFiling) { button ->
+    private val collapseButton = UIFactory.createIconButton(Ionicons.ionMdFiling) { button ->
         collapse = button.isChecked
     }.apply {
         style = UIFactory.iconToggleButtonStyle
     }
 
-    val titleTable = Table().apply {
+    private val titleTable = Table().apply {
         add(titleLabel).expandX().fillX()
         add(collapseButton)
     }

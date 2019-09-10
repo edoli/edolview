@@ -1,5 +1,6 @@
 package kr.edoli.imview
 
+import com.badlogic.gdx.Gdx
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ImageSpec
 import kr.edoli.imview.image.MarqueeUtils
@@ -9,6 +10,7 @@ import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.util.FileManager
 import kr.edoli.imview.util.NullableObservableValue
 import kr.edoli.imview.util.ObservableValue
+import kr.edoli.imview.util.Publisher
 import org.opencv.core.Mat
 import org.opencv.core.Rect
 import rx.subjects.PublishSubject
@@ -43,6 +45,7 @@ object ImContext {
     val zoomCenter = ObservableValue(Point2D(0.0, 0.0))
     val rotation = ObservableValue(0.0)
 
+    // Display profile
     val enableDisplayProfile = ObservableValue(true, "Enable display profile")
     val normalize = ObservableValue(false, "Normalize")
     val smoothing = ObservableValue(false, "Smoothing")
@@ -50,6 +53,8 @@ object ImContext {
     val imageContrast = ObservableValue(1.0f, "Contrast")
     val imageBrightness = ObservableValue(0.0f, "Brightness")
     val imageGamma = ObservableValue(1.0f, "Gamma")
+    val imageChannels = Array(500) { i -> ObservableValue(true, "Image channel [$i]") }
+    val imageChannelChange = Publisher { imageChannels.map { it.get() } }
 
     val frameSpeed = ObservableValue(0.0f, "Frame speed")
 
@@ -104,9 +109,46 @@ object ImContext {
             }
         }
 
+        // Channel control
+        val allChannel = imageChannels[0]
+        val individualChannels = imageChannels.sliceArray(1 until imageChannels.size)
+        allChannel.subscribe { value ->
+            if (value) {
+                individualChannels.forEach { it.update(true) }
+                imageChannelChange.publish()
+            }
+        }
+        individualChannels.forEach { channel ->
+            channel.subscribe { value ->
+                if (allChannel.get() && !value) {
+                    allChannel.update(false)
+                    individualChannels.forEach { other ->
+                        if (other != channel) {
+                            other.update(false)
+                        }
+                    }
+                    Gdx.app.postRunnable {
+                        channel.update(true)
+                    }
+                } else if (!allChannel.get() && value) {
+                    individualChannels.forEach { other ->
+                        if (other != channel) {
+                            other.update(false)
+                        }
+                    }
+                    imageChannelChange.publish()
+                } else if (individualChannels.sumBy { if (it.get()) 1 else 0 } == 0) {
+                    Gdx.app.postRunnable {
+                        channel.update(true)
+                    }
+                }
+            }
+        }
+
         mainImage.subscribe {
             cursorRGB.update(doubleArrayOf())
             marqueeBoxRGB.update(doubleArrayOf())
+            imageChannels.forEach { it.update(true) }
         }
 
         cursorPosition.subscribe(this) {
