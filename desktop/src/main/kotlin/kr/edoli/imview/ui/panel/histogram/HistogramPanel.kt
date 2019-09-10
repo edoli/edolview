@@ -1,4 +1,4 @@
-package kr.edoli.imview.ui.histogram
+package kr.edoli.imview.ui.panel.histogram
 
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Slider

@@ -1,4 +1,4 @@
-package kr.edoli.imview.ui.histogram
+package kr.edoli.imview.ui.panel.histogram
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.Batch
