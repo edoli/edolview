@@ -2,7 +2,7 @@ package kr.edoli.imview.ui.panel
 
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import kr.edoli.imview.ImContext
-import kr.edoli.imview.ui.Ionicons
+import kr.edoli.imview.ui.res.Ionicons
 import kr.edoli.imview.ui.Panel
 import kr.edoli.imview.ui.UIFactory
 import kr.edoli.imview.ui.custom.Formatters
@@ -14,9 +14,9 @@ class FileInfoPanel : Panel(false) {
     init {
         val fileNameLabel = UIFactory.createLabel(ImContext.mainFileName)
         val fileDirLabel = UIFactory.createLabel(ImContext.mainFileDirectory)
-        val bitPerPixelLabel = NumberLabel("Bits per pixel", UIFactory.skin, Formatters.intFormatter)
-        val maxValueLabel = NumberLabel("Max value for type", UIFactory.skin, Formatters.intFormatter)
-        val numChannelsLabel = NumberLabel("Number of channels", UIFactory.skin, Formatters.intFormatter)
+        val bitPerPixelLabel = NumberLabel("Bits per pixel", skin, Formatters.intFormatter)
+        val maxValueLabel = NumberLabel("Max value for type", skin, Formatters.intFormatter)
+        val numChannelsLabel = NumberLabel("Number of channels", skin, Formatters.intFormatter)
 
         add(fileNameLabel)
         row()

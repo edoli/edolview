@@ -52,7 +52,7 @@ object ImContext {
     val imageBrightness = ObservableValue(0.0f, "Brightness")
     val imageGamma = ObservableValue(1.0f, "Gamma")
     val imageColormap = ObservableList(Colormap.values().toList(), name ="Colormap")
-    val visibleChannel = ObservableList(listOf(0), name = "Visible color")
+    val visibleChannel = ObservableList(listOf(0), name = "Visible channel")
 
     val frameSpeed = ObservableValue(0.0f, "Frame speed")
 

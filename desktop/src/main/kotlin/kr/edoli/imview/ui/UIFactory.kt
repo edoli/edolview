@@ -1,19 +1,18 @@
 package kr.edoli.imview.ui
 
-import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
-import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.ui.contextmenu.ContextMenuManager
+import kr.edoli.imview.ui.res.Font
+import kr.edoli.imview.ui.res.uiSkin
 import kr.edoli.imview.util.ObservableList
 import kr.edoli.imview.util.ObservableValue
 import kr.edoli.imview.util.toColor
@@ -21,12 +20,6 @@ import kr.edoli.imview.util.toColorStr
 import org.opencv.core.Rect
 
 object UIFactory {
-    val uiAtals = TextureAtlas(Gdx.files.internal("ui.atlas"))
-    val skin = Skin(Gdx.files.internal("uiskin.json")).apply {
-        val defaultLabelStyle = Label.LabelStyle(Font.defaultFont, Color.WHITE)
-        add("default", defaultLabelStyle)
-        add("default", TextTooltip.TextTooltipStyle(defaultLabelStyle, NinePatchDrawable(uiAtals.createPatch("tooltip_background"))))
-    }
     val tooltipManager = TooltipManager().apply {
         initialTime = 0.3f
         subsequentTime = 0.1f
@@ -46,9 +39,9 @@ object UIFactory {
         downFontColor = Color.RED
         overFontColor = Color.LIGHT_GRAY
 
-        up = skin.getDrawable("default-round")
-        down = skin.getDrawable("default-round-down")
-        checked = skin.getDrawable("default-round-down")
+        up = uiSkin.getDrawable("default-round")
+        down = uiSkin.getDrawable("default-round-down")
+        checked = uiSkin.getDrawable("default-round-down")
     }
 
     val iconLabelStyle = Label.LabelStyle(Font.ioniconsFont, Color.WHITE)
@@ -70,7 +63,7 @@ object UIFactory {
     fun createSlider(icon: String, min: Float, max: Float, stepSize: Float, observable: ObservableValue<Float>): Table {
         return Table().apply {
             add(Label(icon, iconLabelStyle)).padRight(8f)
-            add(Slider(min, max, stepSize, false, UIFactory.skin).apply {
+            add(Slider(min, max, stepSize, false, uiSkin).apply {
                 observable.subscribe { newValue ->
                     this.value = newValue
                 }
@@ -93,7 +86,7 @@ object UIFactory {
     }
 
     fun <T> createSelectBox(observable: ObservableList<T>): SelectBox<T> {
-        return SelectBox<T>(skin).apply {
+        return SelectBox<T>(uiSkin).apply {
             observable.subscribe { newValue ->
                 selected = newValue
                 if (observable.items != items) {
@@ -122,7 +115,7 @@ object UIFactory {
             }
 
     fun createToggleTextButton(text: String, observable: ObservableValue<Boolean>): TextButton {
-        return TextButton(text, skin.get("toggle", TextButton.TextButtonStyle::class.java)).apply {
+        return TextButton(text, uiSkin.get("toggle", TextButton.TextButtonStyle::class.java)).apply {
             observable.subscribe { newValue -> isChecked = newValue }
             addListener(object : ChangeListener() {
                 override fun changed(event: ChangeEvent?, actor: Actor?) {
@@ -143,7 +136,7 @@ object UIFactory {
             }
 
     fun createTextButton(text: String, action: (button: Button) -> Unit): TextButton {
-        return TextButton(text, skin).apply {
+        return TextButton(text, uiSkin).apply {
             addListener(object : ClickListener() {
                 override fun clicked(event: InputEvent?, x: Float, y: Float) {
                     action(this@apply)
@@ -192,7 +185,7 @@ object UIFactory {
     fun <T> createLabel(observable: ObservableValue<T>, text: (value: T) -> String = { it.toString() }): Label {
         return {
             var lastValue: T? = null
-            Label("", skin).apply {
+            Label("", uiSkin).apply {
                 observable.subscribe { newValue ->
                     lastValue = newValue
                     setText(text(newValue))

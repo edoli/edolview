@@ -5,6 +5,7 @@ import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.image.MarqueeUtils
+import kr.edoli.imview.ui.res.Ionicons
 
 class ToolBar : Panel() {
 
@@ -14,8 +15,6 @@ class ToolBar : Panel() {
     }
 
     init {
-        background = NinePatchDrawable(UIFactory.skin.atlas.createPatch("default-pane"))
-
         align(Align.left)
 
         add(UIFactory.createIconButton(Ionicons.ionMdSave) {

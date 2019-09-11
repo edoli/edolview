@@ -16,6 +16,8 @@ import kr.edoli.imview.ImContext
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.ui.custom.SplitPane
 import kr.edoli.imview.ui.panel.FileInfoPanel
+import kr.edoli.imview.ui.res.Ionicons
+import kr.edoli.imview.ui.res.uiSkin
 import kr.edoli.imview.util.reset
 import org.lwjgl.opengl.GL30
 
@@ -50,7 +52,7 @@ class MainScreen : Screen {
             override fun getMinWidth(): Float {
                 return 200f
             }
-        }, false, UIFactory.skin).apply {
+        }, false, uiSkin).apply {
             splitAmount = 1f
 
             ImContext.isShowController.subscribe {
@@ -69,7 +71,7 @@ class MainScreen : Screen {
         })
         stage.addActor(layoutTable)
 
-        stage.addActor(Window("File info", UIFactory.skin).apply {
+        stage.addActor(Window("File info", uiSkin).apply {
             add(FileInfoPanel())
             addAction(Actions.run {
                 y = stage.height - height - 32f

@@ -5,11 +5,12 @@ import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
+import kr.edoli.imview.ui.res.uiSkin
 
-open class Panel(showBackground: Boolean = true) : Table(UIFactory.skin) {
+open class Panel(showBackground: Boolean = true) : Table(uiSkin) {
     init {
         if (showBackground) {
-            background = NinePatchDrawable(UIFactory.skin.atlas.createPatch("default-pane"))
+            background = NinePatchDrawable(skin.atlas.createPatch("default-pane"))
         }
         touchable = Touchable.enabled
     }

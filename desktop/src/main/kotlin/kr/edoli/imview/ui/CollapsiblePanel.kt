@@ -3,9 +3,10 @@ package kr.edoli.imview.ui
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
+import kr.edoli.imview.ui.res.Ionicons
 
 open class CollapsiblePanel(val title: String, val panel: Table) : Panel(false) {
-    private val titleLabel = Label(title, UIFactory.skin).apply {
+    private val titleLabel = Label(title, skin).apply {
         setAlignment(Align.left)
     }
     private val collapseButton = UIFactory.createIconButton(Ionicons.ionMdFiling) { button ->

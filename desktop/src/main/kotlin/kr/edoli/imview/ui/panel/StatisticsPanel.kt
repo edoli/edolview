@@ -15,10 +15,10 @@ class StatisticsPanel(imageObservable: NullableObservableValue<Mat>) : Panel(fal
     val imageQueue = LinkedBlockingQueue<Mat>()
 
     init {
-        val minLabel = NumberLabel("Min value of image", UIFactory.skin)
-        val maxLabel = NumberLabel("Max value of image", UIFactory.skin)
-        val meanLabel = NumberLabel("Mean value of image", UIFactory.skin)
-        val stdLabel = NumberLabel("Standard deviation value of image", UIFactory.skin)
+        val minLabel = NumberLabel("Min value of image", skin)
+        val maxLabel = NumberLabel("Max value of image", skin)
+        val meanLabel = NumberLabel("Mean value of image", skin)
+        val stdLabel = NumberLabel("Standard deviation value of image", skin)
 
 
         add("Min").expandX()

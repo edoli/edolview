@@ -14,7 +14,7 @@ class HistogramPanel : Panel(false) {
 
     val histogramActor = HistogramWidget()
     val buttons = Table()
-    val slider = Slider(1f, 255f, 1f, false, UIFactory.skin).apply {
+    val slider = Slider(1f, 255f, 1f, false, skin).apply {
         value = 100f
         addListener(object : ChangeListener() {
             override fun changed(event: ChangeEvent, actor: Actor) {

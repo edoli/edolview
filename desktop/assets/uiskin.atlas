@@ -197,3 +197,33 @@ white
   orig: 1, 1
   offset: 0, 0
   index: -1
+
+
+
+ui.png
+size: 32,32
+format: RGBA8888
+filter: Nearest,Nearest
+repeat: none
+leftArrow
+  rotate: false
+  xy: 2, 2
+  size: 12, 12
+  orig: 12, 12
+  offset: 0, 0
+  index: -1
+rightArrow
+  rotate: false
+  xy: 18, 18
+  size: 12, 12
+  orig: 12, 12
+  offset: 0, 0
+  index: -1
+tooltip_background
+  rotate: false
+  xy: 2, 16
+  size: 14, 14
+  split: 6, 6, 6, 6
+  orig: 14, 14
+  offset: 0, 0
+  index: -1

@@ -1,4 +1,4 @@
-package kr.edoli.imview.ui
+package kr.edoli.imview.ui.res
 
 object Ionicons {
     val ionIosAdd = "\uf102"
