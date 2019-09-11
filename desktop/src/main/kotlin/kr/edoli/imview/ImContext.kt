@@ -52,8 +52,7 @@ object ImContext {
     val imageBrightness = ObservableValue(0.0f, "Brightness")
     val imageGamma = ObservableValue(1.0f, "Gamma")
     val imageColormap = ObservableList(Colormap.values().toList(), name ="Colormap")
-    val imageChannels = Array(500) { i -> ObservableValue(true, "Image channel [$i]") }
-    val imageChannelChange = Publisher { imageChannels.map { it.get() } }
+    val visibleChannel = ObservableList(listOf(0), name = "Visible color")
 
     val frameSpeed = ObservableValue(0.0f, "Frame speed")
 
@@ -108,51 +107,13 @@ object ImContext {
             }
         }
 
-        // Channel control
-        val allChannel = imageChannels[0]
-        val individualChannels = imageChannels.sliceArray(1 until imageChannels.size)
-        allChannel.subscribe { value ->
-            if (value) {
-                individualChannels.forEach { it.update(true) }
-
-                Gdx.app.postRunnable {
-                    imageChannelChange.publish()
-                }
-            }
-        }
-        individualChannels.forEach { channel ->
-            channel.subscribe { value ->
-                if (allChannel.get() && !value) {
-                    allChannel.update(false)
-                    individualChannels.forEach { other ->
-                        if (other != channel) {
-                            other.update(false)
-                        }
-                    }
-                    Gdx.app.postRunnable {
-                        channel.update(true)
-                    }
-                } else if (!allChannel.get() && value) {
-                    individualChannels.forEach { other ->
-                        if (other != channel) {
-                            other.update(false)
-                        }
-                    }
-                    Gdx.app.postRunnable {
-                        imageChannelChange.publish()
-                    }
-                } else if (individualChannels.sumBy { if (it.get()) 1 else 0 } == 0) {
-                    Gdx.app.postRunnable {
-                        channel.update(true)
-                    }
-                }
-            }
-        }
-
-        mainImage.subscribe {
+        mainImage.subscribe { mat ->
             cursorRGB.update(doubleArrayOf())
             marqueeBoxRGB.update(doubleArrayOf())
-            imageChannels.forEach { it.update(true) }
+
+            if (mat != null) {
+                visibleChannel.update(IntRange(0, mat.channels()).toList())
+            }
         }
 
         cursorPosition.subscribe(this) {

@@ -94,12 +94,13 @@ object UIFactory {
 
     fun <T> createSelectBox(observable: ObservableList<T>): SelectBox<T> {
         return SelectBox<T>(skin).apply {
-            val array = com.badlogic.gdx.utils.Array<T>()
-            observable.items.forEach { array.add(it) }
-            items = array
-
-            observable.subscribe {
-                selected = it
+            observable.subscribe { newValue ->
+                selected = newValue
+                if (observable.items != items) {
+                    val array = com.badlogic.gdx.utils.Array<T>()
+                    observable.items.forEach { array.add(it) }
+                    items = array
+                }
             }
 
             addListener(object : ChangeListener() {

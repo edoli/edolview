@@ -79,7 +79,7 @@ class ImageViewer : WidgetGroup() {
         ImContext.mainImage.subscribe { mat ->
             updateTexture(mat)
         }
-        ImContext.imageChannelChange.subscribe {
+        ImContext.visibleChannel.subscribe {
             updateTexture(ImContext.mainImage.get())
         }
 
@@ -254,12 +254,12 @@ class ImageViewer : WidgetGroup() {
     private fun updateTexture(mat: Mat?) {
         if (mat == null) return
 
-        val imageChannels = ImContext.imageChannels.map { it.get() }.toBooleanArray()
-        if (!TextureGenerator.isChanged(mat, imageChannels)) return
+        val visibleChannel = ImContext.visibleChannel.get()
+        if (!TextureGenerator.isChanged(mat, visibleChannel)) return
 
         texture?.dispose()
 
-        texture = TextureGenerator.load(mat, imageChannels)
+        texture = TextureGenerator.load(mat, visibleChannel)
         textureRegion = TextureRegion(texture)
 
         // Statistics
@@ -370,7 +370,11 @@ class ImageViewer : WidgetGroup() {
             shader.setUniformf("gamma", ImContext.imageGamma.get())
             shader.setUniformf("min", min)
             shader.setUniformf("max", max)
-            shader.setUniformi("colormap", ImContext.imageColormap.currentIndex)
+            if (ImContext.visibleChannel.get() != 0 || ImContext.mainImage.get()?.channels() == 1) {
+                shader.setUniformi("colormap", ImContext.imageColormap.currentIndex)
+            } else {
+                shader.setUniformi("colormap", 0)
+            }
             shader.setUniformi("normalize", ImContext.normalize.get().let { if (it) 1 else 0 })
             textureRegion?.let { region ->
                 batch.draw(region, imageX, imageY, 0f, 0f,

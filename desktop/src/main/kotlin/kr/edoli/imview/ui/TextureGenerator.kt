@@ -12,36 +12,28 @@ object TextureGenerator {
     val emptyTexture = Texture(0, 0, Pixmap.Format.RGB888)
 
     var lastMat: Mat? = null
-    var lastImageChannels = BooleanArray(500) { false }
+    var lastVisibleChannel = 0
 
-    fun isChanged(mat: Mat?, imageChannels: BooleanArray): Boolean {
-        val checkImageChannels = lastImageChannels.zip(imageChannels)
-        val validateImageChannels = checkImageChannels.fold(true) { acc, pair ->
-            (pair.first == pair.second) && acc
-        }
-        if (mat == lastMat && validateImageChannels) {
+    fun isChanged(mat: Mat?, visibleChannel: Int): Boolean {
+        if (mat == lastMat && visibleChannel == lastVisibleChannel) {
             return false
         }
         return true
     }
 
-    fun load(mat: Mat?, imageChannels: BooleanArray): Texture {
+    fun load(mat: Mat?, visibleChannel: Int): Texture {
         lastMat = mat
-        lastImageChannels = imageChannels
+        lastVisibleChannel = visibleChannel
 
         if (mat == null) {
             return emptyTexture
         }
 
-        val showAllChannels = imageChannels[0]
-        val visibleChannels = imageChannels.let { it.sliceArray(1 until it.size) }
-        val firstVisibleChannel = visibleChannels.indexOfFirst { it }
-
-        val matVisible = if (showAllChannels) {
+        val matVisible = if (visibleChannel == 0) {
             mat.clone()
         } else {
             val matChannels = mat.split()
-            matChannels[firstVisibleChannel].clone()
+            matChannels[visibleChannel - 1].clone()
         }
 
         when (matVisible.channels()) {
