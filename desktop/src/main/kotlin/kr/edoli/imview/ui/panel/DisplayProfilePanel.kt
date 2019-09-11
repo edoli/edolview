@@ -23,6 +23,8 @@ class DisplayProfilePanel : Panel(false) {
         add(UIFactory.createSlider(Ionicons.ionMdNuclear, 0f, 10f, 0.01f, ImContext.imageGamma))
         row()
         add(channelButtons)
+        row()
+        add(UIFactory.createSelectBox(ImContext.imageColormap))
 
         ImContext.mainImage.subscribe { mat ->
             if (mat == null) return@subscribe

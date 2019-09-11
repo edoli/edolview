@@ -7,13 +7,22 @@ import rx.subjects.Subject
 /**
  * Created by daniel on 16. 10. 2.
  */
-class ObservableValue<T>(private val initValue: T, val name: String = "") {
+class ObservableList<T>(
+        private val list: List<T>,
+        private val initialIndex: Int = 0,
+        val name: String = "") {
+
     private val observable: Subject<T, T> = BehaviorSubject.create<T>()
     private val subjects = HashMap<Any, Subscription>()
-    private var value = initValue
+
+    val items: List<T>
+        get() = list.toList()
+
+    var currentIndex = initialIndex
+    var value = list[currentIndex]
 
     init {
-        observable.onNext(initValue)
+        observable.onNext(list[initialIndex])
         observable.subscribe { value = it }
     }
 
@@ -38,13 +47,9 @@ class ObservableValue<T>(private val initValue: T, val name: String = "") {
         subjects.remove(subject)
     }
 
-    fun update(action: (T) -> T) {
-        value = action(value)
-        observable.onNext(value)
-    }
-
-    fun update(newValue: T) {
-        observable.onNext(newValue)
+    fun update(index: Int) {
+        currentIndex = index
+        observable.onNext(list[index])
     }
 
     fun get() = value
@@ -54,6 +59,6 @@ class ObservableValue<T>(private val initValue: T, val name: String = "") {
     }
 
     fun reset() {
-        update(initValue)
+        update(initialIndex)
     }
 }

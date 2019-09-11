@@ -7,10 +7,8 @@ import kr.edoli.imview.image.MarqueeUtils
 import kr.edoli.imview.image.contains
 import kr.edoli.imview.image.get
 import kr.edoli.imview.store.ImageStore
-import kr.edoli.imview.util.FileManager
-import kr.edoli.imview.util.NullableObservableValue
-import kr.edoli.imview.util.ObservableValue
-import kr.edoli.imview.util.Publisher
+import kr.edoli.imview.ui.Colormap
+import kr.edoli.imview.util.*
 import org.opencv.core.Mat
 import org.opencv.core.Rect
 import rx.subjects.PublishSubject
@@ -53,6 +51,7 @@ object ImContext {
     val imageContrast = ObservableValue(1.0f, "Contrast")
     val imageBrightness = ObservableValue(0.0f, "Brightness")
     val imageGamma = ObservableValue(1.0f, "Gamma")
+    val imageColormap = ObservableList(Colormap.values().toList(), name ="Colormap")
     val imageChannels = Array(500) { i -> ObservableValue(true, "Image channel [$i]") }
     val imageChannelChange = Publisher { imageChannels.map { it.get() } }
 

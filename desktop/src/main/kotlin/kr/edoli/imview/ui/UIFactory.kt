@@ -14,6 +14,7 @@ import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.ui.contextmenu.ContextMenuManager
+import kr.edoli.imview.util.ObservableList
 import kr.edoli.imview.util.ObservableValue
 import kr.edoli.imview.util.toColor
 import kr.edoli.imview.util.toColorStr
@@ -89,6 +90,24 @@ object UIFactory {
                 ClipboardUtils.putString(observable.get().toString())
             }
         }
+    }
+
+    fun <T> createSelectBox(observable: ObservableList<T>): SelectBox<T> {
+        return SelectBox<T>(skin).apply {
+            val array = com.badlogic.gdx.utils.Array<T>()
+            observable.items.forEach { array.add(it) }
+            items = array
+
+            observable.subscribe {
+                selected = it
+            }
+
+            addListener(object : ChangeListener() {
+                override fun changed(event: ChangeEvent?, actor: Actor?) {
+                    observable.update(selectedIndex)
+                }
+            })
+        }.tooltip(observable.name)
     }
 
     fun createToggleIconButton(text: String, observable: ObservableValue<Boolean>) =

@@ -370,6 +370,7 @@ class ImageViewer : WidgetGroup() {
             shader.setUniformf("gamma", ImContext.imageGamma.get())
             shader.setUniformf("min", min)
             shader.setUniformf("max", max)
+            shader.setUniformi("colormap", ImContext.imageColormap.currentIndex)
             shader.setUniformi("normalize", ImContext.normalize.get().let { if (it) 1 else 0 })
             textureRegion?.let { region ->
                 batch.draw(region, imageX, imageY, 0f, 0f,
