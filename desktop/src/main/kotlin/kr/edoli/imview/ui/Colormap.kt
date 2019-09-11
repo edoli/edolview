@@ -1,5 +1,13 @@
 package kr.edoli.imview.ui
 
 enum class Colormap {
-    Normal, Jet
+    Normal,
+    Jet,
+    Hot,
+    HSV,
+    Parula,
+    Viridis,
+    Plasma,
+    Magma,
+    Inferno
 }
