@@ -14,6 +14,7 @@ import org.opencv.core.Rect
 import rx.subjects.PublishSubject
 import java.io.File
 import java.util.prefs.Preferences
+import kotlin.math.min
 
 /**
  * Created by daniel on 16. 10. 2.
@@ -112,7 +113,9 @@ object ImContext {
             marqueeBoxRGB.update(doubleArrayOf())
 
             if (mat != null) {
-                visibleChannel.update(IntRange(0, mat.channels()).toList())
+                val numChannels = mat.channels()
+                val channelIndex = min(visibleChannel.currentIndex, numChannels)
+                visibleChannel.update(IntRange(0, mat.channels()).toList(), channelIndex)
             }
         }
 
