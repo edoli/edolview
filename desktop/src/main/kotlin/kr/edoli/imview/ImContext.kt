@@ -115,7 +115,10 @@ object ImContext {
         allChannel.subscribe { value ->
             if (value) {
                 individualChannels.forEach { it.update(true) }
-                imageChannelChange.publish()
+
+                Gdx.app.postRunnable {
+                    imageChannelChange.publish()
+                }
             }
         }
         individualChannels.forEach { channel ->
@@ -136,7 +139,9 @@ object ImContext {
                             other.update(false)
                         }
                     }
-                    imageChannelChange.publish()
+                    Gdx.app.postRunnable {
+                        imageChannelChange.publish()
+                    }
                 } else if (individualChannels.sumBy { if (it.get()) 1 else 0 } == 0) {
                     Gdx.app.postRunnable {
                         channel.update(true)

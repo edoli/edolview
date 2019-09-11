@@ -3,7 +3,6 @@ package kr.edoli.imview.ui
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.graphics.GL30
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
@@ -21,12 +20,10 @@ import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.image.bound
-import kr.edoli.imview.image.split
 import kr.edoli.imview.util.ceil
 import kr.edoli.imview.util.toColorStr
-import org.opencv.core.CvType
+import org.opencv.core.Mat
 import org.opencv.core.Rect
-import rx.Subscription
 import kotlin.math.log
 import kotlin.math.max
 import kotlin.math.min
@@ -78,68 +75,12 @@ class ImageViewer : WidgetGroup() {
             stage.scrollFocus = this
         }
 
-        var channelSubscrption: Subscription? = null
-
         // Mat -> Texture using [FloatTextureData]
         ImContext.mainImage.subscribe { mat ->
-            channelSubscrption?.unsubscribe()
-
-            if (mat == null) return@subscribe
-
-            texture?.dispose()
-
-            val numChannels = mat.channels()
-
-            val data = FloatArray((mat.total() * numChannels).toInt())
-            val tmpMat = mat.clone()
-
-            when (numChannels) {
-                1 -> tmpMat.convertTo(tmpMat, CvType.CV_32FC1)
-                2 -> tmpMat.convertTo(tmpMat, CvType.CV_32FC2)
-                3 -> tmpMat.convertTo(tmpMat, CvType.CV_32FC3)
-                4 -> tmpMat.convertTo(tmpMat, CvType.CV_32FC4)
-            }
-
-            tmpMat.get(0, 0, data)
-
-            imageWidth = mat.width()
-            imageHeight = mat.height()
-            min = Float.MAX_VALUE
-            max = Float.MIN_VALUE
-
-            calcNormalization()
-
-            val internalFormat = when (numChannels) {
-                1 -> GL30.GL_RGB32F
-                2 -> GL30.GL_RGB32F
-                3 -> GL30.GL_RGB32F
-                4 -> GL30.GL_RGBA32F
-                else -> GL30.GL_RGB32F
-            }
-
-            val format = when (numChannels) {
-                1 -> GL30.GL_RGB
-                2 -> GL30.GL_RGB
-                3 -> GL30.GL_RGB
-                4 -> GL30.GL_RGBA
-                else -> GL30.GL_RGB
-            }
-
-            val textureData = FloatTextureData(mat.width(), mat.height(), internalFormat, format, GL30.GL_FLOAT, false)
-            textureData.prepare()
-            if (numChannels == 1) {
-                val buffer = FloatArray(data.size * 3)
-                var i = 0
-                data.forEach { v -> repeat(3) { buffer[i++] = v } }
-                textureData.buffer.put(buffer)
-            } else {
-                textureData.buffer.put(data)
-            }
-            textureData.buffer.position(0)
-
-            texture = Texture(textureData)
-            updateSmoothing()
-            textureRegion = TextureRegion(texture)
+            updateTexture(mat)
+        }
+        ImContext.imageChannelChange.subscribe {
+            updateTexture(ImContext.mainImage.get())
         }
 
         ImContext.smoothing.subscribe { updateSmoothing() }
@@ -308,6 +249,28 @@ class ImageViewer : WidgetGroup() {
 
         ImContext.centerSelection.subscribe { centerMarquee() }
         ImContext.fitSelection.subscribe { fitMarquee() }
+    }
+
+    private fun updateTexture(mat: Mat?) {
+        if (mat == null) return
+
+        val imageChannels = ImContext.imageChannels.map { it.get() }.toBooleanArray()
+        if (!TextureGenerator.isChanged(mat, imageChannels)) return
+
+        texture?.dispose()
+
+        texture = TextureGenerator.load(mat, imageChannels)
+        textureRegion = TextureRegion(texture)
+
+        // Statistics
+        imageWidth = mat.width()
+        imageHeight = mat.height()
+        min = Float.MAX_VALUE
+        max = Float.MIN_VALUE
+
+        calcNormalization()
+
+        updateSmoothing()
     }
 
     private fun calcNormalization() {
