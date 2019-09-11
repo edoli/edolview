@@ -46,6 +46,7 @@ class MainScreen : Screen {
             touchable = Touchable.childrenOnly
         }, object : ScrollPane(SidePanel()) {
             init {
+                setSmoothScrolling(false)
                 setOverscroll(false, false)
             }
 

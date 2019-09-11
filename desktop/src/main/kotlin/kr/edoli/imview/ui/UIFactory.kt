@@ -3,6 +3,7 @@ package kr.edoli.imview.ui
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
@@ -99,6 +100,34 @@ object UIFactory {
             addListener(object : ChangeListener() {
                 override fun changed(event: ChangeEvent?, actor: Actor?) {
                     observable.update(selectedIndex)
+                }
+            })
+            addListener(object : InputListener() {
+                override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
+                    if (fromActor != event.target) {
+                        stage.scrollFocus = event.target
+                    }
+                    super.enter(event, x, y, pointer, fromActor)
+                }
+
+                override fun exit(event: InputEvent, x: Float, y: Float, pointer: Int, toActor: Actor?) {
+                    if (toActor != event.target) {
+                        stage.scrollFocus = null
+                    }
+                    super.exit(event, x, y, pointer, toActor)
+                }
+
+                override fun scrolled(event: InputEvent, x: Float, y: Float, amount: Int): Boolean {
+                    var nextIndex = selectedIndex + amount
+                    if (nextIndex < 0) {
+                        nextIndex += items.size
+                    }
+                    if (nextIndex >= items.size) {
+                        nextIndex -= items.size
+                    }
+                    selectedIndex = nextIndex
+                    event.stop()
+                    return true
                 }
             })
         }.tooltip(observable.name)
