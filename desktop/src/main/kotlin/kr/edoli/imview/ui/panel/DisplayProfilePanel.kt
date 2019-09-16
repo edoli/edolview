@@ -23,7 +23,7 @@ class DisplayProfilePanel : Panel(false) {
         add(UIFactory.createSlider(Ionicons.ionMdNuclear, 0f, 10f, 0.01f, ImContext.imageGamma))
         row()
         add(Table().apply {
-            add(UIFactory.createSelectBox(ImContext.visibleChannel))
+            add(UIFactory.createSelectBox(ImContext.visibleChannel)).padRight(4f)
             add(UIFactory.createSelectBox(ImContext.imageColormap).apply {
                 ImContext.visibleChannel.subscribe { channel ->
                     isVisible = channel != 0 || ImContext.mainImage.get()?.channels() == 1

@@ -5,7 +5,6 @@ enum class Colormap {
     Jet,
     Hot,
     HSV,
-    Parula,
     Viridis,
     Plasma,
     Magma,

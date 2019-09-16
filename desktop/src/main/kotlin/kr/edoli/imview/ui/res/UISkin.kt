@@ -65,9 +65,9 @@ val uiSkin = Skin(uiAtlas).apply {
             getDrawable("default-round-large")))
 
     add("default", SelectBox.SelectBoxStyle(
-            Font.defaultFont, Color.WHITE, getDrawable("default-select"),
+            Font.defaultFont, Color.WHITE, SelectBoxDrawable().pad(2f, 5f, 1f, 4f),
             get(ScrollPane.ScrollPaneStyle::class.java),
-            List.ListStyle(Font.defaultFont, Color.WHITE, Color.LIGHT_GRAY, getDrawable("default-select-selection"))
+            List.ListStyle(Font.defaultFont, Color.WHITE, Color.WHITE, getDrawable("default-select-selection"))
     ))
 
     add("default-horizontal", SplitPane.SplitPaneStyle(
