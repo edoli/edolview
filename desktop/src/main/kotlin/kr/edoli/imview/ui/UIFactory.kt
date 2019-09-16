@@ -130,7 +130,14 @@ object UIFactory {
                     return true
                 }
             })
-        }.tooltip(observable.name)
+        }.tooltip(observable.name).contextMenu {
+            addMenu("Reset value") {
+                observable.reset()
+            }
+            addMenu("Copy value") {
+                ClipboardUtils.putString(observable.get().toString())
+            }
+        }
     }
 
     fun createToggleIconButton(text: String, observable: ObservableValue<Boolean>) =
