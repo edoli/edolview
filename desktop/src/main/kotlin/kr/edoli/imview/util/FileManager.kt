@@ -7,7 +7,7 @@ import java.io.File
  * Created by daniel on 16. 10. 1.
  */
 class FileManager {
-    val availableExts = arrayOf("png", "jpeg", "jpg", "bmp", "exr", "pgm", "tif", "tiff", "hdr")
+    val availableExts = arrayOf("png", "jpeg", "jpg", "bmp", "exr", "pgm", "tif", "tiff", "hdr", "raw")
 
     private var currentFile: File? = null
 
