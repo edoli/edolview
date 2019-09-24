@@ -23,6 +23,7 @@ import org.lwjgl.opengl.GL30
 
 class MainScreen : Screen {
     val stage = Stage(ScreenViewport(), PolygonSpriteBatch())
+    var lastPixelDensity = 0f
 
     init {
         val imageViewer = ImageViewer()
@@ -136,6 +137,17 @@ class MainScreen : Screen {
     }
 
     override fun render(delta: Float) {
+        val pixelDensity = Gdx.graphics.density
+        if (lastPixelDensity != pixelDensity) {
+            if (Gdx.graphics.density > 0.75f) {
+                (stage.viewport as ScreenViewport).unitsPerPixel = 0.75f / Gdx.graphics.density
+                stage.viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
+            } else {
+                (stage.viewport as ScreenViewport).unitsPerPixel = 1f
+                stage.viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
+            }
+            lastPixelDensity = pixelDensity
+        }
         Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
         Gdx.gl.glClear(GL30.GL_COLOR_BUFFER_BIT)
 
@@ -151,9 +163,6 @@ class MainScreen : Screen {
     }
 
     override fun resize(width: Int, height: Int) {
-        if (Gdx.graphics.density > 0.75f) {
-            (stage.viewport as ScreenViewport).unitsPerPixel = 0.75f / Gdx.graphics.density
-        }
         stage.viewport.update(width, height, true)
     }
 
