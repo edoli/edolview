@@ -1,5 +1,6 @@
 package kr.edoli.imview.image
 
+import com.badlogic.gdx.graphics.Pixmap
 import org.opencv.core.CvType
 import org.opencv.core.Mat
 import java.awt.Transparency
@@ -24,8 +25,40 @@ object ImageConvert {
 
         val rawData = ByteArray(arraySize)
         tmpMat.get(0, 0, rawData)
-
         val buffer = DataBufferByte(rawData, rawData.size)
+
+        if (channels == 4) {
+            val raster = Raster.createInterleavedRaster(buffer, width, height, channels * width, channels, intArrayOf(0, 1, 2, 3), null)
+            val colorModel = ComponentColorModel(ColorModel.getRGBdefault().colorSpace, true, false, Transparency.TRANSLUCENT, DataBuffer.TYPE_BYTE)
+            return BufferedImage(colorModel, raster, false, null)
+        } else {
+            val raster = Raster.createInterleavedRaster(buffer, width, height, channels * width, channels, intArrayOf(0, 1, 2), null)
+            val colorModel = ComponentColorModel(ColorModel.getRGBdefault().colorSpace, false, true, Transparency.OPAQUE, DataBuffer.TYPE_BYTE)
+            return BufferedImage(colorModel, raster, true, null)
+        }
+    }
+
+    fun pixmapToBuffered(pixmap: Pixmap): BufferedImage {
+        val channels = 4
+        val width = pixmap.width
+        val height = pixmap.height
+        val rawData = pixmap.pixels.array()
+        val buffer = DataBufferByte(rawData, rawData.size)
+
+        if (channels == 4) {
+            val raster = Raster.createInterleavedRaster(buffer, width, height, channels * width, channels, intArrayOf(0, 1, 2, 3), null)
+            val colorModel = ComponentColorModel(ColorModel.getRGBdefault().colorSpace, true, false, Transparency.TRANSLUCENT, DataBuffer.TYPE_BYTE)
+            return BufferedImage(colorModel, raster, false, null)
+        } else {
+            val raster = Raster.createInterleavedRaster(buffer, width, height, channels * width, channels, intArrayOf(0, 1, 2), null)
+            val colorModel = ComponentColorModel(ColorModel.getRGBdefault().colorSpace, false, true, Transparency.OPAQUE, DataBuffer.TYPE_BYTE)
+            return BufferedImage(colorModel, raster, true, null)
+        }
+    }
+
+    fun byteArrayToBuffered(byteArray: ByteArray, width: Int, height: Int, channels: Int): BufferedImage {
+        val buffer = DataBufferByte(byteArray, byteArray.size)
+
         if (channels == 4) {
             val raster = Raster.createInterleavedRaster(buffer, width, height, channels * width, channels, intArrayOf(0, 1, 2, 3), null)
             val colorModel = ComponentColorModel(ColorModel.getRGBdefault().colorSpace, true, false, Transparency.TRANSLUCENT, DataBuffer.TYPE_BYTE)

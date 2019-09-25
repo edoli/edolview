@@ -3,11 +3,13 @@ package kr.edoli.imview.ui
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
 import com.badlogic.gdx.graphics.glutils.FloatTextureData
+import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector2
@@ -19,11 +21,14 @@ import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
+import kr.edoli.imview.image.ImageConvert
 import kr.edoli.imview.image.bound
 import kr.edoli.imview.util.ceil
 import kr.edoli.imview.util.toColorStr
+import org.lwjgl.opengl.GL30
 import org.opencv.core.Mat
 import org.opencv.core.Rect
+import java.nio.ByteBuffer
 import kotlin.math.log
 import kotlin.math.max
 import kotlin.math.min
@@ -42,6 +47,8 @@ class ImageViewer : WidgetGroup() {
     var imageHeight = 0
 
     val shapeRenderer = ShapeRenderer()
+
+    val bufferCallbacks = ArrayList<(ByteBuffer) -> Unit>()
 
     val vertexShader = ("attribute vec4 " + ShaderProgram.POSITION_ATTRIBUTE + ";\n" //
             + "attribute vec4 " + ShaderProgram.COLOR_ATTRIBUTE + ";\n" //
@@ -163,6 +170,22 @@ class ImageViewer : WidgetGroup() {
         })
 
         contextMenu {
+            addMenu("Copy visible image") {
+                bufferCallbacks.add { byteBuffer ->
+                    val mat = ImContext.mainImage.get()
+                    if (mat != null) {
+                        byteBuffer.position(0)
+                        val byteArray = ByteArray(byteBuffer.remaining())
+                        val width = mat.width()
+                        val height = mat.height()
+                        for (i in 0 until height) {
+                            byteBuffer.get(byteArray, width * (height - i - 1) * 4, width * 4)
+                        }
+                        ClipboardUtils.putImage(ImageConvert.byteArrayToBuffered(byteArray, mat.width(), mat.height(), 4))
+                    }
+                }
+            }
+
             addMenu("Center cursor") {
                 ImContext.centerCursor.onNext(true)
             }
@@ -203,7 +226,7 @@ class ImageViewer : WidgetGroup() {
                         ClipboardUtils.putString(ImContext.marqueeBoxRGB.get().toColorStr(imageSpec.maxValue))
                     }
                 }
-                addMenu("Copy selection image") {
+                addMenu("Copy selected image") {
                     ImContext.marqueeImage.get()?.let { mat ->
                         ClipboardUtils.putImage(mat)
                     }
@@ -360,11 +383,34 @@ class ImageViewer : WidgetGroup() {
 
     override fun drawChildren(batch: Batch, parentAlpha: Float) {
         batch.color = Color.WHITE
-        if (ImContext.enableDisplayProfile.get()) {
-            batch.end()
+        batch.end()
 
+        if (bufferCallbacks.isNotEmpty()) {
+            val buffer = drawBuffer()
+            if (buffer != null) {
+                bufferCallbacks.forEach { it(buffer) }
+            }
+            bufferCallbacks.clear()
+        }
+
+        drawImage(batch, imageX, imageY, imageScale)
+
+        shapeRenderer.projectionMatrix = batch.projectionMatrix
+        shapeRenderer.transformMatrix = batch.transformMatrix
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
+        val marqueeBox = ImContext.marqueeBox.get()
+        val vecA = imageToLocalCoordinates(Vector2(marqueeBox.x.toFloat(), marqueeBox.y.toFloat()))
+        val vecB = imageToLocalCoordinates(Vector2((marqueeBox.x + marqueeBox.width).toFloat(), (marqueeBox.y + marqueeBox.height).toFloat()))
+        shapeRenderer.rect(vecA.x, vecA.y, vecB.x - vecA.x, vecB.y - vecA.y)
+        shapeRenderer.end()
+
+        batch.begin()
+    }
+
+    fun drawImage(batch: Batch, localX: Float, localY: Float, localScale: Float) {
+        batch.begin()
+        if (ImContext.enableDisplayProfile.get()) {
             batch.shader = shader
-            batch.begin()
             shader.setUniformf("brightness", ImContext.imageBrightness.get())
             shader.setUniformf("contrast", ImContext.imageContrast.get())
             shader.setUniformf("gamma", ImContext.imageGamma.get())
@@ -377,29 +423,43 @@ class ImageViewer : WidgetGroup() {
             }
             shader.setUniformi("normalize", ImContext.normalize.get().let { if (it) 1 else 0 })
             textureRegion?.let { region ->
-                batch.draw(region, imageX, imageY, 0f, 0f,
-                        region.regionWidth.toFloat(), region.regionHeight.toFloat(), imageScale, imageScale, 0f)
+                batch.draw(region, localX, localY, 0f, 0f,
+                        region.regionWidth.toFloat(), region.regionHeight.toFloat(), localScale, localScale, 0f)
             }
 
             batch.shader = defaultShader
         } else {
             textureRegion?.let { region ->
-                batch.draw(region, imageX, imageY, 0f, 0f,
-                        region.regionWidth.toFloat(), region.regionHeight.toFloat(), imageScale, imageScale, 0f)
+                batch.draw(region, localX, localY, 0f, 0f,
+                        region.regionWidth.toFloat(), region.regionHeight.toFloat(), localScale, localScale, 0f)
             }
         }
         batch.end()
+    }
 
+    fun drawBuffer(): ByteBuffer? {
+        val batch = SpriteBatch()
+        val image = ImContext.mainImage.get()
+        if (image != null) {
+            val frameBuffer = FrameBuffer(Pixmap.Format.RGBA8888, image.width(), image.height(), false)
+            frameBuffer.begin()
 
-        shapeRenderer.projectionMatrix = batch.projectionMatrix
-        shapeRenderer.transformMatrix = batch.transformMatrix
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
-        val marqueeBox = ImContext.marqueeBox.get()
-        val vecA = imageToLocalCoordinates(Vector2(marqueeBox.x.toFloat(), marqueeBox.y.toFloat()))
-        val vecB = imageToLocalCoordinates(Vector2((marqueeBox.x + marqueeBox.width).toFloat(), (marqueeBox.y + marqueeBox.height).toFloat()))
-        shapeRenderer.rect(vecA.x, vecA.y, vecB.x - vecA.x, vecB.y - vecA.y)
-        shapeRenderer.end()
+            drawImage(batch, 0f, 0f, 1f)
 
-        batch.begin()
+            val texture = frameBuffer.colorBufferTexture
+            texture.bind()
+            val data = ByteBuffer.allocateDirect(texture.width * texture.height * 4)
+            GL30.glGetTexImage(GL30.GL_TEXTURE_2D, 0, GL30.GL_RGBA, GL30.GL_UNSIGNED_BYTE, data)
+            val error = GL30.glGetError()
+
+            if (error != GL30.GL_NO_ERROR) {
+                Gdx.app.error("Texture dump", "Get error: $error")
+            }
+
+            frameBuffer.end()
+
+            return data
+        }
+        return null
     }
 }
