@@ -3,6 +3,7 @@ package kr.edoli.imview.ui
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.OrthographicCamera
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.g2d.Batch
@@ -48,7 +49,7 @@ class ImageViewer : WidgetGroup() {
 
     val shapeRenderer = ShapeRenderer()
 
-    val bufferCallbacks = ArrayList<(ByteBuffer) -> Unit>()
+    val bufferCallbacks = ArrayList<(ByteArray) -> Unit>()
 
     val vertexShader = ("attribute vec4 " + ShaderProgram.POSITION_ATTRIBUTE + ";\n" //
             + "attribute vec4 " + ShaderProgram.COLOR_ATTRIBUTE + ";\n" //
@@ -171,16 +172,9 @@ class ImageViewer : WidgetGroup() {
 
         contextMenu {
             addMenu("Copy visible image") {
-                bufferCallbacks.add { byteBuffer ->
+                bufferCallbacks.add { byteArray ->
                     val mat = ImContext.mainImage.get()
                     if (mat != null) {
-                        byteBuffer.position(0)
-                        val byteArray = ByteArray(byteBuffer.remaining())
-                        val width = mat.width()
-                        val height = mat.height()
-                        for (i in 0 until height) {
-                            byteBuffer.get(byteArray, width * (height - i - 1) * 4, width * 4)
-                        }
                         ClipboardUtils.putImage(ImageConvert.byteArrayToBuffered(byteArray, mat.width(), mat.height(), 4))
                     }
                 }
@@ -437,18 +431,23 @@ class ImageViewer : WidgetGroup() {
         batch.end()
     }
 
-    fun drawBuffer(): ByteBuffer? {
+    fun drawBuffer(): ByteArray? {
         val batch = SpriteBatch()
         val image = ImContext.mainImage.get()
         if (image != null) {
-            val frameBuffer = FrameBuffer(Pixmap.Format.RGBA8888, image.width(), image.height(), false)
+            val frameBuffer = FrameBuffer(texture!!.textureData.format, image.width(), image.height(), false)
+            val camera = OrthographicCamera(image.width().toFloat(), image.height().toFloat())
+            camera.position.set(image.width().toFloat() / 2f, image.height().toFloat() / 2f, 0f)
+            camera.update()
+            batch.projectionMatrix = camera.combined
             frameBuffer.begin()
 
             drawImage(batch, 0f, 0f, 1f)
 
             val texture = frameBuffer.colorBufferTexture
             texture.bind()
-            val data = ByteBuffer.allocateDirect(texture.width * texture.height * 4)
+            val channels = 4
+            val data = ByteBuffer.allocateDirect(texture.width * texture.height * channels)
             GL30.glGetTexImage(GL30.GL_TEXTURE_2D, 0, GL30.GL_RGBA, GL30.GL_UNSIGNED_BYTE, data)
             val error = GL30.glGetError()
 
@@ -456,9 +455,18 @@ class ImageViewer : WidgetGroup() {
                 Gdx.app.error("Texture dump", "Get error: $error")
             }
 
+            data.position(0)
+            val byteArray = ByteArray(data.remaining())
+            val width = frameBuffer.width
+            val height = frameBuffer.height
+
+            for (i in 0 until height) {
+                data.get(byteArray, width * (height - i - 1) * channels, width * channels)
+            }
+
             frameBuffer.end()
 
-            return data
+            return byteArray
         }
         return null
     }
