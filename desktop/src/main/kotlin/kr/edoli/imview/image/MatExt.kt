@@ -278,6 +278,52 @@ fun Mat.bitsPerPixel(): Int {
     }
 }
 
+inline fun <T> Mat.toArray(generateArray: (arraySize: Int) -> T): T {
+    val channels = this.channels()
+    val arraySize = (this.total() * channels).toInt()
+    return generateArray(arraySize)
+}
+
+fun Mat.toByteArray(): ByteArray {
+    return toArray { arraySize ->
+        val rawData = ByteArray(arraySize)
+        this.get(0, 0, rawData)
+        rawData
+    }
+}
+
+fun Mat.toFloatArray(): FloatArray {
+    return toArray { arraySize ->
+        val rawData = FloatArray(arraySize)
+        this.get(0, 0, rawData)
+        rawData
+    }
+}
+
+fun Mat.toDoubleArray(): DoubleArray {
+    return toArray { arraySize ->
+        val rawData = DoubleArray(arraySize)
+        this.get(0, 0, rawData)
+        rawData
+    }
+}
+
+fun Mat.toIntArray(): IntArray {
+    return toArray { arraySize ->
+        val rawData = IntArray(arraySize)
+        this.get(0, 0, rawData)
+        rawData
+    }
+}
+
+fun Mat.toShortArray(): ShortArray {
+    return toArray { arraySize ->
+        val rawData = ShortArray(arraySize)
+        this.get(0, 0, rawData)
+        rawData
+    }
+}
+
 /* Type conversion */
 
 val IntRange.cv: Range
