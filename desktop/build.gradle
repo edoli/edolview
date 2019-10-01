@@ -77,12 +77,10 @@ distributions {
     main {
         contents {
             from('./assets')
-//            from('../core/asset') {
-//                exclude('card_original')
-//                exclude('**/*.psd')
-//                exclude('**/*.blend')
-//                exclude('**/*.blend*')
-//            }
+            exclude('test*')
+            exclude('*.svg')
+            exclude('icon.png')
+            exclude('icon.ico')
         }
     }
 }
