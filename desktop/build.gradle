@@ -79,7 +79,7 @@ distributions {
             from('./assets')
             exclude('test*')
             exclude('*.svg')
-            exclude('icon.png')
+            exclude('imview.bat')
             exclude('icon.ico')
         }
     }

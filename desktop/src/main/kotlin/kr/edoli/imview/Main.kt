@@ -34,5 +34,5 @@ fun main(args: Array<String>) {
     })
     config.setWindowedMode(1280, 720)
     config.setWindowIcon("icon.png")
-    Lwjgl3Application(App(), config)
+    Lwjgl3Application(App(args), config)
 }
