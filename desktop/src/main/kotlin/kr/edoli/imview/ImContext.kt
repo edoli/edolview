@@ -13,6 +13,7 @@ import org.opencv.core.Mat
 import org.opencv.core.Rect
 import rx.subjects.PublishSubject
 import java.io.File
+import java.util.*
 import java.util.prefs.Preferences
 import kotlin.math.min
 
@@ -31,7 +32,6 @@ object ImContext {
 
     val mainImageSpec = NullableObservableValue<ImageSpec>(null)
     val marqueeImage = NullableObservableValue<Mat>(null)
-
 
     val cursorPosition = ObservableValue(Point2D(0.0, 0.0))
     val cursorRGB = ObservableValue(doubleArrayOf())
@@ -56,6 +56,7 @@ object ImContext {
     val visibleChannel = ObservableList(listOf(0), name = "Visible channel")
 
     val frameSpeed = ObservableValue(0.0f, "Frame speed")
+    val frameControl = FrameControl()
 
     // UI
     val isShowCrosshair = ObservableValue(true, "Show crosshair")
@@ -135,21 +136,15 @@ object ImContext {
         isShowController.subscribe { savePreferences() }
         isShowFileInfo.subscribe { savePreferences() }
 
-        // object : AnimationTimer() {
-        //     var lastTime = 0L
-        //
-        //     override fun handle(now: Long) {
-        //         val fps = frameSpeed.get()
-        //         if (fps != 0.0) {
-        //             val waitTime = 1 / fps * 1000 * 1000 * 1000
-        //             if (now > lastTime + waitTime) {
-        //                 nextImage()
-        //                 lastTime = now
-        //             }
-        //         }
-        //
-        //     }
-        // }.start()
+        Timer().schedule(object : TimerTask() {
+            var current = System.nanoTime()
+            override fun run() {
+                val newTime = System.nanoTime()
+                var delta = newTime - current
+                frameControl.elapse(delta / 1000f / 1000f / 1000f)
+                current = newTime
+            }
+        }, 0, 10)
     }
 
     fun updateCursorColor() {

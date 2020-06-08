@@ -3,6 +3,7 @@ package kr.edoli.imview.ui
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.ui.panel.DisplayProfilePanel
+import kr.edoli.imview.ui.panel.NavigationPanel
 import kr.edoli.imview.ui.panel.StatisticsPanel
 import kr.edoli.imview.ui.panel.histogram.HistogramPanel
 
@@ -11,6 +12,10 @@ class SidePanel : Panel() {
         align(Align.top)
 
         add(CollapsiblePanel("View controller", DisplayProfilePanel())).fillX()
+
+        addHorizontalDivider().pad(4f)
+
+        add(CollapsiblePanel("Image Navigator", NavigationPanel())).fillX()
 
         addHorizontalDivider().pad(4f)
 
