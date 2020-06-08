@@ -247,34 +247,49 @@ object UIFactory {
 
     }
 
+    @kotlin.ExperimentalUnsignedTypes
     fun checkArray(value: Any?): String? {
-        if (value is Array<*>) {
-            return value.joinToString(",")
-        } else if (value is IntArray) {
-            return value.joinToString(",")
-        } else if (value is FloatArray) {
-            return value.joinToString(",")
-        } else if (value is DoubleArray) {
-            return value.joinToString(",")
-        } else if (value is ByteArray) {
-            return value.joinToString(",")
-        } else if (value is CharArray) {
-            return value.joinToString(",")
-        } else if (value is ShortArray) {
-            return value.joinToString(",")
-        } else if (value is UByteArray) {
-            return value.joinToString(",")
-        } else if (value is LongArray) {
-            return value.joinToString(",")
-        } else if (value is UIntArray) {
-            return value.joinToString(",")
-        } else if (value is BooleanArray) {
-            return value.joinToString(",")
-        } else if (value is UShortArray) {
-            return value.joinToString(",")
-        } else if (value is ULongArray) {
-            return value.joinToString(",")
+        when (value) {
+            is Array<*> -> {
+                return value.joinToString(",")
+            }
+            is IntArray -> {
+                return value.joinToString(",")
+            }
+            is FloatArray -> {
+                return value.joinToString(",")
+            }
+            is DoubleArray -> {
+                return value.joinToString(",")
+            }
+            is ByteArray -> {
+                return value.joinToString(",")
+            }
+            is CharArray -> {
+                return value.joinToString(",")
+            }
+            is ShortArray -> {
+                return value.joinToString(",")
+            }
+            is UByteArray -> {
+                return value.joinToString(",")
+            }
+            is LongArray -> {
+                return value.joinToString(",")
+            }
+            is UIntArray -> {
+                return value.joinToString(",")
+            }
+            is BooleanArray -> {
+                return value.joinToString(",")
+            }
+            is UShortArray -> {
+                return value.joinToString(",")
+            }
+            is ULongArray -> {
+                return value.joinToString(",")
+            }
+            else -> return null
         }
-        return null
     }
 }

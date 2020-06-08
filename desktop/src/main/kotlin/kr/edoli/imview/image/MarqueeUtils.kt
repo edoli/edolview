@@ -32,7 +32,7 @@ object MarqueeUtils {
         fileChooser.isVisible = true
 
         val filePath = fileChooser.file
-        val dest = filePath?.let { File(fileChooser.file) } ?: null
+        val dest = filePath?.let { File(fileChooser.file) }
 
         // val fileChooser = FileChooser()
         // fileChooser.initialDirectory = ImContext.mainFile.get().parentFile

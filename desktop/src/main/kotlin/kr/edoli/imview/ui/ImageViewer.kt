@@ -27,12 +27,10 @@ import kr.edoli.imview.util.ceil
 import kr.edoli.imview.util.toColorStr
 import org.lwjgl.opengl.GL30
 import org.opencv.core.Mat
+import org.opencv.core.Point
 import org.opencv.core.Rect
 import java.nio.ByteBuffer
-import kotlin.math.log
-import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.pow
+import kotlin.math.*
 
 class ImageViewer : WidgetGroup() {
     var texture: Texture? = null
@@ -45,6 +43,8 @@ class ImageViewer : WidgetGroup() {
     var imageScale = 1f
     var imageWidth = 0
     var imageHeight = 0
+
+    val handleSize = 3f
 
     val shapeRenderer = ShapeRenderer()
 
@@ -105,20 +105,43 @@ class ImageViewer : WidgetGroup() {
             val imageCoord = Vector2()
             val imageCoordB = Vector2()
 
+            var marqueeOriginX = 0f
+            var marqueeOriginY = 0f
 
             override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
                 if (button == Input.Buttons.RIGHT) {
                     return false
                 }
 
-                dragMode = if (UIUtils.shift()) {
+                if (UIUtils.shift()) {
                     ImContext.marqueeBoxActive.update(true)
                     localToImageCoordinates(imageCoord.set(x, y))
 
                     ImContext.marqueeBox.update(Rect(imageCoord.x.toInt(), imageCoord.y.toInt(), 0, 0))
-                    DragMode.marquee
+                    marqueeOriginX = x
+                    marqueeOriginY = y
+                    dragMode = DragMode.marquee
                 } else {
-                    DragMode.move
+                    dragMode = DragMode.move
+                    val mousePoint = Point(x.toDouble(), y.toDouble())
+                    val points = marqueeHandlePoints()
+                    points.forEachIndexed { i, point ->
+                        val r = handleSize + 2f
+                        if (Rect((point.x - r).toInt(), (point.y - r).toInt(), (r * 2).toInt(), (r * 2).toInt()).contains(mousePoint)) {
+                            dragMode = DragMode.marquee
+
+                            val targetPoint = points[when (i) {
+                                0 -> 3
+                                1 -> 2
+                                2 -> 1
+                                3 -> 0
+                                else -> 0
+                            }]
+                            marqueeOriginX = targetPoint.x.toFloat()
+                            marqueeOriginY = targetPoint.y.toFloat()
+                            return@forEachIndexed
+                        }
+                    }
                 }
 
                 touchDownX = x
@@ -137,7 +160,7 @@ class ImageViewer : WidgetGroup() {
                     imageX = x - touchDownX + touchDownImageX
                     imageY = y - touchDownY + touchDownImageY
                 } else if (dragMode == DragMode.marquee) {
-                    localToImageCoordinates(imageCoord.set(touchDownX, touchDownY))
+                    localToImageCoordinates(imageCoord.set(marqueeOriginX, marqueeOriginY))
                     localToImageCoordinates(imageCoordB.set(x, y))
 
                     val x1 = max(min(imageCoord.x, imageCoordB.x).toInt(), 0)
@@ -374,6 +397,24 @@ class ImageViewer : WidgetGroup() {
         }
     }
 
+    private fun marqueeHandlePoints(): Array<Point2D> {
+        val marqueeBox = ImContext.marqueeBox.get()
+        val vecA = imageToLocalCoordinates(Vector2(marqueeBox.x.toFloat(), marqueeBox.y.toFloat()))
+        val vecB = imageToLocalCoordinates(Vector2((marqueeBox.x + marqueeBox.width).toFloat(), (marqueeBox.y + marqueeBox.height).toFloat()))
+
+        return arrayOf(
+                Point2D(vecA.x.toDouble(), vecA.y.toDouble()),
+                Point2D(vecA.x.toDouble(), vecB.y.toDouble()),
+                Point2D(vecB.x.toDouble(), vecA.y.toDouble()),
+                Point2D(vecB.x.toDouble(), vecB.y.toDouble())
+//
+//                Point2D(((vecA.x + vecB.x) / 2).toDouble(), vecA.y.toDouble()),
+//                Point2D(((vecA.x + vecB.x) / 2).toDouble(), vecB.y.toDouble()),
+//                Point2D(vecA.x.toDouble(), ((vecA.y + vecB.y) / 2).toDouble()),
+//                Point2D(vecB.x.toDouble(), ((vecA.y + vecB.y) / 2).toDouble())
+        )
+    }
+
     override fun drawChildren(batch: Batch, parentAlpha: Float) {
         batch.color = Color.WHITE
         batch.end()
@@ -388,14 +429,28 @@ class ImageViewer : WidgetGroup() {
 
         drawImage(batch, imageX, imageY, imageScale)
 
-        shapeRenderer.projectionMatrix = batch.projectionMatrix
-        shapeRenderer.transformMatrix = batch.transformMatrix
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
+        // draw marquee box
         val marqueeBox = ImContext.marqueeBox.get()
         val vecA = imageToLocalCoordinates(Vector2(marqueeBox.x.toFloat(), marqueeBox.y.toFloat()))
         val vecB = imageToLocalCoordinates(Vector2((marqueeBox.x + marqueeBox.width).toFloat(), (marqueeBox.y + marqueeBox.height).toFloat()))
+
+        shapeRenderer.projectionMatrix = batch.projectionMatrix
+        shapeRenderer.transformMatrix = batch.transformMatrix
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
         shapeRenderer.rect(vecA.x, vecA.y, vecB.x - vecA.x, vecB.y - vecA.y)
         shapeRenderer.end()
+
+        val maxSize = max(abs(vecA.x - vecB.x), abs(vecA.y - vecB.y))
+        if (maxSize > 16f) {
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+
+            for (point in marqueeHandlePoints()) {
+                val x = point.x
+                val y = point.y
+                shapeRenderer.rect((x - handleSize).toFloat(), (y - handleSize).toFloat(), handleSize * 2, handleSize * 2)
+            }
+            shapeRenderer.end()
+        }
 
         batch.begin()
     }
