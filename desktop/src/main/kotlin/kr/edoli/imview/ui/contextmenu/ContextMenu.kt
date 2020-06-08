@@ -13,14 +13,14 @@ import kr.edoli.imview.ui.Panel
 import kotlin.math.max
 import kotlin.math.min
 
-class ContextMenu(val contextMenuManager: ContextMenuManager, val builder: ContextMenuPanel.() -> Unit) : ClickListener(Input.Buttons.RIGHT) {
+class ContextMenu(private val contextMenuManager: ContextMenuManager, builder: (ContextMenuPanel.() -> Unit)?) : ClickListener(Input.Buttons.RIGHT) {
     val rootTable = ContextMenuPanel()
     val location = Vector2()
+    val builders = if (builder != null) arrayListOf(builder) else arrayListOf()
 
     override fun clicked(event: InputEvent, x: Float, y: Float) {
         rootTable.clearChildren()
-        builder(rootTable)
-
+        builders.forEach { it(rootTable) }
         contextMenuManager.openMenu(event.target, this)
 
         location.set(x, y)

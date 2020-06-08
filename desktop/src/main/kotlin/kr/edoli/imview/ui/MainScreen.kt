@@ -49,6 +49,7 @@ class MainScreen : Screen {
             init {
                 setSmoothScrolling(false)
                 setOverscroll(false, false)
+                setScrollingDisabled(true, false)
             }
 
             override fun getMinWidth(): Float {

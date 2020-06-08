@@ -207,6 +207,17 @@ object UIFactory {
             } else {
                 ""
             }
+        }.contextMenu {
+            addMenu("Copy hex") {
+                ClipboardUtils.putString(observable.get().toColor().toString())
+            }
+            addMenu("Copy color") {
+                val color = observable.get()
+                val imageSpec = ImContext.mainImageSpec.get()
+                if (imageSpec != null) {
+                    ClipboardUtils.putString("(${color.toColorStr(imageSpec.maxValue)})")
+                }
+            }
         }
     }
 

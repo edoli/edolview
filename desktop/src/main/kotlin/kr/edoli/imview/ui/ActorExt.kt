@@ -12,6 +12,11 @@ fun <T : Actor> T.tooltip(text: String): T {
 }
 
 fun <T : Actor> T.contextMenu(builder: ContextMenuPanel.() -> Unit): T {
-    addListener(ContextMenu(UIFactory.contextMenuManager, builder))
+    val contextMenuListeners = listeners.filterIsInstance<ContextMenu>()
+    if (contextMenuListeners.isEmpty()) {
+        addListener(ContextMenu(UIFactory.contextMenuManager, builder))
+    } else {
+        (contextMenuListeners[0] as ContextMenu).builders.add(builder)
+    }
     return this
 }
