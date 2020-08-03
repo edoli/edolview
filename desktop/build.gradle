@@ -60,6 +60,7 @@ dependencies {
 }
 
 project.ext.mainClassName = "kr.edoli.imview.MainKt"
+project.ext.appname = 'imview'
 project.ext.assetsDir = new File("./assets")
 
 application {
@@ -79,6 +80,8 @@ distributions {
             from('./assets')
             exclude('test*')
             exclude('*.svg')
+            exclude('*.log')
+            exclude('build*')
             exclude('imview.bat')
             exclude('icon.ico')
         }

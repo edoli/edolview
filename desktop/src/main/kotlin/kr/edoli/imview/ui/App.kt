@@ -14,11 +14,10 @@ class App(val args: Array<String>) : Game() {
     }
 
     override fun create() {
-        val f = File("test.txt")
-        val writer = f.writer()
-        args.forEach { writer.append(it) }
-        writer.close()
-
+//        val f = File("test.txt")
+//        val writer = f.writer()
+//        args.forEach { writer.append(it) }
+//        writer.close()
         if (args.isNotEmpty()) {
             ImContext.mainFile.update(File(args[0]))
         }
