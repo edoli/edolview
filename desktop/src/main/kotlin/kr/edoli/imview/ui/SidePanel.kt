@@ -11,23 +11,23 @@ class SidePanel : Panel() {
     init {
         align(Align.top)
 
-        add(CollapsiblePanel("View controller", DisplayProfilePanel())).fillX()
+        add(CollapsiblePanel("View controller", DisplayProfilePanel(), false)).fillX()
 
         addHorizontalDivider().pad(4f)
 
-        add(CollapsiblePanel("Image Navigator", NavigationPanel())).fillX()
+        add(CollapsiblePanel("Image Navigator", NavigationPanel(), true)).fillX()
 
         addHorizontalDivider().pad(4f)
 
-        add(CollapsiblePanel("Image statistics", StatisticsPanel(ImContext.mainImage))).fillX()
+        add(CollapsiblePanel("Image statistics", StatisticsPanel(ImContext.mainImage), true)).fillX()
 
         addHorizontalDivider().pad(4f)
 
-        add(CollapsiblePanel("Selection statistics", StatisticsPanel(ImContext.marqueeImage))).fillX()
+        add(CollapsiblePanel("Selection statistics", StatisticsPanel(ImContext.marqueeImage), true)).fillX()
 
         addHorizontalDivider().pad(4f)
 
-        add(CollapsiblePanel("Histogram", HistogramPanel())).fillX()
+        add(CollapsiblePanel("Histogram", HistogramPanel(), true)).fillX()
 
         ImContext.isShowController.subscribe {
             isVisible = it

@@ -1,5 +1,6 @@
 package kr.edoli.imview.ui
 
+import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
@@ -7,6 +8,7 @@ import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
+import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
@@ -65,9 +67,37 @@ object UIFactory {
         return Table().apply {
             add(Label(icon, iconLabelStyle)).padRight(8f)
             add(Slider(min, max, stepSize, false, uiSkin).apply {
+                setButton(Input.Buttons.LEFT)
                 observable.subscribe { newValue ->
                     this.value = newValue
                 }
+
+                addListener(object : InputListener() {
+                    override fun scrolled(event: InputEvent, x: Float, y: Float, amountX: Float, amountY: Float): Boolean {
+                        when {
+                            UIUtils.ctrl() -> {
+                                this@apply.value = this@apply.value - stepSize * amountY
+                            }
+                            UIUtils.shift() -> {
+                                this@apply.value = this@apply.value - stepSize * amountY * 10
+                            }
+                            else -> {
+                                this@apply.value = this@apply.value - stepSize * amountY * 100
+                            }
+                        }
+                        return true
+                    }
+
+                    override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
+                        stage.scrollFocus = this@apply
+                    }
+
+                    override fun exit(event: InputEvent, x: Float, y: Float, pointer: Int, toActor: Actor?) {
+                        if (toActor == null || toActor != this@apply) {
+                            stage.scrollFocus = null
+                        }
+                    }
+                })
 
                 addListener(object : ChangeListener() {
                     override fun changed(event: ChangeEvent, actor: Actor) {
@@ -117,8 +147,8 @@ object UIFactory {
                     super.exit(event, x, y, pointer, toActor)
                 }
 
-                override fun scrolled(event: InputEvent, x: Float, y: Float, amount: Int): Boolean {
-                    var nextIndex = selectedIndex + amount
+                override fun scrolled(event: InputEvent, x: Float, y: Float, amountX: Float, amountY: Float): Boolean {
+                    var nextIndex = selectedIndex + amountY.toInt()
                     if (nextIndex < 0) {
                         nextIndex += items.size
                     }

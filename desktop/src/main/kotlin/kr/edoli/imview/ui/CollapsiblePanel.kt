@@ -5,7 +5,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ui.res.Ionicons
 
-open class CollapsiblePanel(val title: String, val panel: Table) : Panel(false) {
+open class CollapsiblePanel(val title: String, val panel: Table, private val initCollapse: Boolean = false)
+    : Panel(false) {
     private val titleLabel = Label(title, skin).apply {
         setAlignment(Align.left)
     }
@@ -20,7 +21,7 @@ open class CollapsiblePanel(val title: String, val panel: Table) : Panel(false) 
         add(collapseButton)
     }
 
-    var collapse = false
+    var collapse = initCollapse
         set(value) {
             clearChildren()
             add(titleTable).expandX().fillX().pad(0f, 4f, 0f, 4f)
@@ -32,7 +33,7 @@ open class CollapsiblePanel(val title: String, val panel: Table) : Panel(false) 
         }
 
     init {
-        collapse = false
+        collapse = initCollapse
     }
 
 

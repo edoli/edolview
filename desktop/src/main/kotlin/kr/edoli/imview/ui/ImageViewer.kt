@@ -190,9 +190,9 @@ class ImageViewer : WidgetGroup() {
                 return false
             }
 
-            override fun scrolled(event: InputEvent, x: Float, y: Float, amount: Int): Boolean {
-                ImContext.zoomLevel.update(ImContext.zoomLevel.get() - amount)
-                return super.scrolled(event, x, y, amount)
+            override fun scrolled(event: InputEvent?, x: Float, y: Float, amountX: Float, amountY: Float): Boolean {
+                ImContext.zoomLevel.update(ImContext.zoomLevel.get() - amountY.toInt())
+                return super.scrolled(event, x, y, amountX, amountY)
             }
         })
 
@@ -327,8 +327,10 @@ class ImageViewer : WidgetGroup() {
 
             while (buffer.hasRemaining()) {
                 val value = buffer.get()
-                if (value > localMax) localMax = value
-                if (value < localMin) localMin = value
+                if (value.isFinite()) {
+                    if (value > localMax) localMax = value
+                    if (value < localMin) localMin = value
+                }
             }
 
             Gdx.app.postRunnable {

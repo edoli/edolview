@@ -1,5 +1,6 @@
 package kr.edoli.imview.ui.panel.histogram
 
+import com.badlogic.gdx.Input
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.ui.Slider
 import com.badlogic.gdx.scenes.scene2d.ui.Table
@@ -15,6 +16,7 @@ class HistogramPanel : Panel(false) {
     val histogramActor = HistogramWidget()
     val buttons = Table()
     val slider = Slider(1f, 255f, 1f, false, skin).apply {
+        setButton(Input.Buttons.LEFT)
         value = 100f
         addListener(object : ChangeListener() {
             override fun changed(event: ChangeEvent, actor: Actor) {

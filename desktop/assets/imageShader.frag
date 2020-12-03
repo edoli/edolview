@@ -138,9 +138,11 @@ void main()
     }
     if (colormap == 0) {
         // gl_FragColor = v_color * ((pow(p, vec4(1.0 / gamma)) + brightness - 0.5) * contrast + 0.5);
-        gl_FragColor = v_color * pow(p, vec4(1.0 / gamma)) * contrast + brightness;
+        gl_FragColor = v_color * pow(p * contrast + brightness, vec4(1.0 / gamma));
+        gl_FragColor.a = p.a;
     } else {
-        float v = pow(p.r, (1.0 / gamma)) * contrast + brightness;
+        // float v = pow(p.r, (1.0 / gamma)) * contrast + brightness;
+        float v = pow(p.r * contrast + brightness, 1.0 / gamma);
         vec3 color;
         if (colormap == 1) {
             color = jet_colormap(v);
@@ -157,6 +159,6 @@ void main()
         } else if (colormap == 7) {
             color = inferno_colormap(v);
         }
-        gl_FragColor = vec4(color.r, color.g, color.b, 1.0);
+        gl_FragColor = vec4(color.r, color.g, color.b, p.a);
     }
 }
