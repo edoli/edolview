@@ -133,13 +133,14 @@ vec3 inferno_colormap(float t) {
 void main()
 {
     vec4 p = texture2D(u_texture, v_texCoords);
+    float alpha = p.a;
     if (normalize == 1) {
         p = (p - min) / (max - min);
     }
     if (colormap == 0) {
         // gl_FragColor = v_color * ((pow(p, vec4(1.0 / gamma)) + brightness - 0.5) * contrast + 0.5);
         gl_FragColor = v_color * pow(p * contrast + brightness, vec4(1.0 / gamma));
-        gl_FragColor.a = p.a;
+        gl_FragColor.a = alpha;
     } else {
         // float v = pow(p.r, (1.0 / gamma)) * contrast + brightness;
         float v = pow(p.r * contrast + brightness, 1.0 / gamma);
@@ -159,6 +160,6 @@ void main()
         } else if (colormap == 7) {
             color = inferno_colormap(v);
         }
-        gl_FragColor = vec4(color.r, color.g, color.b, p.a);
+        gl_FragColor = vec4(color.r, color.g, color.b, alpha);
     }
 }
