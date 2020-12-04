@@ -1,10 +1,9 @@
 package kr.edoli.imview
 
-import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Application
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowAdapter
+import com.badlogic.gdx.backends.lwjgl3.MyLwjgl3Application
 import com.badlogic.gdx.graphics.glutils.HdpiMode
-import com.badlogic.gdx.tools.texturepacker.TexturePacker
 import kr.edoli.imview.ui.App
 import java.io.File
 import kotlin.system.exitProcess
@@ -34,5 +33,5 @@ fun main(args: Array<String>) {
     })
     config.setWindowedMode(1280, 720)
     config.setWindowIcon("icon.png")
-    Lwjgl3Application(App(args), config)
+    MyLwjgl3Application(App(args), config)
 }

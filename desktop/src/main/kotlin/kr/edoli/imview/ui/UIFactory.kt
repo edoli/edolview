@@ -119,13 +119,14 @@ object UIFactory {
             add(createLabel(observable, null) {
                 String.format("%.2f", abs(it))
             }.apply {
-                addAction(Actions.forever(Actions.run {
+                addListener {
                     color = if (observable.get() < 0) {
                         Colors.negative
                     } else {
                         Colors.normal
                     }
-                }))
+                    return@addListener false
+                }
             }).width(40f)
         }.tooltip("${observable.name}\n[negative]Red[] means negative")
     }

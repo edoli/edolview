@@ -4,10 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
-import com.badlogic.gdx.scenes.scene2d.InputEvent
-import com.badlogic.gdx.scenes.scene2d.InputListener
-import com.badlogic.gdx.scenes.scene2d.Stage
-import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.*
 import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
@@ -76,9 +73,10 @@ class MainScreen : Screen {
 
         stage.addActor(Window("File info", uiSkin).apply {
             add(FileInfoPanel())
-            addAction(Actions.run {
+            addListener {
                 y = stage.height - height - 32f
-            })
+                return@addListener false
+            }
             titleTable.add().expandX()
             titleTable.add(UIFactory.createIconButton(Ionicons.ionMdClose) {
                 ImContext.isShowFileInfo.update(false)
@@ -87,6 +85,7 @@ class MainScreen : Screen {
             isResizable = true
             setKeepWithinStage(true)
             ImContext.isShowFileInfo.subscribe { isVisible = it }
+
         })
 
         imageViewer.zIndex = 0

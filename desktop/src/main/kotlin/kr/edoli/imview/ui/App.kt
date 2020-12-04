@@ -6,7 +6,7 @@ import kr.edoli.imview.ImContext
 import org.opencv.core.Core
 import java.io.File
 
-class App(val args: Array<String>) : Game() {
+class App(private val args: Array<String>) : Game() {
     companion object {
         init {
             System.loadLibrary(Core.NATIVE_LIBRARY_NAME)
@@ -14,10 +14,6 @@ class App(val args: Array<String>) : Game() {
     }
 
     override fun create() {
-//        val f = File("test.txt")
-//        val writer = f.writer()
-//        args.forEach { writer.append(it) }
-//        writer.close()
         if (args.isNotEmpty()) {
             ImContext.mainFile.update(File(args[0]))
         }
