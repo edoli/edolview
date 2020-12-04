@@ -10,6 +10,7 @@ import org.opencv.core.Mat
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 /**
  * Created by daniel on 16. 11. 27.
@@ -20,6 +21,7 @@ object ImageStore {
 
     private val imageStoreMap = CacheBuilder.newBuilder()
             .maximumWeight(MAX_MEMORY)
+            .expireAfterAccess(5, TimeUnit.MINUTES)
             .weigher { _: ImageDesc, v1: ImageSpec -> (v1.mat.total() * v1.mat.channels()).toInt() }
             .removalListener<ImageDesc, ImageSpec> { it.value?.mat?.release() }
             .build(object : CacheLoader<ImageDesc, ImageSpec>() {
@@ -44,6 +46,7 @@ object ImageStore {
     }
 
     fun clearCache() {
+        imageStoreMap.cleanUp()
         imageStoreMap.invalidateAll()
     }
 

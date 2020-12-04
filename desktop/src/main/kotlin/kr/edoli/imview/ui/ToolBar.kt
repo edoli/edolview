@@ -5,6 +5,7 @@ import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.image.MarqueeUtils
+import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.ui.res.Ionicons
 
 class ToolBar : Panel() {
@@ -16,6 +17,10 @@ class ToolBar : Panel() {
 
     init {
         align(Align.left)
+
+        add(UIFactory.createIconButton(Ionicons.ionMdSync) {
+            ImageStore.clearCache()
+        }.tooltip("Clear cache")).width(iconWidth)
 
         add(UIFactory.createIconButton(Ionicons.ionMdSave) {
             MarqueeUtils.saveImage(false)
