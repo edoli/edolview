@@ -7,8 +7,6 @@ import kr.edoli.imview.ui.Panel
 import kr.edoli.imview.ui.UIFactory
 
 class DisplayProfilePanel : Panel(false) {
-    val channelButtons = Table()
-
     init {
         add(Table().apply {
             add(UIFactory.createToggleIconButton(Ionicons.ionMdAperture, ImContext.enableDisplayProfile)).width(28f)
@@ -16,11 +14,11 @@ class DisplayProfilePanel : Panel(false) {
             add(UIFactory.createToggleIconButton(Ionicons.ionMdSwitch, ImContext.normalize)).width(28f)
         })
         row()
-        add(UIFactory.createSlider(Ionicons.ionMdSunny, -10f, 10f, 0.001f, ImContext.imageBrightness))
+        add(UIFactory.createSlider(Ionicons.ionMdSunny, -10f, 10f, 0.001f, ImContext.imageBrightness)).expandX().fillX()
         row()
-        add(UIFactory.createSlider(Ionicons.ionMdContrast, -10f, 10f, 0.001f, ImContext.imageContrast))
+        add(UIFactory.createSlider(Ionicons.ionMdContrast, -10f, 10f, 0.001f, ImContext.imageContrast)).expandX().fillX()
         row()
-        add(UIFactory.createSlider(Ionicons.ionMdNuclear, 0f, 10f, 0.001f, ImContext.imageGamma))
+        add(UIFactory.createSlider(Ionicons.ionMdNuclear, 0f, 10f, 0.001f, ImContext.imageGamma)).expandX().fillX()
         row()
         add(Table().apply {
             add(UIFactory.createSelectBox(ImContext.visibleChannel)).padRight(4f)
@@ -30,5 +28,9 @@ class DisplayProfilePanel : Panel(false) {
                 }
             })
         })
+    }
+
+    override fun sizeChanged() {
+        super.sizeChanged()
     }
 }

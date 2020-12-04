@@ -6,8 +6,10 @@ import kr.edoli.imview.ui.contextmenu.ContextMenu
 import kr.edoli.imview.ui.contextmenu.ContextMenuPanel
 import kr.edoli.imview.ui.res.uiSkin
 
-fun <T : Actor> T.tooltip(text: String): T {
-    addListener(TextTooltip(text, UIFactory.tooltipManager, uiSkin))
+fun <T : Actor> T.tooltip(text: String?): T {
+    if (text != null) {
+        addListener(TextTooltip(text, UIFactory.tooltipManager, uiSkin))
+    }
     return this
 }
 

@@ -1,6 +1,5 @@
 package kr.edoli.imview
 
-import com.badlogic.gdx.Gdx
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ImageSpec
 import kr.edoli.imview.image.MarqueeUtils
@@ -52,7 +51,7 @@ object ImContext {
     val imageContrast = ObservableValue(1.0f, "Contrast")
     val imageBrightness = ObservableValue(0.0f, "Brightness")
     val imageGamma = ObservableValue(1.0f, "Gamma")
-    val imageColormap = ObservableList(Colormap.values().toList(), name ="Colormap")
+    val imageColormap = ObservableList(Colormap.values().toList(), name = "Colormap")
     val visibleChannel = ObservableList(listOf(0), name = "Visible channel")
 
     val frameSpeed = ObservableValue(0.0f, "Frame speed")

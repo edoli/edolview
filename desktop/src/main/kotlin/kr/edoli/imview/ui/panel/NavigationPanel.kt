@@ -8,6 +8,6 @@ import kr.edoli.imview.ui.res.Ionicons
 class NavigationPanel() : Panel(false) {
     init {
 
-        add(UIFactory.createSlider(Ionicons.ionMdPlay, 0.0f, 1.0f, 0.01f, ImContext.frameSpeed))
+        add(UIFactory.createSlider(Ionicons.ionMdPlay, 0.0f, 1.0f, 0.01f, ImContext.frameSpeed)).expandX().fillX()
     }
 }

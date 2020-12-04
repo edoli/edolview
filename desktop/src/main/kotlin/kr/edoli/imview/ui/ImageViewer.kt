@@ -251,6 +251,25 @@ class ImageViewer : WidgetGroup() {
                         ClipboardUtils.putImage(mat)
                     }
                 }
+                addMenu("Copy selected visible image") {
+                    bufferCallbacks.add { byteArray ->
+                        val mat = ImContext.mainImage.get()
+                        if (mat != null) {
+                            val box = ImContext.marqueeBox.get()
+
+                            val matWidth = mat.width()
+                            val rowSize = matWidth * 4
+
+                            val croppedByteArray = ByteArray(box.height * box.width * 4)
+                            val croppedRowSize = box.width * 4
+                            for (i in 0 until box.height) {
+                                val colStart = (matWidth * (box.y + i) + box.x) * 4
+                                byteArray.copyInto(croppedByteArray, i * croppedRowSize, colStart, colStart + croppedRowSize)
+                            }
+                            ClipboardUtils.putImage(ImageConvert.byteArrayToBuffered(croppedByteArray, box.width, box.height, 4))
+                        }
+                    }
+                }
             }
         }
 

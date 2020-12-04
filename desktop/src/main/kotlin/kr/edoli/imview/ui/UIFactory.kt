@@ -1,10 +1,10 @@
 package kr.edoli.imview.ui
 
 import com.badlogic.gdx.Input
-import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
+import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
@@ -14,6 +14,8 @@ import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.ui.contextmenu.ContextMenuManager
+import kr.edoli.imview.ui.custom.CustomSlider
+import kr.edoli.imview.ui.res.Colors
 import kr.edoli.imview.ui.res.Font
 import kr.edoli.imview.ui.res.uiSkin
 import kr.edoli.imview.util.ObservableList
@@ -21,6 +23,7 @@ import kr.edoli.imview.util.ObservableValue
 import kr.edoli.imview.util.toColor
 import kr.edoli.imview.util.toColorStr
 import org.opencv.core.Rect
+import kotlin.math.abs
 
 object UIFactory {
     val tooltipManager = TooltipManager().apply {
@@ -32,41 +35,41 @@ object UIFactory {
 
     val textButtonStyle = TextButton.TextButtonStyle().apply {
         font = Font.defaultFont
-        fontColor = Color.WHITE
-        downFontColor = Color.RED
-        overFontColor = Color.LIGHT_GRAY
+        fontColor = Colors.normal
+        downFontColor = Colors.negative
+        overFontColor = Colors.over
     }
     val textToggleButtonStyle = TextButton.TextButtonStyle().apply {
         font = Font.defaultFont
-        fontColor = Color.WHITE
-        downFontColor = Color.RED
-        overFontColor = Color.LIGHT_GRAY
+        fontColor = Colors.normal
+        downFontColor = Colors.negative
+        overFontColor = Colors.over
 
         up = uiSkin.getDrawable("default-round")
         down = uiSkin.getDrawable("default-round-down")
         checked = uiSkin.getDrawable("default-round-down")
     }
 
-    val iconLabelStyle = Label.LabelStyle(Font.ioniconsFont, Color.WHITE)
+    val iconLabelStyle = Label.LabelStyle(Font.ioniconsFont, Colors.normal)
     val iconButtonStyle = TextButton.TextButtonStyle().apply {
         font = Font.ioniconsFont
-        fontColor = Color.WHITE
-        downFontColor = Color.RED
-        overFontColor = Color.LIGHT_GRAY
+        fontColor = Colors.normal
+        downFontColor = Colors.negative
+        overFontColor = Colors.over
     }
     val iconToggleButtonStyle = TextButton.TextButtonStyle().apply {
         font = Font.ioniconsFont
-        fontColor = Color.WHITE
-        downFontColor = Color.RED
-        checkedFontColor = Color.GREEN
-        overFontColor = Color.LIGHT_GRAY
+        fontColor = Colors.normal
+        downFontColor = Colors.negative
+        overFontColor = Colors.over
+        checkedFontColor = Colors.accent
     }
 
 
     fun createSlider(icon: String, min: Float, max: Float, stepSize: Float, observable: ObservableValue<Float>): Table {
         return Table().apply {
             add(Label(icon, iconLabelStyle)).padRight(8f)
-            add(Slider(min, max, stepSize, false, uiSkin).apply {
+            add(CustomSlider(min, max, stepSize, false, uiSkin).apply {
                 setButton(Input.Buttons.LEFT)
                 observable.subscribe { newValue ->
                     this.value = newValue
@@ -105,15 +108,26 @@ object UIFactory {
                         observable.update(value)
                     }
                 })
-            })
-        }.tooltip(observable.name).contextMenu {
-            addMenu("Reset value") {
-                observable.reset()
-            }
-            addMenu("Copy value") {
-                ClipboardUtils.putString(observable.get().toString())
-            }
-        }
+            }.contextMenu {
+                addMenu("Reset value") {
+                    observable.reset()
+                }
+                addMenu("Copy value") {
+                    ClipboardUtils.putString(observable.get().toString())
+                }
+            }).expandX().fillX()
+            add(createLabel(observable, null) {
+                String.format("%.2f", abs(it))
+            }.apply {
+                addAction(Actions.forever(Actions.run {
+                    color = if (observable.get() < 0) {
+                        Colors.negative
+                    } else {
+                        Colors.normal
+                    }
+                }))
+            }).width(40f)
+        }.tooltip("${observable.name}\n[negative]Red[] means negative")
     }
 
     fun <T> createSelectBox(observable: ObservableList<T>): SelectBox<T> {
@@ -259,7 +273,10 @@ object UIFactory {
         return createLabel(observable) { newValue -> "(${newValue.x.toInt()}, ${newValue.y.toInt()})" }
     }
 
-    fun <T> createLabel(observable: ObservableValue<T>, text: (value: T) -> String = { it.toString() }): Label {
+    fun <T> createLabel(observable: ObservableValue<T>
+                        , tooltipText: String? = observable.name
+                        , text: (value: T) -> String = { it.toString() })
+            : Label {
         return {
             var lastValue: T? = null
             Label("", uiSkin).apply {
@@ -267,7 +284,7 @@ object UIFactory {
                     lastValue = newValue
                     setText(text(newValue))
                 }
-            }.tooltip(observable.name).contextMenu {
+            }.tooltip(tooltipText).contextMenu {
                 if (lastValue !is String) {
                     addMenu("Copy value") {
                         val value = lastValue

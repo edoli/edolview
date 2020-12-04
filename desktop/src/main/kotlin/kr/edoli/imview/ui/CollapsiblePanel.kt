@@ -14,6 +14,7 @@ open class CollapsiblePanel(val title: String, val panel: Table, private val ini
         collapse = button.isChecked
     }.apply {
         style = UIFactory.iconToggleButtonStyle
+        isChecked = initCollapse
     }
 
     private val titleTable = Table().apply {
@@ -35,6 +36,4 @@ open class CollapsiblePanel(val title: String, val panel: Table, private val ini
     init {
         collapse = initCollapse
     }
-
-
 }
