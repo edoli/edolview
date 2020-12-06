@@ -30,6 +30,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack
 import com.badlogic.gdx.utils.GdxRuntimeException
 import kr.edoli.imview.ui.custom.SplitPane.SplitPaneStyle
 import kotlin.math.max
+import kotlin.math.min
 
 /** A container that contains two widgets and is divided either horizontally or vertically. The user may resize the widgets. The
  * child widgets are always sized to fill their side of the SplitPane.
@@ -55,7 +56,7 @@ class SplitPane
     internal var style: SplitPaneStyle = style
     private var firstWidget: Actor? = null
     private var secondWidget: Actor? = null
-    internal var splitAmount = 0.5f
+    internal var controlledSize = 0f
     internal var minAmount: Float = 0.toFloat()
     internal var maxAmount = 1f
 
@@ -138,7 +139,7 @@ class SplitPane
                     handlePosition.x = dragX
                     dragX = Math.max(0f, dragX)
                     dragX = Math.min(availWidth, dragX)
-                    splitAmount = dragX / availWidth
+                    controlledSize = availWidth - dragX
                     lastPoint.set(x, y)
                 } else {
                     val delta = y - lastPoint.y
@@ -147,7 +148,7 @@ class SplitPane
                     handlePosition.y = dragY
                     dragY = Math.max(0f, dragY)
                     dragY = Math.min(availHeight, dragY)
-                    splitAmount = 1 - dragY / availHeight
+                    controlledSize = availHeight - dragY
                     lastPoint.set(x, y)
                 }
                 invalidate()
@@ -234,8 +235,8 @@ class SplitPane
         val height = height
 
         val availWidth = width - handle.minWidth
-        val leftAreaWidth = (availWidth * splitAmount).toInt().toFloat()
-        val rightAreaWidth = availWidth - leftAreaWidth
+        val rightAreaWidth = controlledSize
+        val leftAreaWidth = availWidth - rightAreaWidth
         val handleWidth = handle.minWidth
 
         firstWidgetBounds.set(0f, 0f, leftAreaWidth, height)
@@ -250,8 +251,8 @@ class SplitPane
         val height = height
 
         val availHeight = height - handle.minHeight
-        val topAreaHeight = (availHeight * splitAmount).toInt().toFloat()
-        val bottomAreaHeight = availHeight - topAreaHeight
+        val bottomAreaHeight = controlledSize
+        val topAreaHeight = availHeight - bottomAreaHeight
         val handleHeight = handle.minHeight
 
         firstWidgetBounds.set(0f, height - topAreaHeight, width, topAreaHeight)
@@ -295,12 +296,26 @@ class SplitPane
      * layout. See [.clampSplitAmount].
      */
     fun setSplitAmount(splitAmount: Float) {
-        this.splitAmount = splitAmount // will be clamped during layout
+        val handle = style.handle
+        if (!isVertical) {
+            val availWidth = width - handle.minWidth
+            controlledSize = availWidth * (1 - splitAmount)
+        } else {
+            val availHeight = height - handle.minHeight
+            controlledSize = availHeight * (1 - splitAmount)
+        }
         invalidate()
     }
 
     fun getSplitAmount(): Float {
-        return splitAmount
+        val handle = style.handle
+        if (!isVertical) {
+            val availWidth = width - handle.minWidth
+            return (availWidth - controlledSize) / availWidth
+        } else {
+            val availHeight = height - handle.minHeight
+            return (availHeight - controlledSize) / availHeight
+        }
     }
 
     /** Called during layout to clamp the [.splitAmount] within the set limits. By default it imposes the limits of the
@@ -312,23 +327,15 @@ class SplitPane
 
         if (vertical) {
             val availableHeight = height - style.handle.minHeight
-            if (firstWidget is Layout)
-                effectiveMinAmount = Math.max(effectiveMinAmount, Math.min((firstWidget as Layout).minHeight / availableHeight, 1f))
-            if (secondWidget is Layout)
-                effectiveMaxAmount = Math.min(effectiveMaxAmount, 1 - Math.min((secondWidget as Layout).minHeight / availableHeight, 1f))
+            if (secondWidget is Layout) {
+                controlledSize = max(controlledSize, (secondWidget as Layout).minHeight)
+            }
         } else {
             val availableWidth = width - style.handle.minWidth
-            if (firstWidget is Layout)
-                effectiveMinAmount = Math.max(effectiveMinAmount, Math.min((firstWidget as Layout).minWidth / availableWidth, 1f))
-            if (secondWidget is Layout)
-                effectiveMaxAmount = Math.min(effectiveMaxAmount, 1 - Math.min((secondWidget as Layout).minWidth / availableWidth, 1f))
+            if (secondWidget is Layout) {
+                controlledSize = max(controlledSize, (secondWidget as Layout).minWidth)
+            }
         }
-
-        if (effectiveMinAmount > effectiveMaxAmount)
-        // Locked handle. Average the position.
-            splitAmount = 0.5f * (effectiveMinAmount + effectiveMaxAmount)
-        else
-            splitAmount = Math.max(Math.min(splitAmount, effectiveMaxAmount), effectiveMinAmount)
     }
 
     /** @param widget May be null.

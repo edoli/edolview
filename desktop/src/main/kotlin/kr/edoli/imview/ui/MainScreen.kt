@@ -5,7 +5,6 @@ import com.badlogic.gdx.Input
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
 import com.badlogic.gdx.scenes.scene2d.*
-import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import com.badlogic.gdx.utils.viewport.ScreenViewport
@@ -33,30 +32,47 @@ class MainScreen : Screen {
         layoutTable.row()
 
         // middle
-//        val middleTable = Table().apply {
-//            add().expand().fill()
-//            add(ScrollPane(SidePanel()).apply {
-//                setOverscroll(false, false)
-//            }).width(200f).expandY().fillY()
-//        }
-
-        val middleTable = SplitPane(WidgetGroup().apply {
-            touchable = Touchable.childrenOnly
-        }, object : ScrollPane(SidePanel()) {
-            init {
-                setSmoothScrolling(false)
-                setOverscroll(false, false)
-                setScrollingDisabled(true, false)
-            }
-
+        val sidePane = object : ScrollPane(SidePanel()) {
             override fun getMinWidth(): Float {
                 return 200f
             }
-        }, false, uiSkin).apply {
-            splitAmount = 1f
+        }.apply {
+            setSmoothScrolling(false)
+            setOverscroll(false, false)
+            setScrollingDisabled(true, false)
+        }
 
-            ImContext.isShowController.subscribe {
-                isVisible = it
+        val middleTable = SplitPane(imageViewer, sidePane, false, uiSkin).apply {
+            setSplitAmount(1f)
+            var isLastCollapsed = false
+            addListener(object : InputListener() {
+                override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+                    isLastCollapsed = isCollapsed
+                    return super.touchDown(event, x, y, pointer, button)
+                }
+            })
+            onSplitChanged = {
+                if (it > width - sidePane.minWidth / 2) {
+                    ImContext.isShowController.update(false)
+                } else {
+                    ImContext.isShowController.update(true)
+                }
+            }
+        }
+
+        ImContext.isShowController.subscribe {
+            if (middleTable.isCollapsed == !it) {
+                return@subscribe
+            }
+            sidePane.isVisible = it
+            middleTable.isCollapsed = !it
+
+            if (it) {
+                middleTable.setSplitAmount(1f)
+                middleTable.layout()
+            } else {
+                middleTable.setSplitAmount(1f)
+                middleTable.layout()
             }
         }
         layoutTable.add(middleTable).expand().fill()
@@ -65,10 +81,7 @@ class MainScreen : Screen {
         layoutTable.row()
         layoutTable.add(StatusBar()).height(StatusBar.barHeight + 2f).expandX().fillX()
 
-        stage.addActor(Table().apply {
-            setFillParent(true)
-            add(imageViewer).expand().fill()
-        })
+        // main stage
         stage.addActor(layoutTable)
 
         stage.addActor(Window("File info", uiSkin).apply {

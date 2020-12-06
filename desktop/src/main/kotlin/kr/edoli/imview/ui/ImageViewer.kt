@@ -24,6 +24,7 @@ import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.image.ImageConvert
 import kr.edoli.imview.image.bound
 import kr.edoli.imview.util.ceil
+import kr.edoli.imview.util.floor
 import kr.edoli.imview.util.toColorStr
 import org.lwjgl.opengl.GL30
 import org.opencv.core.Mat
@@ -77,10 +78,6 @@ class ImageViewer : WidgetGroup() {
     init {
         touchable = Touchable.enabled
         isTransform = true
-        // scroll focus
-        Gdx.app.postRunnable {
-            stage.scrollFocus = this
-        }
 
         // Mat -> Texture using [FloatTextureData]
         ImContext.mainImage.subscribe { mat ->
@@ -383,7 +380,7 @@ class ImageViewer : WidgetGroup() {
         imageToLocalCoordinates(vecB)
         imageScale *= height / (vecB.y - vecA.y)
 
-        ImContext.zoomLevel.update(log(imageScale.toDouble(), 1.1).toInt())
+        ImContext.zoomLevel.update(log(imageScale.toDouble(), 1.1).floor().toInt())
 
         centerRect(rect)
     }
