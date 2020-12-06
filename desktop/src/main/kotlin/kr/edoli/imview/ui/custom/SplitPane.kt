@@ -70,6 +70,9 @@ class SplitPane
     internal var lastPoint = Vector2()
     internal var handlePosition = Vector2()
 
+    var isCollapsed = false
+    var onSplitChanged: ((dragPos: Float) -> Unit)? = null
+
     var isVertical: Boolean
         get() = vertical
         set(vertical) {
@@ -141,6 +144,7 @@ class SplitPane
                     dragX = Math.min(availWidth, dragX)
                     controlledSize = availWidth - dragX
                     lastPoint.set(x, y)
+                    onSplitChanged?.invoke(dragX)
                 } else {
                     val delta = y - lastPoint.y
                     val availHeight = height - handle.minHeight
@@ -150,6 +154,7 @@ class SplitPane
                     dragY = Math.min(availHeight, dragY)
                     controlledSize = availHeight - dragY
                     lastPoint.set(x, y)
+                    onSplitChanged?.invoke(dragY)
                 }
                 invalidate()
             }
@@ -325,15 +330,19 @@ class SplitPane
         var effectiveMinAmount = minAmount
         var effectiveMaxAmount = maxAmount
 
-        if (vertical) {
-            val availableHeight = height - style.handle.minHeight
-            if (secondWidget is Layout) {
-                controlledSize = max(controlledSize, (secondWidget as Layout).minHeight)
-            }
+        if (isCollapsed) {
+            controlledSize = 0f
         } else {
-            val availableWidth = width - style.handle.minWidth
-            if (secondWidget is Layout) {
-                controlledSize = max(controlledSize, (secondWidget as Layout).minWidth)
+            if (vertical) {
+                val availableHeight = height - style.handle.minHeight
+                if (secondWidget is Layout) {
+                    controlledSize = max(controlledSize, (secondWidget as Layout).minHeight)
+                }
+            } else {
+                val availableWidth = width - style.handle.minWidth
+                if (secondWidget is Layout) {
+                    controlledSize = max(controlledSize, (secondWidget as Layout).minWidth)
+                }
             }
         }
     }
