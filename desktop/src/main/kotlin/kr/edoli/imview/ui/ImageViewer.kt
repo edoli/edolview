@@ -515,8 +515,10 @@ class ImageViewer : WidgetGroup() {
             val camera = OrthographicCamera(image.width().toFloat(), image.height().toFloat())
             camera.position.set(image.width().toFloat() / 2f, image.height().toFloat() / 2f, 0f)
             camera.update()
-            batch.projectionMatrix = camera.combined
             frameBuffer.begin()
+            batch.projectionMatrix = camera.combined
+            Gdx.gl.glViewport(0, 0, image.width(), image.height())
+            Gdx.gl.glDisable(GL30.GL_SCISSOR_TEST)
 
             drawImage(batch, 0f, 0f, 1f)
 
@@ -541,6 +543,7 @@ class ImageViewer : WidgetGroup() {
             }
 
             frameBuffer.end()
+            Gdx.gl.glEnable(GL30.GL_SCISSOR_TEST)
 
             return byteArray
         }
