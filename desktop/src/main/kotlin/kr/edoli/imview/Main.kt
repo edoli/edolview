@@ -6,6 +6,7 @@ import com.badlogic.gdx.backends.lwjgl3.MyLwjgl3Application
 import com.badlogic.gdx.graphics.glutils.HdpiMode
 import kr.edoli.imview.ui.App
 import java.io.File
+import javax.swing.UIManager
 import kotlin.system.exitProcess
 
 
@@ -15,6 +16,7 @@ fun main(args: Array<String>) {
     // setting.maxWidth = 2048
     // setting.maxHeight = 2048
     // TexturePacker.processIfModified(setting, "../../inputdir/ui", ".", "ui")
+    UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
 
     val config = Lwjgl3ApplicationConfiguration()
     config.useOpenGL3(true, 3, 2)

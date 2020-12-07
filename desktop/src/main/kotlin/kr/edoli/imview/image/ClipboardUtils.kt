@@ -8,9 +8,11 @@ import java.awt.datatransfer.StringSelection
 import java.awt.datatransfer.Transferable
 import java.awt.datatransfer.UnsupportedFlavorException
 import java.awt.image.BufferedImage
+import java.lang.Error
 import javax.swing.ImageIcon
 import javax.swing.JFrame
 import javax.swing.JLabel
+import javax.swing.JOptionPane
 
 
 class ImageSelection(private val image: java.awt.Image) : Transferable {
@@ -34,8 +36,17 @@ class ImageSelection(private val image: java.awt.Image) : Transferable {
 object ClipboardUtils {
 
     fun putImage(mat: Mat) {
-        val buffered = ImageConvert.matToBuffered(mat)
-        putImage(buffered)
+        val buffered = try {
+            ImageConvert.matToBuffered(mat)
+        } catch (ex: Exception) {
+            Thread {
+                JOptionPane.showMessageDialog(null, ex.message, "Image conversion error", JOptionPane.ERROR_MESSAGE)
+            }.start()
+            null
+        }
+        if (buffered != null) {
+            putImage(buffered)
+        }
     }
 
     fun putImage(buffered: BufferedImage) {
