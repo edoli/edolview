@@ -28,17 +28,25 @@ class DisplayProfilePanel : Panel(false) {
             add().width(4f)
             add(numberFieldMax).expandX().fillX()
 
-            ImContext.normalize.subscribe {
-                numberFieldMin.isDisabled = it
-                numberFieldMax.isDisabled = it
+            val update = {
+                val normalized = ImContext.normalize.get()
 
-                if (it) {
+                numberFieldMin.isDisabled = normalized
+                numberFieldMax.isDisabled = normalized
+
+                if (normalized) {
                     numberFieldMin.text = ImContext.textureMin.get().toString()
                     numberFieldMax.text = ImContext.textureMax.get().toString()
                 } else {
                     numberFieldMin.text = ImContext.displayMin.get().toString()
                     numberFieldMax.text = ImContext.displayMax.get().toString()
                 }
+            }
+            ImContext.normalize.subscribe {
+                update()
+            }
+            ImContext.textureMax.subscribe {
+                update()
             }
         }
         add(minMaxTable).expandX().fillX()
