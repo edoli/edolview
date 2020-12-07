@@ -7,7 +7,7 @@ buildscript {
     }
 
     ext {
-        appName = "imview"
+        appName = "EdolView"
         kotlin_version = '1.3.72'
         openjfx_version = '0.0.8'
         gdx_version = "1.9.12"
@@ -60,7 +60,7 @@ dependencies {
 }
 
 project.ext.mainClassName = "kr.edoli.imview.MainKt"
-project.ext.appname = 'imview'
+project.ext.appname = 'EdolView'
 project.ext.assetsDir = new File("./assets")
 
 application {

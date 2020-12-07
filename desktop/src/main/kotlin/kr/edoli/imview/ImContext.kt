@@ -25,7 +25,7 @@ object ImContext {
     val args = ObservableValue(arrayOf<String>())
 
     val mainImage = NullableObservableValue<Mat>(null)
-    val mainFile = ObservableValue(File("test.png"))
+    val mainFile = ObservableValue(File("EdolView"))
     val mainFileName = ObservableValue("", "File name")
     val mainFileDirectory = ObservableValue("", "File directory")
 
