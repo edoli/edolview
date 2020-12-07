@@ -23,6 +23,8 @@ import kr.edoli.imview.util.ObservableValue
 import kr.edoli.imview.util.toColor
 import kr.edoli.imview.util.toColorStr
 import org.opencv.core.Rect
+import tornadofx.isDouble
+import tornadofx.isFloat
 import kotlin.math.abs
 
 object UIFactory {
@@ -63,6 +65,31 @@ object UIFactory {
         downFontColor = Colors.negative
         overFontColor = Colors.over
         checkedFontColor = Colors.accent
+    }
+
+    fun createNumberField(observable: ObservableValue<Float>): TextField {
+        return object : TextField("", uiSkin) {
+            override fun getPrefWidth(): Float {
+                return 0f
+            }
+        }.apply {
+            observable.subscribe {
+                text = it.toString()
+            }
+
+            addListener(object : InputListener() {
+                override fun keyUp(event: InputEvent, keycode: Int): Boolean {
+                    if (keycode == Input.Keys.ENTER) {
+                        if (text.isFloat()) {
+                            observable.update(text.toFloat())
+                        } else {
+                            text = observable.get().toString()
+                        }
+                    }
+                    return super.keyUp(event, keycode)
+                }
+            })
+        }
     }
 
 

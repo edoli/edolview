@@ -25,6 +25,7 @@ import kr.edoli.imview.image.ImageConvert
 import kr.edoli.imview.image.bound
 import kr.edoli.imview.util.ceil
 import kr.edoli.imview.util.floor
+import kr.edoli.imview.util.reset
 import kr.edoli.imview.util.toColorStr
 import org.lwjgl.opengl.GL30
 import org.opencv.core.Mat
@@ -36,8 +37,6 @@ import kotlin.math.*
 class ImageViewer : WidgetGroup() {
     var texture: Texture? = null
     var textureRegion: TextureRegion? = null
-    var min = 0.0f
-    var max = 0.0f
 
     var imageX = 0f
     var imageY = 0f
@@ -191,6 +190,42 @@ class ImageViewer : WidgetGroup() {
                 ImContext.zoomLevel.update(ImContext.zoomLevel.get() - amountY.toInt())
                 return super.scrolled(event, x, y, amountX, amountY)
             }
+
+            override fun keyDown(event: InputEvent, keycode: Int): Boolean {
+                if (keycode == Input.Keys.LEFT) {
+                    ImContext.prevImage()
+                    return true
+                }
+                if (keycode == Input.Keys.RIGHT) {
+                    ImContext.nextImage()
+                    return true
+                }
+                if (keycode == Input.Keys.C && UIUtils.ctrl()) {
+                    ImContext.marqueeImage.get()?.let { mat ->
+                        ClipboardUtils.putImage(mat)
+                    }
+                    return true
+                }
+                if (keycode == Input.Keys.ESCAPE) {
+                    ImContext.marqueeBox.update { rect ->
+                        rect.reset()
+                    }
+                    return true
+                }
+                if (keycode == Input.Keys.A && UIUtils.ctrl()) {
+                    ImContext.mainImage.get()?.let { mat ->
+                        ImContext.marqueeBox.update { rect ->
+                            rect.x = 0
+                            rect.y = 0
+                            rect.width = mat.width()
+                            rect.height = mat.height()
+                            rect
+                        }
+                    }
+                    return true
+                }
+                return false
+            }
         })
 
         contextMenu {
@@ -324,8 +359,6 @@ class ImageViewer : WidgetGroup() {
         // Statistics
         imageWidth = mat.width()
         imageHeight = mat.height()
-        min = Float.MAX_VALUE
-        max = Float.MIN_VALUE
 
         calcNormalization()
 
@@ -333,8 +366,8 @@ class ImageViewer : WidgetGroup() {
     }
 
     private fun calcNormalization() {
-        if (ImContext.normalize.get() && max == Float.MIN_VALUE && min == Float.MAX_VALUE) {
-            val textureData = texture?.textureData as FloatTextureData
+        val textureData = texture?.textureData as FloatTextureData?
+        if (textureData != null) {
             val buffer = textureData.buffer
             buffer.position(0)
 
@@ -350,8 +383,8 @@ class ImageViewer : WidgetGroup() {
             }
 
             Gdx.app.postRunnable {
-                min = localMin
-                max = localMax
+                ImContext.textureMin.update(localMin)
+                ImContext.textureMax.update(localMax)
             }
         }
     }
@@ -484,14 +517,19 @@ class ImageViewer : WidgetGroup() {
             shader.setUniformf("brightness", ImContext.imageBrightness.get())
             shader.setUniformf("contrast", ImContext.imageContrast.get())
             shader.setUniformf("gamma", ImContext.imageGamma.get())
-            shader.setUniformf("min", min)
-            shader.setUniformf("max", max)
+            if (ImContext.normalize.get()) {
+                shader.setUniformf("min", ImContext.textureMin.get())
+                shader.setUniformf("max", ImContext.textureMax.get())
+            } else {
+                shader.setUniformf("min", ImContext.displayMin.get())
+                shader.setUniformf("max", ImContext.displayMax.get())
+            }
             if (ImContext.visibleChannel.get() != 0 || ImContext.mainImage.get()?.channels() == 1) {
                 shader.setUniformi("colormap", ImContext.imageColormap.currentIndex)
             } else {
                 shader.setUniformi("colormap", 0)
             }
-            shader.setUniformi("normalize", ImContext.normalize.get().let { if (it) 1 else 0 })
+//            shader.setUniformi("normalize", ImContext.normalize.get().let { if (it) 1 else 0 })
             textureRegion?.let { region ->
                 batch.draw(region, localX, localY, 0f, 0f,
                         region.regionWidth.toFloat(), region.regionHeight.toFloat(), localScale, localScale, 0f)

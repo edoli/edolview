@@ -134,9 +134,8 @@ void main()
 {
     vec4 p = texture2D(u_texture, v_texCoords);
     float alpha = p.a;
-    if (normalize == 1) {
-        p = (p - min) / (max - min);
-    }
+    p = (p - min) / (max - min);
+
     if (colormap == 0) {
         // gl_FragColor = v_color * ((pow(p, vec4(1.0 / gamma)) + brightness - 0.5) * contrast + 0.5);
         gl_FragColor = v_color * pow(p * contrast + brightness, vec4(1.0 / gamma));

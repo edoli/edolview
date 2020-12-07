@@ -1,7 +1,6 @@
 package kr.edoli.imview.ui.res
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.NinePatch
 import com.badlogic.gdx.graphics.g2d.TextureAtlas
 import com.badlogic.gdx.scenes.scene2d.ui.*
@@ -29,7 +28,7 @@ private fun res(name: String): Drawable {
 }
 
 val uiSkin = Skin(uiAtlas).apply {
-    val defaultLabelStyle = Label.LabelStyle(Font.defaultFont, Color.WHITE)
+    val defaultLabelStyle = Label.LabelStyle(Font.defaultFont, Colors.normal)
 
     add("default-font", Font.defaultFont)
     add("icon-font", Font.ioniconsFont)
@@ -65,9 +64,9 @@ val uiSkin = Skin(uiAtlas).apply {
             getDrawable("default-round-large")))
 
     add("default", SelectBox.SelectBoxStyle(
-            Font.defaultFont, Color.WHITE, SelectBoxDrawable().pad(2f, 5f, 1f, 4f),
+            Font.defaultFont, Colors.normal, SelectBoxDrawable().pad(2f, 5f, 1f, 4f),
             get(ScrollPane.ScrollPaneStyle::class.java),
-            List.ListStyle(Font.defaultFont, Color.WHITE, Color.WHITE, getDrawable("default-select-selection"))
+            List.ListStyle(Font.defaultFont, Colors.normal, Colors.normal, getDrawable("default-select-selection"))
     ))
 
     add("default-horizontal", SplitPane.SplitPaneStyle(
@@ -79,11 +78,11 @@ val uiSkin = Skin(uiAtlas).apply {
     ))
 
     add("default", Window.WindowStyle(
-            Font.defaultFont, Color.WHITE, getDrawable("default-window")
+            Font.defaultFont, Colors.normal, getDrawable("default-window")
     ))
 
     add("dialog", Window.WindowStyle(
-            Font.defaultFont, Color.WHITE, getDrawable("default-window")
+            Font.defaultFont, Colors.normal, getDrawable("default-window")
     ).apply { stageBackground = newDrawable("white", 0f, 0f, 0f, 0.45f) })
 
     add("default-horizontal", Slider.SliderStyle(
@@ -92,20 +91,22 @@ val uiSkin = Skin(uiAtlas).apply {
     ))
 
     add("default", TextField.TextFieldStyle(
-            Font.defaultFont, Color.WHITE,
+            Font.defaultFont, Colors.normal,
             getDrawable("cursor"),
             getDrawable("selection"),
             getDrawable("textfield")
-    ))
+    ).apply {
+        disabledFontColor = Colors.inactive
+    })
 
     add("default", CheckBox.CheckBoxStyle(
             getDrawable("check-on"),
             getDrawable("check-off"),
-            Font.defaultFont, Color.WHITE
+            Font.defaultFont, Colors.normal
     ))
 
     add("default", List.ListStyle(
-            Font.defaultFont, Color.WHITE, Color.LIGHT_GRAY,
+            Font.defaultFont, Colors.normal, Colors.inactive,
             getDrawable("selection")
     ))
 

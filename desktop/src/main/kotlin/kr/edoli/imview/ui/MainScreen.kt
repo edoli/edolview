@@ -106,34 +106,7 @@ class MainScreen : Screen {
 
         // Keyboard
         stage.addListener(object : InputListener() {
-            override fun keyDown(event: InputEvent?, keycode: Int): Boolean {
-                if (keycode == Input.Keys.LEFT) {
-                    ImContext.prevImage()
-                }
-                if (keycode == Input.Keys.RIGHT) {
-                    ImContext.nextImage()
-                }
-                if (keycode == Input.Keys.C && UIUtils.ctrl()) {
-                    ImContext.marqueeImage.get()?.let { mat ->
-                        ClipboardUtils.putImage(mat)
-                    }
-                }
-                if (keycode == Input.Keys.ESCAPE) {
-                    ImContext.marqueeBox.update { rect ->
-                        rect.reset()
-                    }
-                }
-                if (keycode == Input.Keys.A && UIUtils.ctrl()) {
-                    ImContext.mainImage.get()?.let { mat ->
-                        ImContext.marqueeBox.update { rect ->
-                            rect.x = 0
-                            rect.y = 0
-                            rect.width = mat.width()
-                            rect.height = mat.height()
-                            rect
-                        }
-                    }
-                }
+            override fun keyDown(event: InputEvent, keycode: Int): Boolean {
                 if (keycode == Input.Keys.F4) {
                     stage.isDebugAll = !stage.isDebugAll
                 }

@@ -48,6 +48,12 @@ object ImContext {
     val normalize = ObservableValue(false, "Normalize")
     val smoothing = ObservableValue(false, "Smoothing")
 
+    val displayMin = ObservableValue(0.0f, "Display Min")
+    val displayMax = ObservableValue(1.0f, "Display Max")
+
+    val textureMin = ObservableValue(0.0f, "Image Min")
+    val textureMax = ObservableValue(1.0f, "Image Max")
+
     val imageContrast = ObservableValue(1.0f, "Contrast")
     val imageBrightness = ObservableValue(0.0f, "Brightness")
     val imageGamma = ObservableValue(1.0f, "Gamma")
