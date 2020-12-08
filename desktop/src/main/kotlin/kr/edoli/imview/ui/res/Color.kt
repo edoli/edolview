@@ -5,11 +5,11 @@ import kotlin.reflect.full.declaredMemberProperties
 
 
 object Colors {
-    val normal = Color.WHITE
-    val negative = Color.RED
-    val over = Color.LIGHT_GRAY
-    val inactive = Color.LIGHT_GRAY
-    val accent = Color.GREEN
+    val normal = Color.WHITE!!
+    val negative = Color.RED!!
+    val over = Color.LIGHT_GRAY!!
+    val inactive = Color.LIGHT_GRAY!!
+    val accent = Color.GREEN!!
 
     init {
         Colors::class.declaredMemberProperties.forEach {
