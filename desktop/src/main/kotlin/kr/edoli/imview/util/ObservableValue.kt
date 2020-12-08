@@ -9,33 +9,30 @@ import rx.subjects.Subject
  */
 class ObservableValue<T>(private val initValue: T, val name: String = "") {
     private val observable: Subject<T, T> = BehaviorSubject.create<T>()
-    private val subjects = HashMap<Any, Subscription>()
+    val subjects = ArrayList<Subscriber>()
     private var value = initValue
 
     init {
         observable.onNext(initValue)
         observable.subscribe { value = it }
+
+        ObservableContext.observableValues.add(this)
     }
 
     fun subscribe(onNext: (T) -> Unit): Subscription {
-        return observable.subscribe(onNext)
+        return subscribe(null, onNext)
     }
 
-    fun subscribe(subject: Any, onNext: (T) -> Unit): Subscription {
-        if (subject in subjects) {
-            throw Exception()
-        }
-
+    fun subscribe(subject: Any?, onNext: (T) -> Unit): Subscription {
         val subscription = observable.subscribe(onNext)
         if (subscription != null) {
-            subjects[subject] = subscription
+            subjects.add(Subscriber(subject, subscription))
         }
         return subscription
     }
 
     fun unsubscribe(subject: Any) {
-        subjects[subject]?.unsubscribe()
-        subjects.remove(subject)
+        subjects.removeIf { it.subject == subject }
     }
 
     fun update(action: (T) -> T) {
@@ -56,4 +53,6 @@ class ObservableValue<T>(private val initValue: T, val name: String = "") {
     fun reset() {
         update(initValue)
     }
+
+    data class Subscriber(val subject: Any?, val subscription: Subscription)
 }

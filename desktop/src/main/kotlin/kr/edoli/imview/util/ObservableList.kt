@@ -24,6 +24,8 @@ class ObservableList<T>(
     init {
         observable.onNext(list[initialIndex])
         observable.subscribe { value = it }
+
+        ObservableContext.observableLists.add(this)
     }
 
     fun subscribe(onNext: (T) -> Unit): Subscription {
