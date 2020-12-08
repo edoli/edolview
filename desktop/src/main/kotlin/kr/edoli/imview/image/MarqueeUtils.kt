@@ -2,6 +2,7 @@ package kr.edoli.imview.image
 
 import kr.edoli.imview.ImContext
 import org.opencv.core.Core
+import org.opencv.core.CvType
 import org.opencv.core.Mat
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
@@ -32,7 +33,7 @@ object MarqueeUtils {
         fileChooser.isVisible = true
 
         val filePath = fileChooser.file
-        val dest = filePath?.let { File(fileChooser.file) }
+        val dest = filePath?.let { File(fileChooser.directory + filePath) }
 
         // val fileChooser = FileChooser()
         // fileChooser.initialDirectory = ImContext.mainFile.get().parentFile
@@ -49,13 +50,15 @@ object MarqueeUtils {
                 val selectedMat = croppedImage(doImageProc)
                 if (selectedMat != null) {
                     val mat = selectedMat.clone()
+                    val maxValue = ImContext.mainImageSpec.get()!!.maxValue
                     val factor = when (dest.extension.toLowerCase()) {
-                        "png" -> 255.0
+                        "png" -> if (maxValue != -1.0) maxValue else 255.0
                         "tiff" -> 255.0
                         "jpg" -> 255.0
                         else -> 1.0
                     }
                     val numChannels = mat.channels()
+                    mat.convertTo(mat, CvType.CV_32FC3, factor)
                     when (numChannels) {
                         3 -> {
                             Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGB2BGR)
@@ -64,7 +67,7 @@ object MarqueeUtils {
                             Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGBA2BGRA)
                         }
                     }
-                    Imgcodecs.imwrite(dest.absolutePath, mat * factor)
+                    Imgcodecs.imwrite(dest.absolutePath, mat)
                 }
             } catch (ex: IOException) {
 

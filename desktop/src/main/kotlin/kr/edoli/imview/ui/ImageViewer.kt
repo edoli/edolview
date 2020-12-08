@@ -22,6 +22,7 @@ import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.image.ImageConvert
+import kr.edoli.imview.image.MarqueeUtils
 import kr.edoli.imview.image.bound
 import kr.edoli.imview.util.ceil
 import kr.edoli.imview.util.floor
@@ -276,6 +277,11 @@ class ImageViewer : WidgetGroup() {
                 addMenu("Copy selection RGB") {
                     ImContext.mainImageSpec.get()?.let { imageSpec ->
                         ClipboardUtils.putString(ImContext.marqueeBoxRGB.get().toColorStr(imageSpec.maxValue))
+                    }
+                }
+                addMenu("Save selected image") {
+                    ImContext.marqueeImage.get()?.let { mat ->
+                        MarqueeUtils.saveImage(false)
                     }
                 }
                 addMenu("Copy selected image") {
