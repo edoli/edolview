@@ -42,10 +42,10 @@ class DisplayProfilePanel : Panel(false) {
                     numberFieldMax.text = ImContext.displayMax.get().toString()
                 }
             }
-            ImContext.normalize.subscribe {
+            ImContext.normalize.subscribe(this@DisplayProfilePanel, "Update display profile") {
                 update()
             }
-            ImContext.textureMax.subscribe {
+            ImContext.textureMax.subscribe(this@DisplayProfilePanel, "Update display profile") {
                 update()
             }
         }
@@ -60,7 +60,7 @@ class DisplayProfilePanel : Panel(false) {
         add(Table().apply {
             add(UIFactory.createSelectBox(ImContext.visibleChannel)).padRight(4f)
             add(UIFactory.createSelectBox(ImContext.imageColormap).apply {
-                ImContext.visibleChannel.subscribe { channel ->
+                ImContext.visibleChannel.subscribe(this@DisplayProfilePanel, "Update display profile") { channel ->
                     isVisible = channel != 0 || ImContext.mainImage.get()?.channels() == 1
                 }
             })

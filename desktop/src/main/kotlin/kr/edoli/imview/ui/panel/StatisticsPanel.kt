@@ -1,17 +1,14 @@
 package kr.edoli.imview.ui.panel
 
-import com.badlogic.gdx.Gdx
 import kr.edoli.imview.ui.Panel
-import kr.edoli.imview.ui.UIFactory
 import kr.edoli.imview.ui.custom.NumberLabel
-import kr.edoli.imview.util.NullableObservableValue
+import kr.edoli.imview.util.ObservableValue
 import kr.edoli.imview.util.forever
 import org.opencv.core.Mat
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
-import kotlin.math.sqrt
 
-class StatisticsPanel(imageObservable: NullableObservableValue<Mat>) : Panel(false) {
+class StatisticsPanel(imageObservable: ObservableValue<Mat?>) : Panel(false) {
     val imageQueue = LinkedBlockingQueue<Mat>()
 
     init {
@@ -72,7 +69,7 @@ class StatisticsPanel(imageObservable: NullableObservableValue<Mat>) : Panel(fal
             }
         }
 
-        imageObservable.subscribe { mat ->
+        imageObservable.subscribe(this, "Statistic queue") { mat ->
             if (mat == null) return@subscribe
             imageQueue.put(mat)
         }

@@ -32,10 +32,11 @@ class HistogramPanel : Panel(false) {
         row()
         add(slider).expandX().fillX()
 
-        ImContext.mainImage.subscribe { updateHistogram() }
+        ImContext.mainImage.subscribe(this, "Update histogram") { updateHistogram() }
     }
 
     fun updateHistogram() {
+        /*
         val mat = ImContext.mainImage.get() ?: return
 
         val binSize = slider.value

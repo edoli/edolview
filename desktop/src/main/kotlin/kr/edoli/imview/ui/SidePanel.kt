@@ -30,7 +30,7 @@ class SidePanel : Panel() {
 
         add(CollapsiblePanel("Histogram", HistogramPanel(), true)).fillX()
 
-        ImContext.isShowController.subscribe {
+        ImContext.isShowController.subscribe(this, "Layout") {
             isVisible = it
         }
     }

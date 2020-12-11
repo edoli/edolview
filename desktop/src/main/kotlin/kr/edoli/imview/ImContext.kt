@@ -22,26 +22,26 @@ import kotlin.math.min
 object ImContext {
     private val preferences = Preferences.userRoot().node("ImView")
 
-    val args = ObservableValue(arrayOf<String>())
+    val args = ObservableValue(arrayOf<String>(), "Args")
 
     val mainImage = ObservableValue<Mat?>(null, "Main image")
     val mainFile = ObservableValue(File("EdolView"), "Main file")
     val mainFileName = ObservableValue("", "Main File name")
     val mainFileDirectory = ObservableValue("", "Main File directory")
 
-    val mainImageSpec = ObservableValue<ImageSpec?>(null)
-    val marqueeImage = ObservableValue<Mat?>(null)
+    val mainImageSpec = ObservableValue<ImageSpec?>(null, "Image spec")
+    val marqueeImage = ObservableValue<Mat?>(null, "Marqueed image")
 
-    val cursorPosition = ObservableValue(Point2D(0.0, 0.0))
-    val cursorRGB = ObservableValue(doubleArrayOf())
+    val cursorPosition = ObservableValue(Point2D(0.0, 0.0), "Cursor position")
+    val cursorRGB = ObservableValue(doubleArrayOf(), "Cursor RGB")
 
-    val marqueeBox = ObservableValue(Rect())
-    val marqueeBoxActive = ObservableValue(false)
-    val marqueeBoxRGB = ObservableValue(doubleArrayOf())
+    val marqueeBox = ObservableValue(Rect(), "Marquee box")
+    val marqueeBoxActive = ObservableValue(false, "Marquee box active")
+    val marqueeBoxRGB = ObservableValue(doubleArrayOf(), "Marquee box RGB")
 
     val zoomLevel = ObservableValue(0, "Zoom level")
-    val zoomCenter = ObservableValue(Point2D(0.0, 0.0))
-    val rotation = ObservableValue(0.0)
+    val zoomCenter = ObservableValue(Point2D(0.0, 0.0), "Zoom center")
+    val rotation = ObservableValue(0.0, "Rotation")
 
     // Display profile
     val enableDisplayProfile = ObservableValue(true, "Enable display profile")
@@ -92,7 +92,7 @@ object ImContext {
     init {
         loadPreferences()
 
-        mainFile.subscribe { file ->
+        mainFile.subscribe(this, "Update image") { file ->
             if (file.isDirectory) {
                 fileManager.setFile(file)
                 frameSpeed.update(5.0f)
@@ -114,7 +114,7 @@ object ImContext {
             }
         }
 
-        mainImage.subscribe { mat ->
+        mainImage.subscribe(this, "Update marquee") { mat ->
             cursorRGB.update(doubleArrayOf())
             marqueeBoxRGB.update(doubleArrayOf())
 
@@ -125,11 +125,11 @@ object ImContext {
             }
         }
 
-        cursorPosition.subscribe(this) {
+        cursorPosition.subscribe(this, "Update mouse position and RGB") {
             updateCursorColor()
         }
 
-        marqueeBox.subscribe(this) {
+        marqueeBox.subscribe(this, "Update marquee image and RGB") {
             val mainImage = mainImage.get()
             if (it.width > 0 && it.height > 0 && mainImage != null) {
                 marqueeImage.update(mainImage[it])
@@ -137,9 +137,9 @@ object ImContext {
             }
         }
 
-        isShowCrosshair.subscribe { savePreferences() }
-        isShowController.subscribe { savePreferences() }
-        isShowFileInfo.subscribe { savePreferences() }
+        isShowCrosshair.subscribe(this, "Preference") { savePreferences() }
+        isShowController.subscribe(this, "Preference") { savePreferences() }
+        isShowFileInfo.subscribe(this, "Preference") { savePreferences() }
 
         Timer().schedule(object : TimerTask() {
             var current = System.nanoTime()

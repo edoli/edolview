@@ -13,7 +13,7 @@ class ObservableList<T>(
         val name: String = "") {
 
     private val observable: Subject<T, T> = BehaviorSubject.create<T>()
-    private val subjects = HashMap<Any, Subscription>()
+    val subjects = ArrayList<ObservableValue.Subscriber>()
 
     val items: List<T>
         get() = list.toList()
@@ -28,25 +28,22 @@ class ObservableList<T>(
         ObservableContext.observableLists.add(this)
     }
 
-    fun subscribe(onNext: (T) -> Unit): Subscription {
-        return observable.subscribe(onNext)
-    }
-
-    fun subscribe(subject: Any, onNext: (T) -> Unit): Subscription {
-        if (subject in subjects) {
-            throw Exception()
-        }
-
+    fun subscribe(subject: Any, description: String, onNext: (T) -> Unit): ObservableValue.Subscriber {
         val subscription = observable.subscribe(onNext)
-        if (subscription != null) {
-            subjects[subject] = subscription
-        }
-        return subscription
+        val subscriber = ObservableValue.Subscriber(subject, subscription, description)
+        subjects.add(subscriber)
+        return subscriber
     }
 
     fun unsubscribe(subject: Any) {
-        subjects[subject]?.unsubscribe()
-        subjects.remove(subject)
+        subjects.filter { it.subject == subject }.forEach {
+            unsubscribe(it)
+        }
+    }
+
+    fun unsubscribe(subscriber: ObservableValue.Subscriber) {
+        subscriber.subscription.unsubscribe()
+        subjects.remove(subscriber)
     }
 
     fun update(index: Int) {

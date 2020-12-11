@@ -39,7 +39,7 @@ class FileInfoPanel : Panel(false) {
             add(numChannelsLabel)
         })
 
-        ImContext.mainImageSpec.subscribe { imageSpec ->
+        ImContext.mainImageSpec.subscribe(this, "Update file info") { imageSpec ->
             if (imageSpec == null) return@subscribe
 
             bitPerPixelLabel.value = imageSpec.bitsPerPixel.toDouble()

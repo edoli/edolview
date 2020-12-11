@@ -73,7 +73,7 @@ object UIFactory {
                 return 0f
             }
         }.apply {
-            observable.subscribe {
+            observable.subscribe(this@UIFactory, "Double binding") {
                 text = it.toString()
             }
 
@@ -104,8 +104,9 @@ object UIFactory {
         return Table().apply {
             add(Label(icon, iconLabelStyle)).padRight(8f)
             add(CustomSlider(min, max, stepSize, false, uiSkin).apply {
+                val slider = this@apply
                 setButton(Input.Buttons.LEFT)
-                observable.subscribe { newValue ->
+                observable.subscribe(this@UIFactory, "Double binding") { newValue ->
                     this.value = newValue
                 }
 
@@ -113,24 +114,24 @@ object UIFactory {
                     override fun scrolled(event: InputEvent, x: Float, y: Float, amountX: Float, amountY: Float): Boolean {
                         when {
                             UIUtils.ctrl() -> {
-                                this@apply.value = this@apply.value - stepSize * amountY
+                                slider.value = slider.value - stepSize * amountY
                             }
                             UIUtils.shift() -> {
-                                this@apply.value = this@apply.value - stepSize * amountY * 10
+                                slider.value = slider.value - stepSize * amountY * 10
                             }
                             else -> {
-                                this@apply.value = this@apply.value - stepSize * amountY * 100
+                                slider.value = slider.value - stepSize * amountY * 100
                             }
                         }
                         return true
                     }
 
                     override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
-                        stage.scrollFocus = this@apply
+                        stage.scrollFocus = slider
                     }
 
                     override fun exit(event: InputEvent, x: Float, y: Float, pointer: Int, toActor: Actor?) {
-                        if (toActor == null || toActor != this@apply) {
+                        if (toActor == null || toActor != slider) {
                             stage.scrollFocus = null
                         }
                     }
@@ -138,7 +139,7 @@ object UIFactory {
 
                 addListener(object : ChangeListener() {
                     override fun changed(event: ChangeEvent, actor: Actor) {
-                        val value = this@apply.value
+                        val value = slider.value
                         observable.update(value)
                     }
                 })
@@ -153,7 +154,7 @@ object UIFactory {
             add(createLabel(observable, null) {
                 String.format("%.2f", abs(it))
             }.apply {
-                observable.subscribe {
+                observable.subscribe(this@UIFactory, "Double binding") {
                     color = if (it < 0) {
                         Colors.negative
                     } else {
@@ -166,7 +167,7 @@ object UIFactory {
 
     fun <T> createSelectBox(observable: ObservableList<T>): SelectBox<T> {
         return SelectBox<T>(uiSkin).apply {
-            observable.subscribe { newValue ->
+            observable.subscribe(this@UIFactory, "Double binding") { newValue ->
                 selected = newValue
                 if (observable.items != items) {
                     val array = com.badlogic.gdx.utils.Array<T>()
@@ -230,7 +231,7 @@ object UIFactory {
 
     fun createToggleTextButton(text: String, observable: ObservableValue<Boolean>): TextButton {
         return TextButton(text, uiSkin.get("toggle", TextButton.TextButtonStyle::class.java)).apply {
-            observable.subscribe { newValue -> isChecked = newValue }
+            observable.subscribe(this@UIFactory, "Double binding") { newValue -> isChecked = newValue }
             addListener(object : ChangeListener() {
                 override fun changed(event: ChangeEvent?, actor: Actor?) {
                     observable.update(this@apply.isChecked)
@@ -261,7 +262,7 @@ object UIFactory {
 
     fun createColorRect(observable: ObservableValue<DoubleArray>): ColorRect {
         return ColorRect().apply {
-            observable.subscribe { newValue -> color = newValue.toColor() }
+            observable.subscribe(this@UIFactory, "Double binding") { newValue -> color = newValue.toColor() }
         }.tooltip(observable.name).contextMenu {
             addMenu("Copy hex") {
                 ClipboardUtils.putString(observable.get().toColor().toString())
@@ -314,7 +315,7 @@ object UIFactory {
         return {
             var lastValue: T? = null
             Label("", uiSkin).apply {
-                observable.subscribe { newValue ->
+                observable.subscribe(this@UIFactory, "Double binding") { newValue ->
                     lastValue = newValue
                     setText(text(newValue))
                 }
@@ -339,7 +340,7 @@ object UIFactory {
 
     }
 
-    @kotlin.ExperimentalUnsignedTypes
+    @ExperimentalUnsignedTypes
     fun checkArray(value: Any?): String? {
         when (value) {
             is Array<*> -> {

@@ -17,7 +17,7 @@ class App(private val args: Array<String>) : Game() {
         if (args.isNotEmpty()) {
             ImContext.mainFile.update(File(args[0]))
         }
-        ImContext.mainFile.subscribe { Gdx.graphics.setTitle(it.name) }
+        ImContext.mainFile.subscribe(this, "Update title") { Gdx.graphics.setTitle(it.name) }
         Gdx.graphics.isContinuousRendering = false
 
         setScreen(MainScreen())

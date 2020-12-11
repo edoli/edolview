@@ -60,7 +60,7 @@ class MainScreen : Screen {
             }
         }
 
-        ImContext.isShowController.subscribe {
+        ImContext.isShowController.subscribe(this, "Layout") {
             if (middleTable.isCollapsed == !it) {
                 return@subscribe
             }
@@ -97,7 +97,7 @@ class MainScreen : Screen {
 
             isResizable = true
             setKeepWithinStage(true)
-            ImContext.isShowFileInfo.subscribe { isVisible = it }
+            ImContext.isShowFileInfo.subscribe(this@MainScreen, "Layout") { isVisible = it }
 
         })
 

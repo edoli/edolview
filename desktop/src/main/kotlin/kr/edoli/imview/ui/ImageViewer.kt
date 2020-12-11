@@ -80,18 +80,19 @@ class ImageViewer : WidgetGroup() {
         isTransform = true
 
         // Mat -> Texture using [FloatTextureData]
-        ImContext.mainImage.subscribe { mat ->
+        ImContext.mainImage.subscribe(this, "Update texture") { mat ->
             Gdx.app.postRunnable {
                 updateTexture(mat)
             }
         }
-        ImContext.visibleChannel.subscribe {
+
+        ImContext.visibleChannel.subscribe(this, "Update texture") {
             Gdx.app.postRunnable {
                 updateTexture(ImContext.mainImage.get())
             }
         }
 
-        ImContext.smoothing.subscribe { updateSmoothing() }
+        ImContext.smoothing.subscribe(this, "Update texture smoothing") { updateSmoothing() }
 
         // Drag listener
         addListener(object : InputListener() {
@@ -311,7 +312,7 @@ class ImageViewer : WidgetGroup() {
             }
         }
 
-        ImContext.zoomLevel.subscribe { zoomLevel ->
+        ImContext.zoomLevel.subscribe(this, "Update image zoom") { zoomLevel ->
             val mousePos = Vector2(Gdx.input.x.toFloat(), Gdx.input.y.toFloat())
             screenToLocalCoordinates(mousePos)
 
@@ -329,7 +330,7 @@ class ImageViewer : WidgetGroup() {
             imageScale = newScale
         }
 
-        ImContext.normalize.subscribe {
+        ImContext.normalize.subscribe(this, "Calc normalization") {
             calcNormalization()
         }
 
