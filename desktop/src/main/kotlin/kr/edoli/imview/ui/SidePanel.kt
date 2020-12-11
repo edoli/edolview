@@ -20,7 +20,7 @@ class SidePanel : Panel() {
 
         addHorizontalDivider().pad(4f)
 
-        add(CollapsiblePanel("Image statistics", StatisticsPanel(ImContext.mainImage), true)).fillX()
+//        add(CollapsiblePanel("Image statistics", StatisticsPanel(ImContext.mainImage), true)).fillX()
 
         addHorizontalDivider().pad(4f)
 
@@ -28,7 +28,8 @@ class SidePanel : Panel() {
 
         addHorizontalDivider().pad(4f)
 
-        add(CollapsiblePanel("Histogram", HistogramPanel(), true)).fillX()
+        // Temporary disable histogram
+//        add(CollapsiblePanel("Histogram", HistogramPanel(), true)).fillX()
 
         ImContext.isShowController.subscribe(this, "Layout") {
             isVisible = it

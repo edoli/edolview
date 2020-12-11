@@ -15,7 +15,7 @@ class FrameControl {
         remainTime -= delta
 
         if (remainTime < 0f) {
-            remainTime = frameSpeed
+            remainTime = 1.0f / frameSpeed
             ImContext.nextImage()
         }
     }

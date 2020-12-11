@@ -149,6 +149,13 @@ operator fun Double.div(mat: Mat): Mat {
     return newMat
 }
 
+fun Mat.pow(value: Double): Mat {
+    val newMat = Mat(rows(), cols(), type())
+    Core.pow(this, value, newMat)
+    return newMat
+}
+
+
 fun Mat.split(): List<Mat> {
     if (this.channels() == 1) {
         return listOf(this)
@@ -157,6 +164,10 @@ fun Mat.split(): List<Mat> {
     Core.split(this, matArray)
 
     return matArray
+}
+
+fun Mat.sum(): Double {
+    return Core.sumElems(this).`val`[0]
 }
 
 fun Mat.min(): Double {

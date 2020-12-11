@@ -36,7 +36,6 @@ class HistogramPanel : Panel(false) {
     }
 
     fun updateHistogram() {
-        /*
         val mat = ImContext.mainImage.get() ?: return
 
         val binSize = slider.value

@@ -1,12 +1,17 @@
 package kr.edoli.imview.ui.panel
 
+import com.badlogic.gdx.Gdx
+import kr.edoli.imview.image.*
 import kr.edoli.imview.ui.Panel
 import kr.edoli.imview.ui.custom.NumberLabel
 import kr.edoli.imview.util.ObservableValue
 import kr.edoli.imview.util.forever
+import kr.edoli.imview.util.functionTime
+import org.opencv.core.Core
 import org.opencv.core.Mat
 import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
+import kotlin.math.sqrt
 
 class StatisticsPanel(imageObservable: ObservableValue<Mat?>) : Panel(false) {
     val imageQueue = LinkedBlockingQueue<Mat>()
@@ -37,24 +42,11 @@ class StatisticsPanel(imageObservable: ObservableValue<Mat?>) : Panel(false) {
                 val channels = mat.channels()
                 val num = (mat.total() * channels).toInt()
 
-                val rawData = DoubleArray(num)
-                mat.get(0, 0, rawData)
-
-                var minValue = Double.MAX_VALUE
-                var maxValue = Double.MIN_VALUE
-                var sum = 0.0
-                var squareSum = 0.0
-
-                rawData.forEach { v ->
-                    if (v < minValue) minValue = v
-                    if (v > maxValue) maxValue = v
-                    sum += v
-                    squareSum += v * v
-
-                    if (imageQueue.isNotEmpty()) {
-                        return@forever
-                    }
-                }
+                val minMax = mat.minMax()
+                val minValue = minMax.first
+                val maxValue = minMax.second
+                val sum = mat.sum()
+                val squareSum = mat.pow(2.0).sum()
 
                 val mean = sum / num
                 val variance = (squareSum / num - mean * mean) * (num / (num - 1))

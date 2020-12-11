@@ -367,7 +367,9 @@ class ImageViewer : WidgetGroup() {
         imageWidth = mat.width()
         imageHeight = mat.height()
 
-        calcNormalization()
+        if (ImContext.normalize.get()) {
+            calcNormalization()
+        }
 
         updateSmoothing()
     }
