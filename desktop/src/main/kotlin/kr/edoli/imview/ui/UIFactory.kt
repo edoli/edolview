@@ -89,6 +89,13 @@ object UIFactory {
                     return super.keyUp(event, keycode)
                 }
             })
+        }.contextMenu {
+            addMenu("Reset value") {
+                observable.reset()
+            }
+            addMenu("Copy value") {
+                ClipboardUtils.putString(observable.get().toString())
+            }
         }
     }
 

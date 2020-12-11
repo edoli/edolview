@@ -33,15 +33,17 @@ class FilenameComparator : Comparator<String> {
             val c2 = split2[i][0]
             var cmp = 0
 
-            if (c1 in '0'..'9' && c2.toInt() >= 0 && c2 <= '9')
-                cmp = BigInteger(split1[i]).compareTo(
-                        BigInteger(split2[i]))
+            if (c1 in '0'..'9' && c2.toInt() >= 0 && c2 <= '9') {
+                cmp = BigInteger(split1[i]).compareTo(BigInteger(split2[i]))
+            }
 
-            if (cmp == 0)
+            if (cmp == 0) {
                 cmp = split1[i].compareTo(split2[i])
+            }
 
-            if (cmp != 0)
+            if (cmp != 0) {
                 return cmp
+            }
         }
 
         var cmp = split1.size - split2.size

@@ -24,13 +24,13 @@ object ImContext {
 
     val args = ObservableValue(arrayOf<String>())
 
-    val mainImage = NullableObservableValue<Mat>(null)
-    val mainFile = ObservableValue(File("EdolView"))
-    val mainFileName = ObservableValue("", "File name")
-    val mainFileDirectory = ObservableValue("", "File directory")
+    val mainImage = ObservableValue<Mat?>(null, "Main image")
+    val mainFile = ObservableValue(File("EdolView"), "Main file")
+    val mainFileName = ObservableValue("", "Main File name")
+    val mainFileDirectory = ObservableValue("", "Main File directory")
 
-    val mainImageSpec = NullableObservableValue<ImageSpec>(null)
-    val marqueeImage = NullableObservableValue<Mat>(null)
+    val mainImageSpec = ObservableValue<ImageSpec?>(null)
+    val marqueeImage = ObservableValue<Mat?>(null)
 
     val cursorPosition = ObservableValue(Point2D(0.0, 0.0))
     val cursorRGB = ObservableValue(doubleArrayOf())
