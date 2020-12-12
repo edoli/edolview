@@ -15,6 +15,7 @@ import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
+import kr.edoli.imview.ui.UIFactory.checkArray
 import kr.edoli.imview.ui.contextmenu.ContextMenuManager
 import kr.edoli.imview.ui.custom.CustomSlider
 import kr.edoli.imview.ui.res.Colors
@@ -27,6 +28,7 @@ import kr.edoli.imview.util.toColorStr
 import org.opencv.core.Rect
 import tornadofx.isDouble
 import tornadofx.isFloat
+import tornadofx.isInt
 import kotlin.math.abs
 
 object UIFactory {
@@ -69,23 +71,25 @@ object UIFactory {
         checkedFontColor = Colors.accent
     }
 
-    fun createNumberField(observable: ObservableValue<Float>): TextField {
-        return object : TextField("", uiSkin) {
+    fun <T> createField(observable: ObservableValue<T>, strToValue: (String) -> T, valueToString: (T) -> String,
+                        checkValid: (String) -> Boolean): TextField {
+        val textField = object : TextField("", uiSkin) {
             override fun getPrefWidth(): Float {
                 return 0f
             }
-        }.apply {
+        }
+        return textField.apply {
             observable.subscribe(this@UIFactory, "Double binding") {
-                text = it.toString()
+                text = valueToString(it)
             }
 
             addListener(object : InputListener() {
                 override fun keyUp(event: InputEvent, keycode: Int): Boolean {
                     if (keycode == Input.Keys.ENTER) {
-                        if (text.isFloat()) {
-                            observable.update(text.toFloat())
+                        if (checkValid(text)) {
+                            observable.update(strToValue(text))
                         } else {
-                            text = observable.get().toString()
+                            text = valueToString(observable.get())
                         }
                     }
                     return super.keyUp(event, keycode)
@@ -98,9 +102,32 @@ object UIFactory {
             addMenu("Copy value") {
                 ClipboardUtils.putString(observable.get().toString())
             }
+            addMenu("Copy text") {
+                ClipboardUtils.putString(textField.text)
+            }
         }
     }
 
+    fun createNumberField(observable: ObservableValue<Float>) = createField(observable, {
+        it.toFloat()
+    }, {
+        it.toString()
+    }, {
+        it.isFloat()
+    })
+
+    fun createRectField(observable: ObservableValue<Rect>) = createField(observable, { str ->
+        val numbers = str.replace("(", "").replace(")", "").split(",").map {
+            it.trim().toInt()
+        }
+        Rect(numbers[0], numbers[1], numbers[2], numbers[3])
+    }, { newValue ->
+        "(${newValue.x}, ${newValue.y}, ${newValue.width}, ${newValue.height})"
+    }, { str ->
+        str.replace("(", "").replace(")", "").split(",").map {
+            it.trim().isInt()
+        }.reduce { acc, b -> acc && b }
+    })
 
     fun createSlider(icon: String, min: Float, max: Float, stepSize: Float, observable: ObservableValue<Float>): Table {
         return Table().apply {
@@ -314,31 +341,29 @@ object UIFactory {
                         , tooltipText: String? = observable.name
                         , text: (value: T) -> String = { it.toString() })
             : Label {
-        return {
-            var lastValue: T? = null
-            Label("", uiSkin).apply {
-                observable.subscribe(this@UIFactory, "Double binding") { newValue ->
-                    lastValue = newValue
-                    setText(text(newValue))
-                }
-            }.tooltip(tooltipText).contextMenu {
-                if (lastValue !is String) {
-                    addMenu("Copy value") {
-                        val value = lastValue
-                        val res = checkArray(value)
-                        if (res != null) {
-                            ClipboardUtils.putString("[$res]")
-                        } else {
-                            ClipboardUtils.putString(lastValue.toString())
-                        }
+        var lastValue: T? = null
+        return Label("", uiSkin).apply {
+            observable.subscribe(this@UIFactory, "Double binding") { newValue ->
+                lastValue = newValue
+                setText(text(newValue))
+            }
+        }.tooltip(tooltipText).contextMenu {
+            if (lastValue !is String) {
+                addMenu("Copy value") {
+                    val value = lastValue
+                    val res = checkArray(value)
+                    if (res != null) {
+                        ClipboardUtils.putString("[$res]")
+                    } else {
+                        ClipboardUtils.putString(lastValue.toString())
                     }
                 }
-                addMenu("Copy text") {
-                    val value = lastValue
-                    ClipboardUtils.putString(value?.let { text(it) } ?: "")
-                }
             }
-        }()
+            addMenu("Copy text") {
+                val value = lastValue
+                ClipboardUtils.putString(value?.let<T, String> { text(it) } ?: "")
+            }
+        }
 
     }
 

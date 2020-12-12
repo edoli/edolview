@@ -138,11 +138,14 @@ void main()
 
     if (colormap == 0) {
         // gl_FragColor = v_color * ((pow(p, vec4(1.0 / gamma)) + brightness - 0.5) * contrast + 0.5);
-        gl_FragColor = v_color * pow(p * contrast + brightness, vec4(1.0 / gamma));
+        vec4 v = pow(p * contrast + brightness, vec4(1.0 / gamma));
+        v = clamp(v, 0.0, 1.0);
+        gl_FragColor = v_color * v;
         gl_FragColor.a = alpha;
     } else {
         // float v = pow(p.r, (1.0 / gamma)) * contrast + brightness;
         float v = pow(p.r * contrast + brightness, 1.0 / gamma);
+        v = clamp(v, 0.0, 1.0);
         vec3 color;
         if (colormap == 1) {
             color = jet_colormap(v);

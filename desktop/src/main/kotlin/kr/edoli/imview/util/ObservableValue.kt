@@ -7,8 +7,8 @@ import rx.subjects.Subject
 /**
  * Created by daniel on 16. 10. 2.
  */
-class ObservableValue<T>(private val initValue: T, val name: String) {
-    private val observable: Subject<T, T> = BehaviorSubject.create<T>()
+class ObservableValue<T>(private val initValue: T, val name: String, val checkValue: (T) -> T = {it}) {
+    private val observable: Subject<T, T> = BehaviorSubject.create()
     val subjects = ArrayList<Subscriber>()
     private var value = initValue
 
@@ -40,7 +40,7 @@ class ObservableValue<T>(private val initValue: T, val name: String) {
     }
 
     fun update(action: (T) -> T) {
-        value = action(value)
+        value = checkValue(action(value))
 
         val startTime = System.nanoTime()
         observable.onNext(value)
@@ -49,7 +49,7 @@ class ObservableValue<T>(private val initValue: T, val name: String) {
 
     fun update(newValue: T) {
         val startTime = System.nanoTime()
-        observable.onNext(newValue)
+        observable.onNext(checkValue(newValue))
         lastTotalUpdateTime = System.nanoTime() - startTime
     }
 

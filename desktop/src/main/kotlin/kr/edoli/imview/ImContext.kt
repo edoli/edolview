@@ -35,7 +35,19 @@ object ImContext {
     val cursorPosition = ObservableValue(Point2D(0.0, 0.0), "Cursor position")
     val cursorRGB = ObservableValue(doubleArrayOf(), "Cursor RGB")
 
-    val marqueeBox = ObservableValue(Rect(), "Marquee box")
+    val marqueeBox = ObservableValue(Rect(), "Marquee box", { rect ->
+        mainImage.get()?.let { image ->
+            val imageWidth = image.width()
+            val imageHeight = image.height()
+
+            val width = min(rect.width, imageWidth - rect.x)
+            val height = min(rect.height, imageHeight - rect.y)
+
+            rect.width = width
+            rect.height = height
+        }
+        rect
+    })
     val marqueeBoxActive = ObservableValue(false, "Marquee box active")
     val marqueeBoxRGB = ObservableValue(doubleArrayOf(), "Marquee box RGB")
 

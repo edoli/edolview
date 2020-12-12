@@ -167,8 +167,18 @@ class ImageViewer : WidgetGroup() {
 
                     val x1 = max(min(imageCoord.x, imageCoordB.x).toInt(), 0)
                     val y1 = max(min(imageCoord.y, imageCoordB.y).toInt(), 0)
-                    val x2 = min(max(imageCoord.x, imageCoordB.x).ceil().toInt(), imageWidth)
-                    val y2 = min(max(imageCoord.y, imageCoordB.y).ceil().toInt(), imageHeight)
+
+                    var width = max(imageCoord.x, imageCoordB.x).ceil().toInt() - x1
+                    var height = max(imageCoord.y, imageCoordB.y).ceil().toInt() - y1
+
+                    if (UIUtils.ctrl()) {
+                        var size = max(width, height)
+                        size = min(min(imageWidth - x1, imageHeight - y1), size)
+                        width = size
+                        height = size
+                    }
+                    val x2 = min(x1 + width, imageWidth)
+                    val y2 = min(y1 + height, imageHeight)
 
                     ImContext.marqueeBox.update { rect ->
                         rect.apply {
