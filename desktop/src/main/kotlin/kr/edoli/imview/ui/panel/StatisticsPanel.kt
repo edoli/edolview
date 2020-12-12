@@ -45,8 +45,8 @@ class StatisticsPanel(imageObservable: ObservableValue<Mat?>) : Panel(false) {
                 val minMax = mat.minMax()
                 val minValue = minMax.first
                 val maxValue = minMax.second
-                val sum = mat.sum()
-                val squareSum = mat.pow(2.0).sum()
+                val sum = mat.sum().sum()
+                val squareSum = mat.pow(2.0).sum().sum()
 
                 val mean = sum / num
                 val variance = (squareSum / num - mean * mean) * (num / (num - 1))

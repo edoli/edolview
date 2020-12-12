@@ -3,6 +3,7 @@ package kr.edoli.imview.ui
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.Screen
+import com.badlogic.gdx.graphics.Cursor
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
 import com.badlogic.gdx.scenes.scene2d.*
 import com.badlogic.gdx.scenes.scene2d.ui.*
@@ -114,6 +115,12 @@ class MainScreen : Screen {
                     ObservableInfo()
                 }
                 return super.keyDown(event, keycode)
+            }
+        })
+        stage.addCaptureListener(object : InputListener() {
+            override fun enter(event: InputEvent?, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
+                Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow)
+                super.enter(event, x, y, pointer, fromActor)
             }
         })
     }

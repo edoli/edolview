@@ -21,7 +21,7 @@ class ObservableInfo : JFrame() {
         }
         table.autoResizeMode = JTable.AUTO_RESIZE_LAST_COLUMN
         table.columnModel.getColumn(1).preferredWidth = 32
-        table.columnModel.getColumn(2).preferredWidth = 500
+        table.columnModel.getColumn(3).preferredWidth = 500
 
         add(JScrollPane(table))
 

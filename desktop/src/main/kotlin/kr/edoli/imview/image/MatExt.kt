@@ -166,8 +166,8 @@ fun Mat.split(): List<Mat> {
     return matArray
 }
 
-fun Mat.sum(): Double {
-    return Core.sumElems(this).`val`[0]
+fun Mat.sum(): DoubleArray {
+    return Core.sumElems(this).`val`
 }
 
 fun Mat.min(): Double {
