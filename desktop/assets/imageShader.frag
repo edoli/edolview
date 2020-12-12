@@ -139,7 +139,6 @@ void main()
     if (colormap == 0) {
         // gl_FragColor = v_color * ((pow(p, vec4(1.0 / gamma)) + brightness - 0.5) * contrast + 0.5);
         vec4 v = pow(p * contrast + brightness, vec4(1.0 / gamma));
-        v = clamp(v, 0.0, 1.0);
         gl_FragColor = v_color * v;
         gl_FragColor.a = alpha;
     } else {

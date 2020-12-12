@@ -26,5 +26,5 @@ object Font {
     }
 
     val ioniconsFont = fontGenerator("ionicons.ttf", 44)
-    val defaultFont = fontGenerator("netmarbleM.ttf", 32)
+    val defaultFont = fontGenerator("font.ttf", 32)
 }
