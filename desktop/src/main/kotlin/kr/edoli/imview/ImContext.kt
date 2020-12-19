@@ -72,6 +72,7 @@ object ImContext {
     val imageColormap = ObservableList(Colormap.values().toList(), name = "Colormap")
     val visibleChannel = ObservableList(listOf(0), name = "Visible channel")
 
+    val frameInterval = ObservableValue(1, "Frame interval")
     val frameSpeed = ObservableValue(0.0f, "Frame speed")
     val frameControl = FrameControl()
 
@@ -188,14 +189,14 @@ object ImContext {
     }
 
     fun nextImage() {
-        val nextFile = fileManager.next()
+        val nextFile = fileManager.next(frameInterval.get())
         if (nextFile != null) {
             mainFile.update(nextFile)
         }
     }
 
     fun prevImage() {
-        val prevFile = fileManager.prev()
+        val prevFile = fileManager.prev(frameInterval.get())
         if (prevFile != null) {
             mainFile.update(prevFile)
         }

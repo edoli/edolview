@@ -7,7 +7,8 @@ import java.io.File
  * Created by daniel on 16. 10. 1.
  */
 class FileManager {
-    val availableExts = arrayOf("png", "jpeg", "jpg", "bmp", "exr", "pgm", "tif", "tiff", "hdr", "raw")
+    val availableExts = arrayOf("png", "jpeg", "jpg", "jpe", "jp2", "bmp", "dib", "exr", "tif", "tiff", "hdr", "pic",
+            "webp", "raw", "pfm", "pgm", "ppm", "pbm", "pxm", "pnm", "sr")
 
     private var currentFile: File? = null
 
@@ -15,16 +16,16 @@ class FileManager {
         currentFile = file
     }
 
-    fun next(): File? {
+    fun next(interval: Int): File? {
         currentFile?.let { file ->
-            return file.nextFile { nextFile -> isImage(nextFile.name) }
+            return file.nextFile(interval) { nextFile -> isImage(nextFile.name) }
         }
         return currentFile
     }
 
-    fun prev(): File? {
+    fun prev(interval: Int): File? {
         currentFile?.let { file ->
-            return file.prevFile { nextFile -> isImage(nextFile.name) }
+            return file.prevFile(interval) { nextFile -> isImage(nextFile.name) }
         }
         return currentFile
     }

@@ -17,8 +17,8 @@ class DisplayProfilePanel : Panel(false) {
         })
         row()
         val minMaxTable = Table().apply {
-            val numberFieldMin = UIFactory.createNumberField(ImContext.displayMin)
-            val numberFieldMax = UIFactory.createNumberField(ImContext.displayMax)
+            val numberFieldMin = UIFactory.createFloatField(ImContext.displayMin)
+            val numberFieldMax = UIFactory.createFloatField(ImContext.displayMax)
             pad(4f)
             add(Label("Min", uiSkin))
             add().width(4f)

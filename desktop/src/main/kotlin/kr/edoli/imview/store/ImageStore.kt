@@ -4,13 +4,18 @@ import com.google.common.cache.CacheBuilder
 import com.google.common.cache.CacheLoader
 import kr.edoli.imview.image.ImageSpec
 import kr.edoli.imview.image.bitsPerPixel
+import kr.edoli.imview.image.timesAssign
 import kr.edoli.imview.image.typeMax
+import org.apache.commons.io.FilenameUtils
 import org.opencv.core.CvType
 import org.opencv.core.Mat
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
+import java.io.BufferedReader
 import java.io.File
+import java.io.FileReader
 import java.util.concurrent.TimeUnit
+import kotlin.math.abs
 
 /**
  * Created by daniel on 16. 11. 27.
@@ -31,6 +36,7 @@ object ImageStore {
             })
 
     private fun loadFromPath(path: String): ImageSpec {
+        val ext = FilenameUtils.getExtension(path)
         val mat = Imgcodecs.imread(path, -1)
 
         when (mat.channels()) {
@@ -40,6 +46,15 @@ object ImageStore {
             4 -> {
                 Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGRA2RGBA)
             }
+        }
+
+        if (ext.toLowerCase() == "pfm") {
+            val reader = BufferedReader(FileReader(path))
+            val header = reader.readLine()
+            val dimension = reader.readLine()
+            val scale = reader.readLine()
+
+            mat *= abs(scale.toDouble())
         }
 
         return ImageSpec(mat, mat.typeMax(), mat.channels(), mat.bitsPerPixel())

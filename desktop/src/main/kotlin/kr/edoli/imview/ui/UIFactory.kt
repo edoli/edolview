@@ -77,6 +77,10 @@ object UIFactory {
             override fun getPrefWidth(): Float {
                 return 0f
             }
+
+            override fun getPrefHeight(): Float {
+                return 24f
+            }
         }
         return textField.apply {
             observable.subscribe(this@UIFactory, "Double binding") {
@@ -91,6 +95,14 @@ object UIFactory {
                         } else {
                             text = valueToString(observable.get())
                         }
+                    } else if (keycode == Input.Keys.ESCAPE) {
+                        text = valueToString(observable.get())
+                        stage.keyboardFocus = null
+                    }
+                    color = if (text != valueToString(observable.get())) {
+                        Colors.accent
+                    } else {
+                        Colors.normal
                     }
                     return super.keyUp(event, keycode)
                 }
@@ -108,7 +120,15 @@ object UIFactory {
         }
     }
 
-    fun createNumberField(observable: ObservableValue<Float>) = createField(observable, {
+    fun createIntField(observable: ObservableValue<Int>) = createField(observable, {
+        it.toInt()
+    }, {
+        it.toString()
+    }, {
+        it.isInt()
+    })
+
+    fun createFloatField(observable: ObservableValue<Float>) = createField(observable, {
         it.toFloat()
     }, {
         it.toString()
@@ -252,10 +272,6 @@ object UIFactory {
             createToggleTextButton(text, observable).apply {
                 style = iconToggleButtonStyle
                 align(Align.center)
-            }.tooltip(observable.name).contextMenu {
-                addMenu("Copy value") {
-                    ClipboardUtils.putString(observable.get().toString())
-                }
             }
 
     fun createToggleTextButton(text: String, observable: ObservableValue<Boolean>): TextButton {

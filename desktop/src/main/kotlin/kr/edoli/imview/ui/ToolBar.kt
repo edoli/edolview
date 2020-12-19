@@ -43,6 +43,7 @@ class ToolBar : Panel() {
 
         add().width(32f)
         add(UIFactory.createToggleIconButton(Ionicons.ionMdAdd, ImContext.isShowCrosshair)).width(iconWidth)
+        add(UIFactory.createToggleIconButton(Ionicons.ionMdPaper, ImContext.isShowCrosshair)).width(iconWidth)
 
         add().expandX()
         add(UIFactory.createToggleIconButton(Ionicons.ionMdOptions, ImContext.isShowController)).width(iconWidth)

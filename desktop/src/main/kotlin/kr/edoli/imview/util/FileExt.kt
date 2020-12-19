@@ -8,6 +8,9 @@ import java.io.File
  */
 
 fun File.siblingFile(step: Int, filter: ((file: File) -> Boolean)? = null): File {
+    if (step == 0) {
+        return this
+    }
 
     val file = this
     val absFile = file.absoluteFile
@@ -25,12 +28,12 @@ fun File.siblingFile(step: Int, filter: ((file: File) -> Boolean)? = null): File
 
     repeat(fileNames.size) {
         index += step
-        if (index == fileNames.size) {
-            index = 0
+        while (index >= fileNames.size) {
+            index -= fileNames.size
         }
 
-        if (index == -1) {
-            index = fileNames.size - 1
+        while (index < 0) {
+            index += fileNames.size
         }
         path = parentPath + fileNames[index]
         val nextFile = File(path)
@@ -48,10 +51,10 @@ fun File.siblingFile(step: Int, filter: ((file: File) -> Boolean)? = null): File
     return this
 }
 
-fun File.nextFile(filter: ((file: File) -> Boolean)? = null): File {
-    return siblingFile(1, filter)
+fun File.nextFile(interval: Int = 1, filter: ((file: File) -> Boolean)? = null): File {
+    return siblingFile(interval, filter)
 }
 
-fun File.prevFile(filter: ((file: File) -> Boolean)? = null): File {
-    return siblingFile(-1, filter)
+fun File.prevFile(interval: Int = 1, filter: ((file: File) -> Boolean)? = null): File {
+    return siblingFile(-interval, filter)
 }

@@ -59,6 +59,21 @@ operator fun Double.plus(mat: Mat): Mat {
     return newMat
 }
 
+operator fun Mat.plusAssign(other: Mat) {
+    if (this.type() != other.type()) {
+        throw Exception()
+    }
+    if (this.rows() != other.rows() || this.cols() != other.cols()) {
+        throw Exception()
+    }
+
+    Core.add(this, other, this)
+}
+
+operator fun Mat.plusAssign(value: Double) {
+    Core.add(this, Scalar(DoubleArray(channels()) { value }), this)
+}
+
 /* Minus */
 
 operator fun Mat.minus(other: Mat): Mat {
@@ -93,6 +108,21 @@ operator fun Mat.unaryMinus(): Mat {
     return newMat
 }
 
+operator fun Mat.minusAssign(other: Mat) {
+    if (this.type() != other.type()) {
+        throw Exception()
+    }
+    if (this.rows() != other.rows() || this.cols() != other.cols()) {
+        throw Exception()
+    }
+
+    Core.subtract(this, other, this)
+}
+
+operator fun Mat.minusAssign(value: Double) {
+    Core.subtract(this, Scalar(DoubleArray(channels()) { value }), this)
+}
+
 /* Times */
 
 operator fun Mat.times(other: Mat): Mat {
@@ -119,6 +149,21 @@ operator fun Double.times(mat: Mat): Mat {
     val newMat = Mat(mat.rows(), mat.cols(), mat.type())
     Core.multiply(mat, Scalar(DoubleArray(newMat.channels()) { this }), newMat)
     return newMat
+}
+
+operator fun Mat.timesAssign(other: Mat) {
+    if (this.type() != other.type()) {
+        throw Exception()
+    }
+    if (this.rows() != other.rows() || this.cols() != other.cols()) {
+        throw Exception()
+    }
+
+    Core.multiply(this, other, this)
+}
+
+operator fun Mat.timesAssign(value: Double) {
+    Core.multiply(this, Scalar(DoubleArray(channels()) { value }), this)
 }
 
 /* Divide */
@@ -149,10 +194,32 @@ operator fun Double.div(mat: Mat): Mat {
     return newMat
 }
 
+operator fun Mat.divAssign(other: Mat) {
+    if (this.type() != other.type()) {
+        throw Exception()
+    }
+    if (this.rows() != other.rows() || this.cols() != other.cols()) {
+        throw Exception()
+    }
+
+    Core.divide(this, other, this)
+}
+
+operator fun Mat.divAssign(value: Double) {
+    Core.divide(this, Scalar(DoubleArray(channels()) { value }), this)
+}
+
+/* Other */
+
 fun Mat.pow(value: Double): Mat {
     val newMat = Mat(rows(), cols(), type())
     Core.pow(this, value, newMat)
     return newMat
+}
+
+fun Mat.powAssign(value: Double) {
+    val newMat = Mat(rows(), cols(), type())
+    Core.pow(this, value, this)
 }
 
 
