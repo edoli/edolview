@@ -1,7 +1,7 @@
 {
   "classPath": [
     "lib/desktop.jar",
-    "lib/opencv-340.jar",
+    "lib/opencv-450.jar",
     "lib/tornadofx-1.7.17.jar",
     "lib/kotlin-reflect-1.4.10.jar",
     "lib/kotlin-stdlib-jdk8-1.2.60.jar",
