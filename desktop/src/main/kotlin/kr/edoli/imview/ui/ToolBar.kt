@@ -7,6 +7,7 @@ import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.image.MarqueeUtils
 import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.ui.res.Ionicons
+import kr.edoli.imview.ui.window.ShaderEditor
 
 class ToolBar : Panel() {
 
@@ -43,7 +44,9 @@ class ToolBar : Panel() {
 
         add().width(32f)
         add(UIFactory.createToggleIconButton(Ionicons.ionMdAdd, ImContext.isShowCrosshair)).width(iconWidth)
-        add(UIFactory.createToggleIconButton(Ionicons.ionMdPaper, ImContext.isShowCrosshair)).width(iconWidth)
+        add(UIFactory.createIconButton(Ionicons.ionMdPaper) {
+            ShaderEditor()
+        }).width(iconWidth)
 
         add().expandX()
         add(UIFactory.createToggleIconButton(Ionicons.ionMdOptions, ImContext.isShowController)).width(iconWidth)

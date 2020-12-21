@@ -132,18 +132,26 @@ vec3 inferno_colormap(float t) {
 
 void main()
 {
-    vec4 p = texture2D(u_texture, v_texCoords);
-    float alpha = p.a;
-    p = (p - min) / (max - min);
+    vec4 tex = texture2D(u_texture, v_texCoords);
+    float p;
+    float alpha = tex.a;
+    tex = (tex - min) / (max - min);
 
     if (colormap == 0) {
-        // gl_FragColor = v_color * ((pow(p, vec4(1.0 / gamma)) + brightness - 0.5) * contrast + 0.5);
-        vec4 v = pow(p * contrast + brightness, vec4(1.0 / gamma));
+        // pow(p * contrast + brightness, 1.0 / gamma)
+        vec4 v;
+        p = tex.r;
+        v.r = %pixel_expression%;
+        p = tex.g;
+        v.g = %pixel_expression%;
+        p = tex.b;
+        v.b = %pixel_expression%;
         gl_FragColor = v_color * v;
         gl_FragColor.a = alpha;
     } else {
-        // float v = pow(p.r, (1.0 / gamma)) * contrast + brightness;
-        float v = pow(p.r * contrast + brightness, 1.0 / gamma);
+        // pow(p * contrast + brightness, 1.0 / gamma)
+        p = tex.r;
+        float v = %pixel_expression%;
         v = clamp(v, 0.0, 1.0);
         vec3 color;
         if (colormap == 1) {

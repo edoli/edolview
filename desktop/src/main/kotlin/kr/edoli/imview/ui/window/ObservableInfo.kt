@@ -1,4 +1,4 @@
-package kr.edoli.imview.ui
+package kr.edoli.imview.ui.window
 
 import kr.edoli.imview.util.ObservableContext
 import java.awt.event.KeyEvent
@@ -6,7 +6,6 @@ import java.awt.event.KeyListener
 import javax.swing.JFrame
 import javax.swing.JScrollPane
 import javax.swing.JTable
-import javax.swing.table.DefaultTableModel
 
 class ObservableInfo : JFrame() {
     init {

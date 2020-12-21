@@ -7,15 +7,13 @@ import com.badlogic.gdx.graphics.Cursor
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
 import com.badlogic.gdx.scenes.scene2d.*
 import com.badlogic.gdx.scenes.scene2d.ui.*
-import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import kr.edoli.imview.ImContext
-import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.ui.custom.SplitPane
 import kr.edoli.imview.ui.panel.FileInfoPanel
 import kr.edoli.imview.ui.res.Ionicons
 import kr.edoli.imview.ui.res.uiSkin
-import kr.edoli.imview.util.reset
+import kr.edoli.imview.ui.window.ObservableInfo
 import org.lwjgl.opengl.GL30
 
 class MainScreen : Screen {

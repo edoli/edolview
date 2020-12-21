@@ -1,10 +1,7 @@
 package kr.edoli.imview
 
 import kr.edoli.imview.geom.Point2D
-import kr.edoli.imview.image.ImageSpec
-import kr.edoli.imview.image.MarqueeUtils
-import kr.edoli.imview.image.contains
-import kr.edoli.imview.image.get
+import kr.edoli.imview.image.*
 import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.ui.Colormap
 import kr.edoli.imview.util.*
@@ -56,6 +53,8 @@ object ImContext {
     val rotation = ObservableValue(0.0, "Rotation")
 
     // Display profile
+    val viewerShaderBuilder = ViewerShaderBuilder()
+    val viewerShader = ObservableValue(viewerShaderBuilder.build(), "Viewer shader")
     val enableDisplayProfile = ObservableValue(true, "Enable display profile")
     val normalize = ObservableValue(false, "Normalize")
     val smoothing = ObservableValue(false, "Smoothing")
