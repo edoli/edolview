@@ -10,13 +10,14 @@ import javax.swing.UIManager
 import kotlin.system.exitProcess
 
 
-fun main(args: Array<String>) {
-    // val setting = TexturePacker.Settings()
-    // setting.useIndexes = false
-    // setting.maxWidth = 2048
-    // setting.maxHeight = 2048
-    // TexturePacker.processIfModified(setting, "../../inputdir/ui", ".", "ui")
+fun main() {
     UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
+
+//    val setting = TexturePacker.Settings()
+//    setting.useIndexes = false
+//    setting.maxWidth = 2048
+//    setting.maxHeight = 2048
+//    TexturePacker.processIfModified(setting, "../../inputdir/ui", ".", "ui")
 
     val config = Lwjgl3ApplicationConfiguration()
     config.useOpenGL3(true, 3, 2)
