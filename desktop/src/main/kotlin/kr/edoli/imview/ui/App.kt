@@ -6,7 +6,7 @@ import kr.edoli.imview.ImContext
 import org.opencv.core.Core
 import java.io.File
 
-class App(private val args: Array<String>) : Game() {
+class App(private val initPath: String?) : Game() {
     companion object {
         init {
             System.loadLibrary(Core.NATIVE_LIBRARY_NAME)
@@ -14,8 +14,8 @@ class App(private val args: Array<String>) : Game() {
     }
 
     override fun create() {
-        if (args.isNotEmpty()) {
-            ImContext.mainFile.update(File(args[0]))
+        if (initPath != null) {
+            ImContext.mainFile.update(File(initPath))
         }
         ImContext.mainFile.subscribe(this, "Update title") { Gdx.graphics.setTitle(it.name) }
         Gdx.graphics.isContinuousRendering = false

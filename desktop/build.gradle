@@ -52,6 +52,7 @@ dependencies {
     implementation "com.badlogicgames.gdx:gdx-platform:$gdx_version:natives-desktop"
     implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdx_version:natives-desktop"
 
+    implementation "org.jetbrains.kotlinx:kotlinx-cli:0.3.2"
     implementation "io.reactivex:rxjava:1.1.6"
     implementation "commons-io:commons-io:2.4"
 

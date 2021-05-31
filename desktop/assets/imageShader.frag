@@ -137,6 +137,8 @@ void main()
     float alpha = tex.a;
     tex = (tex - min) / (max - min);
 
+    %extra_code%
+
     if (colormap == 0) {
         // pow(p * contrast + brightness, 1.0 / gamma)
         vec4 v;

@@ -16,13 +16,15 @@ class ShaderEditor : JFrame() {
 
     init {
         val container = contentPane
-        val textField = JTextField(shaderBuilder.pixel_expression)
+        val extraCodeTextField = JTextField(shaderBuilder.extra_code)
+        val pixelExpressionTextField = JTextField(shaderBuilder.pixel_expression)
         val logLabel = JTextArea()
         logLabel.isEditable = false
 
         val updateShader = {
             val lastPixelExpression = shaderBuilder.pixel_expression
-            shaderBuilder.pixel_expression = textField.text
+            shaderBuilder.extra_code = extraCodeTextField.text
+            shaderBuilder.pixel_expression = pixelExpressionTextField.text
 
             Gdx.app.postRunnable {
                 try {
@@ -45,8 +47,9 @@ class ShaderEditor : JFrame() {
         c.gridy = 0
         c.fill = GridBagConstraints.BOTH
         c.weighty = 1.0
-        container.add(textField, c)
-        textField.addKeyListener(object : KeyListener {
+
+        container.add(extraCodeTextField, c)
+        extraCodeTextField.addKeyListener(object : KeyListener {
             override fun keyTyped(e: KeyEvent?) {
             }
 
@@ -61,7 +64,27 @@ class ShaderEditor : JFrame() {
 
         })
 
+        c.gridx = 0
         c.gridy = 1
+        c.fill = GridBagConstraints.HORIZONTAL
+        c.weighty = 0.0
+        container.add(pixelExpressionTextField, c)
+        pixelExpressionTextField.addKeyListener(object : KeyListener {
+            override fun keyTyped(e: KeyEvent?) {
+            }
+
+            override fun keyPressed(e: KeyEvent?) {
+            }
+
+            override fun keyReleased(e: KeyEvent) {
+                if (e.keyCode == KeyEvent.VK_ENTER) {
+                    updateShader()
+                }
+            }
+
+        })
+
+        c.gridy = 2
         c.fill = GridBagConstraints.HORIZONTAL
         c.weighty = 0.0
         container.add(JButton("Update shader").apply {
@@ -71,7 +94,7 @@ class ShaderEditor : JFrame() {
             alignmentX = CENTER_ALIGNMENT
         }, c)
 
-        c.gridy = 2
+        c.gridy = 3
         container.add(logLabel, c)
 
         pack()

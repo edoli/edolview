@@ -24,10 +24,13 @@ class ViewerShaderBuilder {
         val default_pixel_expression = "pow(p * contrast + brightness, 1.0 / gamma)"
     }
 
+    var extra_code = ""
     var pixel_expression = default_pixel_expression
 
     fun build(): ShaderProgram {
-        return ShaderProgram(vertexShader, fragShader.replace("%pixel_expression%", pixel_expression)).also {
+        return ShaderProgram(vertexShader, fragShader
+                .replace("%extra_code%", extra_code.replace("%pixel_expression%", ""))
+                .replace("%pixel_expression%", pixel_expression)).also {
             require(it.isCompiled) { "Error compiling shader: " + it.log }
         }
     }
