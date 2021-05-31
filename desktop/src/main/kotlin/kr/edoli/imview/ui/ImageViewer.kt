@@ -491,6 +491,7 @@ class ImageViewer : WidgetGroup() {
 
         shapeRenderer.projectionMatrix = batch.projectionMatrix
         shapeRenderer.transformMatrix = batch.transformMatrix
+        shapeRenderer.color = Color.WHITE
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
         shapeRenderer.rect(vecA.x, vecA.y, vecB.x - vecA.x, vecB.y - vecA.y)
         shapeRenderer.end()
@@ -504,6 +505,18 @@ class ImageViewer : WidgetGroup() {
                 val y = point.y
                 shapeRenderer.rect((x - handleSize).toFloat(), (y - handleSize).toFloat(), handleSize * 2, handleSize * 2)
             }
+            shapeRenderer.end()
+        }
+
+        // draw crosshair
+        if (ImContext.isShowCrosshair.get()) {
+            shapeRenderer.color = Color.GREEN
+
+            val mousePos = Vector2(Gdx.input.x.toFloat(), Gdx.input.y.toFloat())
+            screenToLocalCoordinates(mousePos)
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
+            shapeRenderer.line(x, mousePos.y, width, mousePos.y)
+            shapeRenderer.line(mousePos.x, y, mousePos.x, height)
             shapeRenderer.end()
         }
 
