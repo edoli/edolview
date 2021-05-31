@@ -4,7 +4,6 @@ import com.badlogic.gdx.backends.lwjgl3.Lwjgl3ApplicationConfiguration
 import com.badlogic.gdx.backends.lwjgl3.Lwjgl3WindowAdapter
 import com.badlogic.gdx.backends.lwjgl3.MyLwjgl3Application
 import com.badlogic.gdx.graphics.glutils.HdpiMode
-import com.badlogic.gdx.tools.texturepacker.TexturePacker
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
@@ -21,11 +20,11 @@ fun main(args: Array<String>) {
     parser.parse(args)
 
     if (devMode) {
-        val setting = TexturePacker.Settings()
-        setting.useIndexes = false
-        setting.maxWidth = 2048
-        setting.maxHeight = 2048
-        TexturePacker.processIfModified(setting, "../../inputdir/ui", ".", "ui")
+//        val setting = TexturePacker.Settings()
+//        setting.useIndexes = false
+//        setting.maxWidth = 2048
+//        setting.maxHeight = 2048
+//        TexturePacker.processIfModified(setting, "../../inputdir/ui", ".", "ui")
     }
 
     UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())

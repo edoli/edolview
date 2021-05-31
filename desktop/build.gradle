@@ -1,6 +1,5 @@
 buildscript {
     repositories {
-        jcenter()
         mavenLocal()
         mavenCentral()
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
@@ -25,29 +24,22 @@ plugins {
 }
 
 compileKotlin {
-    kotlinOptions.jvmTarget = "12"
     kotlinOptions.useIR = true
 }
 
-compileTestKotlin {
-    kotlinOptions.jvmTarget = "12"
-}
-
-
 repositories {
     mavenCentral()
-    jcenter()
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0"
 
     implementation "com.badlogicgames.gdx:gdx:$gdx_version"
     implementation "com.badlogicgames.gdx:gdx-freetype:$gdx_version"
-    implementation "com.badlogicgames.gdx:gdx-tools:$gdx_version"
+//    implementation "com.badlogicgames.gdx:gdx-tools:$gdx_version"
     implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdx_version"
     implementation "com.badlogicgames.gdx:gdx-platform:$gdx_version:natives-desktop"
     implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdx_version:natives-desktop"
@@ -78,6 +70,25 @@ run {
 
 distTar.enabled = false
 
+task installAfter() {
+    doLast {
+        def configJson = """
+    {
+      "classPath": [
+      ${String.join(',\n', new File("./build/install/desktop/lib").list().findAll{ !it.contains("arm") && !it.contains("x86") }.collect {"\"lib/${it}\"" })}
+      ],
+      "mainClass": "kr.edoli.imview.MainKt",
+      "vmArgs": [
+        "-Xmx4G"
+      ]
+    }
+    """
+        new File("./build/install/desktop/config.json").write(configJson)
+    }
+}
+
+installDist.finalizedBy(installAfter)
+
 distributions {
     main {
         contents {
@@ -88,6 +99,7 @@ distributions {
             exclude('build*')
             exclude('imview.bat')
             exclude('icon.ico')
+            exclude('config.json')
         }
     }
 }
