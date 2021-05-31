@@ -8,7 +8,7 @@ buildscript {
 
     ext {
         appName = "EdolView"
-        kotlin_version = '1.4.10'
+        kotlin_version = '1.5.10'
         openjfx_version = '0.0.8'
         gdx_version = "1.9.12"
         ikonli_version = "11.3.4"
@@ -26,6 +26,7 @@ plugins {
 
 compileKotlin {
     kotlinOptions.jvmTarget = "12"
+    kotlinOptions.useIR = true
 }
 
 compileTestKotlin {
