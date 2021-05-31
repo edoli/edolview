@@ -6,9 +6,11 @@ import kr.edoli.imview.image.ImageSpec
 import kr.edoli.imview.image.bitsPerPixel
 import kr.edoli.imview.image.timesAssign
 import kr.edoli.imview.image.typeMax
+import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FilenameUtils
 import org.opencv.core.CvType
 import org.opencv.core.Mat
+import org.opencv.core.MatOfByte
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
 import java.io.BufferedReader
@@ -22,7 +24,7 @@ import kotlin.math.abs
  */
 object ImageStore {
 
-    private const val MAX_MEMORY = 1024 * 1024 * 1024L
+    private const val MAX_MEMORY = 8 * 1024 * 1024 * 1024L
 
     private val imageStoreMap = CacheBuilder.newBuilder()
             .maximumWeight(MAX_MEMORY)
@@ -37,7 +39,11 @@ object ImageStore {
 
     private fun loadFromPath(path: String): ImageSpec {
         val ext = FilenameUtils.getExtension(path)
-        val mat = Imgcodecs.imread(path, -1)
+        if (!File(path).exists()) {
+            return ImageSpec(Mat(), 0.0, 0, 0 )
+        }
+        val bytes = FileUtils.readFileToByteArray(File(path))
+        val mat = Imgcodecs.imdecode(MatOfByte(*bytes), -1)
 
         when (mat.channels()) {
             3 -> {
