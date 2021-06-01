@@ -10,22 +10,33 @@ class FileManager {
     val availableExts = arrayOf("png", "jpeg", "jpg", "jpe", "jp2", "bmp", "dib", "exr", "tif", "tiff", "hdr", "pic",
             "webp", "raw", "pfm", "pgm", "ppm", "pbm", "pxm", "pnm", "sr")
 
+    var siblingFiles: List<String>? = null
     private var currentFile: File? = null
 
     fun setFile(file: File) {
         currentFile = file
     }
 
+    fun reset() {
+        siblingFiles = null
+    }
+
     fun next(interval: Int): File? {
         currentFile?.let { file ->
-            return file.nextFile(interval) { nextFile -> isImage(nextFile.name) }
+            if (siblingFiles == null) {
+                siblingFiles = file.getSiblingFiles()
+            }
+            return file.nextFile(interval, siblingFiles) { nextFile -> isImage(nextFile.name) }
         }
         return currentFile
     }
 
     fun prev(interval: Int): File? {
         currentFile?.let { file ->
-            return file.prevFile(interval) { nextFile -> isImage(nextFile.name) }
+            if (siblingFiles == null) {
+                siblingFiles = file.getSiblingFiles()
+            }
+            return file.prevFile(interval, siblingFiles) { nextFile -> isImage(nextFile.name) }
         }
         return currentFile
     }

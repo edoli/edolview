@@ -36,6 +36,7 @@ fun main(args: Array<String>) {
         override fun filesDropped(files: Array<String>) {
             val file = File(files[0])
             if (ImContext.fileManager.isImage(file.name)) {
+                ImContext.fileManager.reset()
                 ImContext.mainFile.update(file)
             }
         }

@@ -2,12 +2,13 @@ package kr.edoli.imview.util
 
 import org.apache.commons.io.FilenameUtils
 import java.io.File
+import kotlin.math.sign
 
 /**
  * Created by daniel on 16. 9. 10.
  */
 
-fun File.siblingFile(step: Int, filter: ((file: File) -> Boolean)? = null): File {
+fun File.siblingFile(step: Int, fileList: List<String>? = null, filter: ((file: File) -> Boolean)? = null): File {
     if (step == 0) {
         return this
     }
@@ -19,15 +20,17 @@ fun File.siblingFile(step: Int, filter: ((file: File) -> Boolean)? = null): File
         return file
     }
 
-    val fileNames = (absFile.parentFile.list() as Array<String>).sortedWith(FilenameComparator())
+    val fileNames = fileList ?: (absFile.parentFile.list() as Array<String>).sortedWith(FilenameComparator())
     val fileName = file.name
     val parentPath = absFile.parent + "/"
 
     var index = fileNames.indexOf(fileName)
     var path: String
 
+    var validFiles = 0
+    val stepDirection = step.sign
     repeat(fileNames.size) {
-        index += step
+        index += stepDirection
         while (index >= fileNames.size) {
             index -= fileNames.size
         }
@@ -45,16 +48,27 @@ fun File.siblingFile(step: Int, filter: ((file: File) -> Boolean)? = null): File
             }
         }
 
+        validFiles += stepDirection
+
+        if (validFiles != step) {
+            return@repeat
+        }
+
         return nextFile
     }
 
     return this
 }
 
-fun File.nextFile(interval: Int = 1, filter: ((file: File) -> Boolean)? = null): File {
-    return siblingFile(interval, filter)
+fun File.nextFile(interval: Int = 1, fileList: List<String>? = null, filter: ((file: File) -> Boolean)? = null): File {
+    return siblingFile(interval, fileList, filter)
 }
 
-fun File.prevFile(interval: Int = 1, filter: ((file: File) -> Boolean)? = null): File {
-    return siblingFile(-interval, filter)
+fun File.prevFile(interval: Int = 1, fileList: List<String>? = null, filter: ((file: File) -> Boolean)? = null): File {
+    return siblingFile(-interval, fileList, filter)
+}
+
+fun File.getSiblingFiles(): List<String> {
+    val absFile = this.absoluteFile
+    return (absFile.parentFile.list() as Array<String>).sortedWith(FilenameComparator())
 }
