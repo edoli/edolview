@@ -32,7 +32,7 @@ object ImContext {
     val cursorPosition = ObservableValue(Point2D(0.0, 0.0), "Cursor position")
     val cursorRGB = ObservableValue(doubleArrayOf(), "Cursor RGB")
 
-    val marqueeBox = ObservableValue(Rect(), "Marquee box", { rect ->
+    val marqueeBox = ObservableValue(Rect(), "Marquee box") { rect ->
         mainImage.get()?.let { image ->
             val imageWidth = image.width()
             val imageHeight = image.height()
@@ -44,7 +44,7 @@ object ImContext {
             rect.height = height
         }
         rect
-    })
+    }
     val marqueeBoxActive = ObservableValue(false, "Marquee box active")
     val marqueeBoxRGB = ObservableValue(doubleArrayOf(), "Marquee box RGB")
 
@@ -109,7 +109,7 @@ object ImContext {
                 fileManager.setFile(file)
                 frameSpeed.update(5.0f)
                 nextImage()
-            } else {
+            } else if (file.isFile) {
                 mainFileName.update(file.name)
                 mainFileDirectory.update(file.absoluteFile.parent)
                 fileManager.setFile(file)
@@ -123,6 +123,12 @@ object ImContext {
                     updateCursorColor()
                     marqueeBoxRGB.update(MarqueeUtils.boxMeanColor())
                 }
+            } else {
+                // Not from file. Maybe from clipboard. Clear file manager
+                // Title would be file name
+                mainFileName.update("")
+                mainFileDirectory.update("")
+                fileManager.setFile(null)
             }
         }
 
@@ -157,7 +163,7 @@ object ImContext {
             var current = System.nanoTime()
             override fun run() {
                 val newTime = System.nanoTime()
-                var delta = newTime - current
+                val delta = newTime - current
                 frameControl.elapse(delta / 1000f / 1000f / 1000f)
                 current = newTime
             }

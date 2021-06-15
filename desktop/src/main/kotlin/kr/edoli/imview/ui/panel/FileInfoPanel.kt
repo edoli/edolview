@@ -23,7 +23,10 @@ class FileInfoPanel : Panel(false) {
         add(fileDirLabel)
         row()
         add(UIFactory.createIconButton(Ionicons.ionMdFolder) {
-            Desktop.getDesktop().open(File(ImContext.mainFileDirectory.get()))
+            val file = File(ImContext.mainFileDirectory.get())
+            if (file.isDirectory) {
+                Desktop.getDesktop().open(file)
+            }
         })
         row()
 

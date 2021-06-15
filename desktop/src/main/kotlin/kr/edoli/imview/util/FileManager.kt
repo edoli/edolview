@@ -13,7 +13,7 @@ class FileManager {
     var siblingFiles: List<String>? = null
     private var currentFile: File? = null
 
-    fun setFile(file: File) {
+    fun setFile(file: File?) {
         currentFile = file
     }
 

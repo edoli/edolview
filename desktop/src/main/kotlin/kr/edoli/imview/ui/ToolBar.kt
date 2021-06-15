@@ -4,10 +4,14 @@ import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.image.ClipboardUtils
+import kr.edoli.imview.image.ImageConvert
+import kr.edoli.imview.image.ImageSpec
 import kr.edoli.imview.image.MarqueeUtils
 import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.ui.res.Ionicons
 import kr.edoli.imview.ui.window.ShaderEditor
+import java.awt.image.BufferedImage
+import java.io.File
 
 class ToolBar : Panel() {
 
@@ -29,6 +33,16 @@ class ToolBar : Panel() {
 
         add(UIFactory.createIconButton(Ionicons.ionMdImage) {
             ClipboardUtils.showClipboardImage()
+        }.tooltip("Show clipboard")).width(iconWidth)
+
+        add(UIFactory.createIconButton(Ionicons.ionMdClipboard) {
+            val image = ClipboardUtils.getImage() as BufferedImage?
+            if (image != null) {
+                val mat = ImageStore.normalize(ImageConvert.bufferedToMat(image))
+                ImContext.mainFile.update(File("Clipboard"))
+                ImContext.mainImageSpec.update(ImageSpec(mat, 255.0, mat.channels(), 8))
+                ImContext.mainImage.update(mat)
+            }
         }.tooltip("Show clipboard")).width(iconWidth)
 
         add(UIFactory.createToggleIconButton(Ionicons.ionMdInformationCircleOutline, ImContext.isShowFileInfo)).width(iconWidth)
