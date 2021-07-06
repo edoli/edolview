@@ -66,22 +66,23 @@ application {
 
 run {
     workingDir = project.assetsDir
+    args = ["-d"]
+    jvmArgs = []
 }
 
 distTar.enabled = false
 
 task installAfter() {
     doLast {
-        def configJson = """
-    {
-      "classPath": [
-      ${String.join(',\n', new File("./build/install/desktop/lib").list().findAll{ !it.contains("arm") && !it.contains("x86") }.collect {"\"lib/${it}\"" })}
-      ],
-      "mainClass": "kr.edoli.imview.MainKt",
-      "vmArgs": [
-        "-Xmx4G"
-      ]
-    }
+        def configJson = """{
+  "classPath": [
+${String.join(',\n', new File("./build/install/desktop/lib").list().findAll{ !it.contains("arm") && !it.contains("x86") }.collect {"    \"lib/${it}\"" })}
+  ],
+  "mainClass": "${project.mainClassName}",
+  "vmArgs": [
+    "-Xmx4G"
+  ]
+}
     """
         new File("./build/install/desktop/config.json").write(configJson)
     }
