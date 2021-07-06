@@ -7,6 +7,7 @@ import org.opencv.core.Mat
 import org.opencv.imgproc.Imgproc
 import java.awt.Transparency
 import java.awt.image.*
+import java.nio.ByteBuffer
 
 
 object ImageConvert {
@@ -45,14 +46,36 @@ object ImageConvert {
         val height = bufferedImage.height
         val channels = if (bufferedImage.colorModel.hasAlpha()) 4 else 3
 
-        val type = if (channels == 4) CvType.CV_8UC4 else CvType.CV_8UC3
 
-        val dataBuffer = bufferedImage.data.dataBuffer as DataBufferByte
-        val rawData = dataBuffer.data
-        val mat = Mat(height, width, type)
-        mat.put(0, 0, rawData)
+        val dataBuffer = bufferedImage.data.dataBuffer
 
-        when (channels) {
+        val mat: Mat
+        when (dataBuffer.dataType) {
+            DataBuffer.TYPE_INT -> {
+                val dataBufferTyped = bufferedImage.data.dataBuffer as DataBufferInt
+                val intData = dataBufferTyped.data
+                val byteBuffer = ByteBuffer.allocate(intData.size * 4)
+                val intBuffer = byteBuffer.asIntBuffer()
+                intBuffer.put(intData)
+                val rawData = byteBuffer.array()
+                val type = CvType.CV_8UC4
+                mat = Mat(height, width, type)
+                mat.put(0, 0, rawData)
+            }
+            else -> {
+                val dataBufferTyped = bufferedImage.data.dataBuffer as DataBufferByte
+                val rawData = dataBufferTyped.data
+                val type = if (channels == 4) CvType.CV_8UC4 else CvType.CV_8UC3
+                mat = Mat(height, width, type)
+                mat.put(0, 0, rawData)
+            }
+        }
+
+        return flipMatChannels(mat)
+    }
+
+    private fun flipMatChannels(mat: Mat): Mat {
+        when (mat.channels()) {
             4 -> {
                 val matChannels = mat.split()
                 Core.merge(listOf(matChannels[3], matChannels[2], matChannels[1], matChannels[0]), mat)

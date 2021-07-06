@@ -74,9 +74,40 @@ distTar.enabled = false
 
 task installAfter() {
     doLast {
+        OperatingSystem os = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem;
+        if (os.isWindows()) {
+            new File("./build/install/desktop/lib").listFiles().findAll{
+                String fn = it.name
+                fn.contains("arm") || fn.contains("x86") || fn.contains("linux") || fn.contains("macos")
+            }.each{it.delete()}
+        }
+        else if (os.isLinux()) {
+            new File("./build/install/desktop/lib").listFiles().findAll{
+                String fn = it.name
+                fn.contains("arm") || fn.contains("x86") || fn.contains("windows") || fn.contains("macos")
+            }.each{it.delete()}
+        }
+        else if (os.isMacOsX()) {
+            new File("./build/install/desktop/lib").listFiles().findAll{
+                String fn = it.name
+                fn.contains("arm") || fn.contains("x86") || fn.contains("linux") || fn.contains("windows")
+            }.each{it.delete()}
+        }
+        exec {
+            executable = "${System.properties['java.home']}/bin/jlink"
+            args("--module-path")
+            args("./build/install/desktop/lib")
+            args("--add-modules")
+            args("java.base,java.desktop,java.logging,jdk.unsupported")
+            args("--no-header-files")
+            args("--no-man-pages")
+            args("--compress=1")
+            args("--output")
+            args("./build/install/desktop/jre")
+        }
         def configJson = """{
   "classPath": [
-${String.join(',\n', new File("./build/install/desktop/lib").list().findAll{ !it.contains("arm") && !it.contains("x86") }.collect {"    \"lib/${it}\"" })}
+${String.join(',\n', new File("./build/install/desktop/lib").list().collect {"    \"lib/${it}\"" })}
   ],
   "mainClass": "${project.mainClassName}",
   "vmArgs": [
