@@ -49,12 +49,16 @@ val uiSkin = Skin(uiAtlas).apply {
     add("default", TextButton.TextButtonStyle(
             getDrawable("default-round"),
             getDrawable("default-round-down"), null,
-            Font.defaultFont))
+            Font.defaultFont).apply {
+        disabledFontColor = Colors.inactive
+    })
     add("toggle", TextButton.TextButtonStyle(
             getDrawable("default-round"),
             getDrawable("default-round-down"),
             getDrawable("default-round-down"),
-            Font.defaultFont))
+            Font.defaultFont).apply {
+        disabledFontColor = Colors.inactive
+    })
 
     add("default", ScrollPane.ScrollPaneStyle(
             getDrawable("default-rect"),

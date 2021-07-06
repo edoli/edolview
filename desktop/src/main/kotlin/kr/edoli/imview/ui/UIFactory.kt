@@ -44,12 +44,14 @@ object UIFactory {
         fontColor = Colors.normal
         downFontColor = Colors.negative
         overFontColor = Colors.over
+        disabledFontColor = Colors.inactive
     }
     val textToggleButtonStyle = TextButton.TextButtonStyle().apply {
         font = Font.defaultFont
         fontColor = Colors.normal
         downFontColor = Colors.negative
         overFontColor = Colors.over
+        disabledFontColor = Colors.inactive
 
         up = uiSkin.getDrawable("default-round")
         down = uiSkin.getDrawable("default-round-down")
@@ -62,6 +64,7 @@ object UIFactory {
         fontColor = Colors.normal
         downFontColor = Colors.negative
         overFontColor = Colors.over
+        disabledFontColor = Colors.inactive
     }
     val iconToggleButtonStyle = TextButton.TextButtonStyle().apply {
         font = Font.ioniconsFont
@@ -69,6 +72,7 @@ object UIFactory {
         downFontColor = Colors.negative
         overFontColor = Colors.over
         checkedFontColor = Colors.accent
+        disabledFontColor = Colors.inactive
     }
 
     fun <T> createField(observable: ObservableValue<T>, strToValue: (String) -> T, valueToString: (T) -> String,
@@ -267,6 +271,11 @@ object UIFactory {
             }
         }
     }
+
+    fun createIcon(text: String) =
+            Label(text, uiSkin).apply {
+                style = iconLabelStyle
+            }
 
     fun createToggleIconButton(text: String, observable: ObservableValue<Boolean>) =
             createToggleTextButton(text, observable).apply {
