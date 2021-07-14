@@ -17,7 +17,9 @@ class DisplayProfilePanel : Panel(false) {
             add(UIFactory.createToggleIconButton(Ionicons.ionMdBrush, ImContext.smoothing)).width(28f)
             add(UIFactory.createToggleIconButton(Ionicons.ionMdSwitch, ImContext.normalize)).width(28f)
         })
+
         row()
+
         val minMaxTable = Table().apply {
             val numberFieldMin = UIFactory.createFloatField(ImContext.displayMin)
             val numberFieldMax = UIFactory.createFloatField(ImContext.displayMax)
@@ -58,13 +60,14 @@ class DisplayProfilePanel : Panel(false) {
                 update()
             }
         }
+
         add(minMaxTable).expandX().fillX()
         row()
-        add(UIFactory.createSlider(Ionicons.ionMdSunny, -10f, 10f, 0.001f, ImContext.imageBrightness)).expandX().fillX()
+        add(UIFactory.createSlider(Ionicons.ionMdSunny, -10f, 10f, 0.001f, ImContext.imageBrightness)).expandX().fillX().padLeft(4f)
         row()
-        add(UIFactory.createSlider(Ionicons.ionMdContrast, -10f, 10f, 0.001f, ImContext.imageContrast)).expandX().fillX()
+        add(UIFactory.createSlider(Ionicons.ionMdContrast, -10f, 10f, 0.001f, ImContext.imageContrast)).expandX().fillX().padLeft(4f)
         row()
-        add(UIFactory.createSlider(Ionicons.ionMdNuclear, 0f, 10f, 0.001f, ImContext.imageGamma)).expandX().fillX()
+        add(UIFactory.createSlider(Ionicons.ionMdNuclear, 0f, 10f, 0.001f, ImContext.imageGamma)).expandX().fillX().padLeft(4f)
         row()
         add(Table().apply {
             add(UIFactory.createSelectBox(ImContext.visibleChannel)).padRight(4f)

@@ -3,7 +3,7 @@ package kr.edoli.imview.ui.panel.histogram
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.ui.Widget
-import kr.edoli.imview.ui.ColorRect
+import kr.edoli.imview.ui.UIRes
 import kr.edoli.imview.util.Histogram
 
 class HistogramWidget : Widget() {
@@ -27,7 +27,7 @@ class HistogramWidget : Widget() {
             freq.forEachIndexed { index, v ->
                 val offset = barWidth * index
                 val h = (height * v) / hist.maxFreq
-                batch.draw(ColorRect.white, x + offset, y, barWidth, h)
+                batch.draw(UIRes.white, x + offset, y, barWidth, h)
             }
         }
     }

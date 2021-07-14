@@ -27,13 +27,13 @@ class ToolBar : Panel() {
             ImageStore.clearCache()
         }.tooltip("Clear cache")).width(iconWidth)
 
-        add(UIFactory.createIconButton(Ionicons.ionMdSave) {
-            MarqueeUtils.saveImage(false)
-        }.tooltip("Save selected image")).width(iconWidth)
+//        add(UIFactory.createIconButton(Ionicons.ionMdSave) {
+//            MarqueeUtils.saveImage(false)
+//        }.tooltip("Save selected image")).width(iconWidth)
 
-        add(UIFactory.createIconButton(Ionicons.ionMdImage) {
-            ClipboardUtils.showClipboardImage()
-        }.tooltip("Show clipboard")).width(iconWidth)
+//        add(UIFactory.createIconButton(Ionicons.ionMdImage) {
+//            ClipboardUtils.showClipboardImage()
+//        }.tooltip("Show clipboard")).width(iconWidth)
 
         add(UIFactory.createIconButton(Ionicons.ionMdClipboard) {
             val image = ClipboardUtils.getImage() as BufferedImage?

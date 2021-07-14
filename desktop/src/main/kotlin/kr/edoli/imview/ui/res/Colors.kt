@@ -5,6 +5,7 @@ import kotlin.reflect.full.declaredMemberProperties
 
 
 object Colors {
+    val background = Color.GRAY!!
     val normal = Color.WHITE!!
     val negative = Color.RED!!
     val over = Color.LIGHT_GRAY!!

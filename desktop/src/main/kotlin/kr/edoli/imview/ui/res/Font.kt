@@ -6,6 +6,8 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 
 object Font {
+    val scale = 2.5f
+
     fun fontGenerator(
             font: String,
             size: Int,
@@ -13,7 +15,9 @@ object Font {
     ): BitmapFont {
         val generator = FreeTypeFontGenerator(Gdx.files.internal(font))
         val parameter = FreeTypeFontGenerator.FreeTypeFontParameter()
-        parameter.size = size
+
+
+        parameter.size = (size * scale).toInt()
         parameter.incremental = true
         if (action != null) {
             action(parameter)
@@ -21,10 +25,10 @@ object Font {
         return generator.generateFont(parameter).apply {
             data.markupEnabled = true
             region.texture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
-            data.setScale(0.5f)
+            data.setScale(1.0f / scale)
         }
     }
 
-    val ioniconsFont = fontGenerator("ionicons.ttf", 44)
-    val defaultFont = fontGenerator("font.ttf", 32)
+    val ioniconsFont = fontGenerator("ionicons.ttf", 22)
+    val defaultFont = fontGenerator("font.ttf", 16)
 }
