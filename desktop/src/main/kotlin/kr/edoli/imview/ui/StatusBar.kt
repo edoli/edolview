@@ -7,6 +7,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
+import kr.edoli.imview.ui.drawable.BorderedDrawable
+import kr.edoli.imview.ui.res.Colors
 import kr.edoli.imview.util.format
 import java.lang.Math.pow
 import kotlin.math.pow
@@ -18,6 +20,12 @@ class StatusBar : Panel() {
     }
 
     init {
+        background = BorderedDrawable(Colors.background, Colors.backgroundBorder).apply {
+            bottomBorder = false
+            leftBorder = false
+            rightBorder = false
+        }
+
         align(Align.left and Align.center)
         add(UIFactory.createColorRect(ImContext.cursorRGB).tooltip("Cursors RGB")).width(rowHeight).height(rowHeight)
         addContainer(UIFactory.createColorLabel(ImContext.cursorRGB).tooltip("Cursors RGB")).width(600f).height(rowHeight)

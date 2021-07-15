@@ -8,6 +8,8 @@ import kr.edoli.imview.image.ImageConvert
 import kr.edoli.imview.image.ImageSpec
 import kr.edoli.imview.image.MarqueeUtils
 import kr.edoli.imview.store.ImageStore
+import kr.edoli.imview.ui.drawable.BorderedDrawable
+import kr.edoli.imview.ui.res.Colors
 import kr.edoli.imview.ui.res.Ionicons
 import kr.edoli.imview.ui.window.ShaderEditor
 import java.awt.image.BufferedImage
@@ -21,8 +23,13 @@ class ToolBar : Panel() {
     }
 
     init {
-        align(Align.left)
+        background = BorderedDrawable(Colors.background, Colors.backgroundBorder).apply {
+            topBorder = false
+            leftBorder = false
+            rightBorder = false
+        }
 
+        align(Align.left)
         add(UIFactory.createIconButton(Ionicons.ionMdSync) {
             ImageStore.clearCache()
         }.tooltip("Clear cache")).width(iconWidth)

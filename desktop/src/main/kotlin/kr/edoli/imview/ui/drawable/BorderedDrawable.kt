@@ -5,7 +5,7 @@ import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
 import kr.edoli.imview.ui.UIRes
 
-open class BorderedDrawable(val fill: Color, val border: Color) : BaseDrawable() {
+open class BorderedDrawable(private val fill: Color, private val border: Color) : BaseDrawable() {
 
     var borderWidth = 1f
     var isBorder = true
@@ -20,13 +20,13 @@ open class BorderedDrawable(val fill: Color, val border: Color) : BaseDrawable()
 
         if (isBorder) {
             batch.color = border
-            if (topBorder) {
+            if (bottomBorder) {
                 batch.draw(UIRes.white, x, y, width, borderWidth)
             }
             if (leftBorder) {
                 batch.draw(UIRes.white, x, y, borderWidth, height)
             }
-            if (bottomBorder) {
+            if (topBorder) {
                 batch.draw(UIRes.white, x, y + height - borderWidth, width, borderWidth)
             }
             if (rightBorder) {
