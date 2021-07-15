@@ -146,27 +146,43 @@ class ImageViewer : WidgetGroup() {
                     localToImageCoordinates(imageCoord.set(marqueeOriginX, marqueeOriginY))
                     localToImageCoordinates(imageCoordB.set(x, y))
 
-                    val x1 = max(min(imageCoord.x, imageCoordB.x).toInt(), 0)
-                    val y1 = max(min(imageCoord.y, imageCoordB.y).toInt(), 0)
+                    val x1n = if (imageCoordB.x > imageCoord.x) imageCoord.x.floor() else imageCoord.x.ceil()
+                    val y1n = if (imageCoordB.y > imageCoord.y) imageCoord.y.floor() else imageCoord.y.ceil()
 
-                    var width = max(imageCoord.x, imageCoordB.x).ceil().toInt() - x1
-                    var height = max(imageCoord.y, imageCoordB.y).ceil().toInt() - y1
+                    val x1 = min(max(x1n.toInt(), 0), imageWidth)
+                    val y1 = min(max(y1n.toInt(), 0), imageHeight)
+
+                    val x2n = if (imageCoordB.x > imageCoord.x) imageCoordB.x.ceil() else imageCoordB.x.floor()
+                    val y2n = if (imageCoordB.y > imageCoord.y) imageCoordB.y.ceil() else imageCoordB.y.floor()
+
+                    val x2 = min(max(x2n.toInt(), 0), imageWidth)
+                    val y2 = min(max(y2n.toInt(), 0), imageHeight)
+
+                    val xf = if (imageCoordB.x > imageCoord.x) 1 else -1
+                    val yf = if (imageCoordB.y > imageCoord.y) 1 else -1
+
+                    var width = (x2 - x1).absoluteValue
+                    var height = (y2 - y1).absoluteValue
 
                     if (UIUtils.ctrl()) {
                         var size = max(width, height)
-                        size = min(min(imageWidth - x1, imageHeight - y1), size)
+                        val xMax = if (xf > 0) imageWidth - x1 else x1
+                        val yMax = if (yf > 0) imageHeight - y1 else y1
+
+                        size = min(min(xMax, yMax), size)
                         width = size
                         height = size
                     }
-                    val x2 = min(x1 + width, imageWidth)
-                    val y2 = min(y1 + height, imageHeight)
+
+                    val boxX = min(x1, x1 + width * xf)
+                    val boxY = min(y1, y1 + height * yf)
 
                     ImContext.marqueeBox.update { rect ->
                         rect.apply {
-                            this.x = x1
-                            this.y = y1
-                            this.width = x2 - x1
-                            this.height = y2 - y1
+                            this.x = boxX
+                            this.y = boxY
+                            this.width = width
+                            this.height = height
                         }
                     }
                 }
