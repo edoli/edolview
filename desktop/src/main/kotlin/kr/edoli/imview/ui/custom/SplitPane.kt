@@ -30,7 +30,6 @@ import com.badlogic.gdx.scenes.scene2d.utils.ScissorStack
 import com.badlogic.gdx.utils.GdxRuntimeException
 import kr.edoli.imview.ui.custom.SplitPane.SplitPaneStyle
 import kotlin.math.max
-import kotlin.math.min
 
 /** A container that contains two widgets and is divided either horizontally or vertically. The user may resize the widgets. The
  * child widgets are always sized to fill their side of the SplitPane.
@@ -293,7 +292,13 @@ class SplitPane
             }
         }
         batch.setColor(color.r, color.g, color.b, alpha)
-        style.handle.draw(batch, handleBounds.x, handleBounds.y, handleBounds.width, handleBounds.height)
+
+        val handleOver = style.handleOver
+        if (isCursorOverHandle && handleOver != null) {
+            handleOver.draw(batch, handleBounds.x, handleBounds.y, handleBounds.width, handleBounds.height)
+        } else {
+            style.handle.draw(batch, handleBounds.x, handleBounds.y, handleBounds.width, handleBounds.height)
+        }
         resetTransform(batch)
     }
 
@@ -422,6 +427,7 @@ class SplitPane
      */
     class SplitPaneStyle {
         lateinit var handle: Drawable
+        var handleOver: Drawable? = null
 
         constructor() {}
 

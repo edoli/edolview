@@ -64,5 +64,6 @@ class ToolBar : Panel() {
 
         add().expandX()
         add(UIFactory.createToggleIconButton(Ionicons.ionMdOptions, ImContext.isShowController)).width(iconWidth)
+        add(UIFactory.createToggleIconButton(Ionicons.ionMdStats, ImContext.isShowStatusBar)).width(iconWidth)
     }
 }

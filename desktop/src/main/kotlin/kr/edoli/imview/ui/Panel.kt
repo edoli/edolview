@@ -3,6 +3,7 @@ package kr.edoli.imview.ui
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Table
+import kr.edoli.imview.ui.drawable.BorderedDrawable
 import kr.edoli.imview.ui.res.Colors
 import kr.edoli.imview.ui.res.uiSkin
 

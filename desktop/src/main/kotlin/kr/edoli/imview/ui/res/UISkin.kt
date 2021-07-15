@@ -8,7 +8,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.List
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
+import kr.edoli.imview.ui.drawable.BorderedDrawable
 import kr.edoli.imview.ui.custom.SplitPane
+import kr.edoli.imview.ui.drawable.SplitHandleDrawable
 
 private val uiAtlas = TextureAtlas(Gdx.files.internal("uiskin.atlas"))
 private fun res(name: String): Drawable {
@@ -73,13 +75,23 @@ val uiSkin = Skin(uiAtlas).apply {
             List.ListStyle(Font.defaultFont, Colors.normal, Colors.normal, getDrawable("default-select-selection"))
     ))
 
+    val splitHandleMinSize = 6f
+
     add("default-horizontal", SplitPane.SplitPaneStyle(
-            getDrawable("default-splitpane")
-    ))
+            SplitHandleDrawable(Colors.background, Colors.backgroundBorder, Colors.backgroundBorder,
+                    splitHandleMinSize, false)
+    ).apply {
+        handleOver = SplitHandleDrawable(Colors.backgroundOver, Colors.backgroundBorder, Colors.backgroundBorder,
+                splitHandleMinSize, false)
+    })
 
     add("default-vertical", SplitPane.SplitPaneStyle(
-            getDrawable("default-splitpane-vertical")
-    ))
+            SplitHandleDrawable(Colors.background, Colors.backgroundBorder, Colors.backgroundBorder,
+                    splitHandleMinSize, true)
+    ).apply {
+        handleOver = SplitHandleDrawable(Colors.backgroundOver, Colors.backgroundBorder, Colors.backgroundBorder,
+                splitHandleMinSize, true)
+    })
 
     add("default", Window.WindowStyle(
             Font.defaultFont, Colors.normal, getDrawable("default-window")

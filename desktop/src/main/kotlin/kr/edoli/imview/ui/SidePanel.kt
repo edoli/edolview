@@ -2,11 +2,11 @@ package kr.edoli.imview.ui
 
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
+import kr.edoli.imview.ui.drawable.BorderedDrawable
 import kr.edoli.imview.ui.panel.CollapsiblePanel
 import kr.edoli.imview.ui.panel.DisplayProfilePanel
 import kr.edoli.imview.ui.panel.NavigationPanel
 import kr.edoli.imview.ui.panel.StatisticsPanel
-import kr.edoli.imview.ui.panel.histogram.HistogramPanel
 
 class SidePanel : Panel() {
     init {

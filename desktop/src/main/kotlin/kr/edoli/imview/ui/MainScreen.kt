@@ -4,8 +4,6 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.Cursor
-import com.badlogic.gdx.graphics.GL20
-import com.badlogic.gdx.graphics.GL20.GL_COVERAGE_BUFFER_BIT_NV
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
 import com.badlogic.gdx.scenes.scene2d.*
 import com.badlogic.gdx.scenes.scene2d.ui.*
@@ -16,6 +14,7 @@ import kr.edoli.imview.ui.panel.FileInfoPanel
 import kr.edoli.imview.ui.res.Ionicons
 import kr.edoli.imview.ui.res.uiSkin
 import kr.edoli.imview.ui.window.ObservableInfo
+import kr.edoli.imview.util.FullScreenManager
 import org.lwjgl.opengl.GL30
 
 class MainScreen : Screen {
@@ -80,7 +79,19 @@ class MainScreen : Screen {
 
         // bottom
         layoutTable.row()
-        layoutTable.add(StatusBar()).height(StatusBar.barHeight + 2f).expandX().fillX()
+        val statusBar = StatusBar()
+        val statusBarCell = layoutTable.add(statusBar)
+        statusBarCell.expandX().fillX()
+
+        ImContext.isShowStatusBar.subscribe(this, "Statusbar visibility") {
+            statusBar.isVisible = it
+            if (it) {
+                statusBarCell.height(StatusBar.barHeight + 2f)
+            } else {
+                statusBarCell.height(0f)
+            }
+            layoutTable.invalidate()
+        }
 
         // main stage
         stage.addActor(layoutTable)
@@ -107,12 +118,18 @@ class MainScreen : Screen {
 
         // Keyboard
         stage.addListener(object : InputListener() {
+            val fullScreenManager = FullScreenManager()
+
             override fun keyDown(event: InputEvent, keycode: Int): Boolean {
                 if (keycode == Input.Keys.F4) {
                     stage.isDebugAll = !stage.isDebugAll
                 }
                 if (keycode == Input.Keys.F3) {
                     ObservableInfo()
+                }
+
+                if (keycode == Input.Keys.F11) {
+                    fullScreenManager.toggle()
                 }
                 return super.keyDown(event, keycode)
             }

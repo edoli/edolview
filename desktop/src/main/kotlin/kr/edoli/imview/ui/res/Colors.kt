@@ -6,6 +6,7 @@ import kotlin.reflect.full.declaredMemberProperties
 
 object Colors {
     val background = Color.valueOf("474747")
+    val backgroundOver = Color.valueOf("676767")
     val backgroundBorder = Color.valueOf("333333")
 
     val normal = Color.valueOf("F7FFF7")

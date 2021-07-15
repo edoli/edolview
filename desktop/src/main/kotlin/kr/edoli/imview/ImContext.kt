@@ -79,6 +79,7 @@ object ImContext {
     val isShowCrosshair = ObservableValue(true, "Show crosshair")
     val isShowController = ObservableValue(true, "Show controller")
     val isShowFileInfo = ObservableValue(false, "Show file info")
+    val isShowStatusBar = ObservableValue(true, "Show status bar")
 
     val centerCursor = PublishSubject.create<Boolean>()
     val centerImage = PublishSubject.create<Boolean>()
