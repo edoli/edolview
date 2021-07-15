@@ -222,6 +222,10 @@ class ImageViewer : WidgetGroup() {
         })
 
         contextMenu {
+            val cursorPosition = ImContext.cursorPosition.get().toString()
+            val cursorRGB = ImContext.mainImageSpec.get()?.let { imageSpec ->
+                ImContext.cursorRGB.get().toColorStr(imageSpec.maxValue) }
+
             addMenu("Copy visible image") {
                 bufferCallbacks.add { byteArray ->
                     val mat = ImContext.mainImage.get()
@@ -253,11 +257,11 @@ class ImageViewer : WidgetGroup() {
 
             addMenuDivider()
             addMenu("Copy cursor position") {
-                ClipboardUtils.putString(ImContext.cursorPosition.get().toString())
+                ClipboardUtils.putString(cursorPosition)
             }
-            addMenu("Copy cursor RGB") {
-                ImContext.mainImageSpec.get()?.let { imageSpec ->
-                    ClipboardUtils.putString(ImContext.cursorRGB.get().toColorStr(imageSpec.maxValue))
+            if (cursorRGB != null) {
+                addMenu("Copy cursor RGB") {
+                    ClipboardUtils.putString(cursorRGB)
                 }
             }
 
