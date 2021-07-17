@@ -1,10 +1,14 @@
 package kr.edoli.imview.ui
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.Graphics
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.Screen
+import com.badlogic.gdx.backends.lwjgl3.Lwjgl3Graphics
 import com.badlogic.gdx.graphics.Cursor
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
+import com.badlogic.gdx.graphics.glutils.HdpiMode
+import com.badlogic.gdx.graphics.glutils.HdpiUtils
 import com.badlogic.gdx.scenes.scene2d.*
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.utils.viewport.ScreenViewport
@@ -152,13 +156,8 @@ class MainScreen : Screen {
     override fun render(delta: Float) {
         val pixelDensity = Gdx.graphics.density
         if (lastPixelDensity != pixelDensity) {
-            if (Gdx.graphics.density > 0.75f) {
-                (stage.viewport as ScreenViewport).unitsPerPixel = 0.75f / Gdx.graphics.density
-                stage.viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
-            } else {
-                (stage.viewport as ScreenViewport).unitsPerPixel = 1f
-                stage.viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
-            }
+            (stage.viewport as ScreenViewport).unitsPerPixel = 1f
+            stage.viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
             lastPixelDensity = pixelDensity
         }
         Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
