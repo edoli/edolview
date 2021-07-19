@@ -78,7 +78,7 @@ object ImageConvert {
         when (mat.channels()) {
             4 -> {
                 val matChannels = mat.split()
-                Core.merge(listOf(matChannels[3], matChannels[2], matChannels[1], matChannels[0]), mat)
+                Core.merge(listOf(matChannels[1], matChannels[2], matChannels[3], matChannels[0]), mat)
             }
         }
         return mat
