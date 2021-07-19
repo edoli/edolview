@@ -16,6 +16,7 @@ object UIRes {
 
         val tex = Texture(pixmap)
         tex.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
+        tex.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat)
 
         pixmap.dispose()
 

@@ -8,8 +8,9 @@ import com.badlogic.gdx.scenes.scene2d.ui.List
 import com.badlogic.gdx.scenes.scene2d.utils.Drawable
 import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable
-import kr.edoli.imview.ui.drawable.BorderedDrawable
 import kr.edoli.imview.ui.custom.SplitPane
+import kr.edoli.imview.ui.drawable.BorderedDrawable
+import kr.edoli.imview.ui.drawable.SliderDrawable
 import kr.edoli.imview.ui.drawable.SplitHandleDrawable
 
 private val uiAtlas = TextureAtlas(Gdx.files.internal("uiskin.atlas"))
@@ -102,9 +103,17 @@ val uiSkin = Skin(uiAtlas).apply {
     ).apply { stageBackground = newDrawable("white", 0f, 0f, 0f, 0.45f) })
 
     add("default-horizontal", Slider.SliderStyle(
-            getDrawable("default-slider"),
-            getDrawable("default-slider-knob")
-    ))
+            SliderDrawable(Colors.backgroundOver),
+            BorderedDrawable(Colors.background, Colors.backgroundBorder).apply {
+                minWidth = 8f
+                minHeight = 16f
+            }
+    ).apply {
+        knobOver = BorderedDrawable(Colors.backgroundOver, Colors.backgroundBorder).apply {
+            minWidth = 8f
+            minHeight = 16f
+        }
+    })
 
     add("default", TextField.TextFieldStyle(
             Font.defaultFont, Colors.normal,

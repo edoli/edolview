@@ -159,6 +159,7 @@ object UIFactory {
             add(CustomSlider(min, max, stepSize, false, uiSkin).apply {
                 val slider = this@apply
                 setButton(Input.Buttons.LEFT)
+                defaultValue = observable.initValue
                 observable.subscribe(this@UIFactory, "Double binding") { newValue ->
                     this.value = newValue
                 }

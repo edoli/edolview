@@ -6,7 +6,7 @@ import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator
 
 object Font {
-    val scale = 2.5f
+    val scale = 1.0f
 
     fun fontGenerator(
             font: String,
