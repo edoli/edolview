@@ -75,20 +75,21 @@ distTar.enabled = false
 task installAfter() {
     doLast {
         OperatingSystem os = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem;
+        var rootPath = project.projectDir.absolutePath
         if (os.isWindows()) {
-            new File("./build/install/desktop/lib").listFiles().findAll{
+            new File("${rootPath}/build/install/desktop/lib").listFiles().findAll{
                 String fn = it.name
                 fn.contains("arm") || fn.contains("x86") || fn.contains("linux") || fn.contains("macos")
             }.each{it.delete()}
         }
         else if (os.isLinux()) {
-            new File("./build/install/desktop/lib").listFiles().findAll{
+            new File("${rootPath}/build/install/desktop/lib").listFiles().findAll{
                 String fn = it.name
                 fn.contains("arm") || fn.contains("x86") || fn.contains("windows") || fn.contains("macos")
             }.each{it.delete()}
         }
         else if (os.isMacOsX()) {
-            new File("./build/install/desktop/lib").listFiles().findAll{
+            new File("${rootPath}/build/install/desktop/lib").listFiles().findAll{
                 String fn = it.name
                 fn.contains("arm") || fn.contains("x86") || fn.contains("linux") || fn.contains("windows")
             }.each{it.delete()}
@@ -103,11 +104,11 @@ task installAfter() {
             args("--no-man-pages")
             args("--compress=1")
             args("--output")
-            args("./build/install/desktop/jre")
+            args("${rootPath}/build/install/desktop/jre")
         }
         def configJson = """{
   "classPath": [
-${String.join(',\n', new File("./build/install/desktop/lib").list().collect {"    \"lib/${it}\"" })}
+${String.join(',\n', new File("${rootPath}/build/install/desktop/lib").list().collect {"    \"lib/${it}\"" })}
   ],
   "mainClass": "${project.mainClassName}",
   "vmArgs": [
@@ -115,7 +116,7 @@ ${String.join(',\n', new File("./build/install/desktop/lib").list().collect {"  
   ]
 }
     """
-        new File("./build/install/desktop/config.json").write(configJson)
+        new File("${rootPath}/build/install/desktop/config.json").write(configJson)
     }
 }
 
