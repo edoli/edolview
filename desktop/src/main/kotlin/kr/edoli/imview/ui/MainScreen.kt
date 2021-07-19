@@ -5,8 +5,13 @@ import com.badlogic.gdx.Input
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.Cursor
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
-import com.badlogic.gdx.scenes.scene2d.*
-import com.badlogic.gdx.scenes.scene2d.ui.*
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.InputListener
+import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
+import com.badlogic.gdx.scenes.scene2d.ui.Table
+import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.ui.custom.SplitPane
@@ -19,7 +24,7 @@ import org.lwjgl.opengl.GL30
 
 class MainScreen : Screen {
     val stage = Stage(ScreenViewport(), PolygonSpriteBatch())
-    var lastPixelDensity = 0f
+    var lastUIScale = 0f
 
     init {
         val imageViewer = ImageViewer()
@@ -150,16 +155,11 @@ class MainScreen : Screen {
     }
 
     override fun render(delta: Float) {
-        val pixelDensity = Gdx.graphics.density
-        if (lastPixelDensity != pixelDensity) {
-            if (Gdx.graphics.density > 0.75f) {
-                (stage.viewport as ScreenViewport).unitsPerPixel = 0.75f / Gdx.graphics.density
-                stage.viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
-            } else {
-                (stage.viewport as ScreenViewport).unitsPerPixel = 1f
-                stage.viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
-            }
-            lastPixelDensity = pixelDensity
+        val uiScale = ImContext.uiScale.get()
+        if (lastUIScale != uiScale) {
+            (stage.viewport as ScreenViewport).unitsPerPixel = 1.0f
+            stage.viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
+            lastUIScale = uiScale
         }
         Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
         Gdx.gl.glClear(GL30.GL_COLOR_BUFFER_BIT)

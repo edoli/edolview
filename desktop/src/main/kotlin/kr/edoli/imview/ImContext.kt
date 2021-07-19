@@ -76,6 +76,8 @@ object ImContext {
     val frameControl = FrameControl()
 
     // UI
+    val uiScale = ObservableValue(1.0f, "UI scaling factor")
+
     val isShowCrosshair = ObservableValue(true, "Show crosshair")
     val isShowController = ObservableValue(true, "Show controller")
     val isShowFileInfo = ObservableValue(false, "Show file info")
