@@ -12,6 +12,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
+import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.ui.custom.SplitPane
@@ -135,6 +136,10 @@ class MainScreen : Screen {
 
                 if (keycode == Input.Keys.F11) {
                     fullScreenManager.toggle()
+                }
+
+                if (keycode == Input.Keys.D && UIUtils.ctrl()) {
+                    ImContext.loadFromClipboard()
                 }
                 return super.keyDown(event, keycode)
             }

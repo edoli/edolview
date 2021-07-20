@@ -8,6 +8,7 @@ import kr.edoli.imview.util.*
 import org.opencv.core.Mat
 import org.opencv.core.Rect
 import rx.subjects.PublishSubject
+import java.awt.image.BufferedImage
 import java.io.File
 import java.util.*
 import java.util.prefs.Preferences
@@ -220,5 +221,16 @@ object ImContext {
 
     fun saveDisplayProfile() {
 
+    }
+
+    fun loadFromClipboard() {
+        val image = ClipboardUtils.getImage() as BufferedImage?
+        if (image != null) {
+            val spec = ImageSpec(ImageConvert.bufferedToMat(image), 255.0, 8)
+            spec.normalize()
+            mainFile.update(File("Clipboard"))
+            mainImageSpec.update(spec)
+            mainImage.update(spec.mat)
+        }
     }
 }

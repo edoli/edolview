@@ -43,14 +43,7 @@ class ToolBar : Panel() {
 //        }.tooltip("Show clipboard")).width(iconWidth)
 
         add(UIFactory.createIconButton(Ionicons.ionMdClipboard) {
-            val image = ClipboardUtils.getImage() as BufferedImage?
-            if (image != null) {
-                val spec = ImageSpec(ImageConvert.bufferedToMat(image), 255.0, 8)
-                spec.normalize()
-                ImContext.mainFile.update(File("Clipboard"))
-                ImContext.mainImageSpec.update(spec)
-                ImContext.mainImage.update(spec.mat)
-            }
+            ImContext.loadFromClipboard()
         }.tooltip("Show clipboard")).width(iconWidth)
 
         add(UIFactory.createToggleIconButton(Ionicons.ionMdInformationCircleOutline, ImContext.isShowFileInfo)).width(iconWidth)

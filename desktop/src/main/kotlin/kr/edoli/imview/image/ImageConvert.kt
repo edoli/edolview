@@ -4,7 +4,6 @@ import com.badlogic.gdx.graphics.Pixmap
 import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
-import org.opencv.imgproc.Imgproc
 import java.awt.Transparency
 import java.awt.image.*
 import java.nio.ByteBuffer
@@ -36,7 +35,6 @@ object ImageConvert {
         val width = bufferedImage.width
         val height = bufferedImage.height
         val channels = if (bufferedImage.colorModel.hasAlpha()) 4 else 3
-
 
         val dataBuffer = bufferedImage.data.dataBuffer
 
@@ -72,14 +70,18 @@ object ImageConvert {
             }
         }
 
-        return flipMatChannels(mat)
+        return arrangeChannels(mat, bufferedImage.type)
     }
 
-    private fun flipMatChannels(mat: Mat): Mat {
+    private fun arrangeChannels(mat: Mat, bufferedImageType: Int): Mat {
         when (mat.channels()) {
             4 -> {
                 val matChannels = mat.split()
-                Core.merge(listOf(matChannels[1], matChannels[2], matChannels[3], matChannels[0]), mat)
+                if (bufferedImageType <= 3) {
+                    Core.merge(listOf(matChannels[1], matChannels[2], matChannels[3], matChannels[0]), mat)
+                } else if (bufferedImageType <= 7) {
+                    Core.merge(listOf(matChannels[3], matChannels[2], matChannels[1], matChannels[0]), mat)
+                }
             }
         }
         return mat
