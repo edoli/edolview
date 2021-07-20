@@ -54,6 +54,7 @@ object UIFactory {
         over = BorderedDrawable(Colors.backgroundOver, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
         down = BorderedDrawable(Colors.backgroundDown, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
         checked = BorderedDrawable(Colors.accentDark, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
+        checkedOver = BorderedDrawable(Colors.accent, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
     }
 
     val iconLabelStyle = Label.LabelStyle(Font.ioniconsFont, Colors.normal)
