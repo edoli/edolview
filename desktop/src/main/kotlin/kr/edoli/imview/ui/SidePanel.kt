@@ -29,9 +29,9 @@ class SidePanel : Panel() {
 
         addHorizontalDivider().padTop(4f).padBottom(4f)
 
-        add(CollapsiblePanel("Selection statistics", StatisticsPanel(ImContext.marqueeImage), true)).fillX()
+        // add(CollapsiblePanel("Selection statistics", StatisticsPanel(ImContext.marqueeImage), true)).fillX()
 
-        addHorizontalDivider().padTop(4f).padBottom(4f)
+        // addHorizontalDivider().padTop(4f).padBottom(4f)
 
         // Temporary disable histogram
         val histogramPanel = HistogramPanel()

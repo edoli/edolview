@@ -1,6 +1,7 @@
 package kr.edoli.imview.ui.panel
 
 import com.badlogic.gdx.Gdx
+import kr.edoli.imview.ImContext
 import kr.edoli.imview.image.*
 import kr.edoli.imview.ui.Panel
 import kr.edoli.imview.ui.custom.NumberLabel
@@ -16,28 +17,34 @@ import kotlin.math.sqrt
 class StatisticsPanel(imageObservable: ObservableValue<Mat?>) : Panel(false) {
     val imageQueue = LinkedBlockingQueue<Mat>()
 
+    val minLabel = NumberLabel("Min value of image", skin)
+    val maxLabel = NumberLabel("Max value of image", skin)
+    val meanLabel = NumberLabel("Mean value of image", skin)
+    val stdLabel = NumberLabel("Standard deviation value of image", skin)
+
     init {
-        val minLabel = NumberLabel("Min value of image", skin)
-        val maxLabel = NumberLabel("Max value of image", skin)
-        val meanLabel = NumberLabel("Mean value of image", skin)
-        val stdLabel = NumberLabel("Standard deviation value of image", skin)
-
-
         add("Min").expandX()
         add("Max").expandX()
-        add("Mean").expandX()
-        add("Std").expandX()
 
         row()
 
         add(minLabel)
         add(maxLabel)
+
+        row()
+
+        add("Mean").expandX()
+        add("Std").expandX()
+
+        row()
+
         add(meanLabel)
         add(stdLabel)
 
         thread {
             forever {
                 val mat = imageQueue.take()
+                val spec = ImContext.mainImageSpec.get() ?: return@forever
 
                 val channels = mat.channels()
                 val num = (mat.total() * channels).toInt()
@@ -53,10 +60,10 @@ class StatisticsPanel(imageObservable: ObservableValue<Mat?>) : Panel(false) {
                 val standardDeviation = sqrt(variance)
 
                 Gdx.app.postRunnable {
-                    minLabel.value = minValue
-                    maxLabel.value = maxValue
-                    meanLabel.value = mean
-                    stdLabel.value = standardDeviation
+                    minLabel.value = minValue * spec.typeMaxValue
+                    maxLabel.value = maxValue * spec.typeMaxValue
+                    meanLabel.value = mean * spec.typeMaxValue
+                    stdLabel.value = standardDeviation * spec.typeMaxValue
                 }
             }
         }

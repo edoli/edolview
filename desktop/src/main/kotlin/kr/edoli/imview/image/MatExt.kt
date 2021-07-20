@@ -285,10 +285,7 @@ fun Mat.minMax(): Pair<Double, Double> {
         var max = Double.MIN_VALUE
 
         for (mat in matArray) {
-            val a = System.nanoTime()
-            val b = System.nanoTime()
             val result = Core.minMaxLoc(mat)
-            val c = System.nanoTime()
             val tmpMin = result.minVal
             val tmpMax = result.maxVal
 
