@@ -59,11 +59,10 @@ object ImContext {
     val normalize = ObservableValue(false, "Normalize")
     val smoothing = ObservableValue(false, "Smoothing")
 
-    val displayMin = ObservableValue(0.0f, "Display Min")
-    val displayMax = ObservableValue(1.0f, "Display Max")
+    val displayMin = ObservableValue(0.0f, "Display min")
+    val displayMax = ObservableValue(1.0f, "Display max")
 
-    val textureMin = ObservableValue(0.0f, "Image Min")
-    val textureMax = ObservableValue(1.0f, "Image Max")
+    val imageMinMax = ObservableLazyValue(Pair(0.0, 1.0), "Image min max")
 
     val imageContrast = ObservableValue(1.0f, "Contrast")
     val imageBrightness = ObservableValue(0.0f, "Brightness")
@@ -122,6 +121,9 @@ object ImContext {
                     mainImageSpec.update(spec)
                     if (!spec.isNormalized) {
                         spec.normalize()
+                    }
+                    imageMinMax.update {
+                        spec.mat.minMax()
                     }
                     mainImage.update(spec.mat)
 

@@ -341,10 +341,6 @@ class ImageViewer : WidgetGroup() {
             imageScale = newScale
         }
 
-        ImContext.normalize.subscribe(this, "Calc normalization") {
-            calcNormalization()
-        }
-
         ImContext.centerCursor.subscribe {
             val mousePos = Vector2(Gdx.input.x.toFloat(), Gdx.input.y.toFloat())
             localToImageCoordinates(screenToLocalCoordinates(mousePos))
@@ -378,35 +374,7 @@ class ImageViewer : WidgetGroup() {
         imageWidth = mat.width()
         imageHeight = mat.height()
 
-        if (ImContext.normalize.get()) {
-            calcNormalization()
-        }
-
         updateSmoothing()
-    }
-
-    private fun calcNormalization() {
-        val textureData = texture?.textureData as FloatTextureData?
-        if (textureData != null) {
-            val buffer = textureData.buffer
-            buffer.position(0)
-
-            var localMin = Float.MAX_VALUE
-            var localMax = Float.MIN_VALUE
-
-            while (buffer.hasRemaining()) {
-                val value = buffer.get()
-                if (value.isFinite()) {
-                    if (value > localMax) localMax = value
-                    if (value < localMin) localMin = value
-                }
-            }
-
-            Gdx.app.postRunnable {
-                ImContext.textureMin.update(localMin)
-                ImContext.textureMax.update(localMax)
-            }
-        }
     }
 
     private fun centerMarquee() {
@@ -552,8 +520,9 @@ class ImageViewer : WidgetGroup() {
             shader.setUniformf("contrast", ImContext.imageContrast.get())
             shader.setUniformf("gamma", ImContext.imageGamma.get())
             if (ImContext.normalize.get()) {
-                shader.setUniformf("min", ImContext.textureMin.get())
-                shader.setUniformf("max", ImContext.textureMax.get())
+                val minMax =  ImContext.imageMinMax.get()
+                shader.setUniformf("min", minMax.first.toFloat())
+                shader.setUniformf("max", minMax.second.toFloat())
             } else {
                 shader.setUniformf("min", ImContext.displayMin.get())
                 shader.setUniformf("max", ImContext.displayMax.get())

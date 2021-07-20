@@ -272,22 +272,32 @@ fun Mat.max(): Double {
 
 
 fun Mat.minMax(): Pair<Double, Double> {
-    val matArray = Array(this.channels()) { Mat() }.toList()
-    Core.split(this, matArray)
+    val numChannel = this.channels()
 
-    var min = Double.MAX_VALUE
-    var max = Double.MIN_VALUE
+    if (numChannel == 1) {
+        val result = Core.minMaxLoc(this)
+        return Pair(result.minVal, result.maxVal)
+    } else {
+        val matArray = Array(numChannel) { Mat() }.toList()
+        Core.split(this, matArray)
 
-    for (mat in matArray) {
-        val result = Core.minMaxLoc(mat)
-        val tmpMin = result.minVal
-        val tmpMax = result.maxVal
+        var min = Double.MAX_VALUE
+        var max = Double.MIN_VALUE
 
-        if (tmpMin < min) min = tmpMin
-        if (tmpMax > max) max = tmpMax
+        for (mat in matArray) {
+            val a = System.nanoTime()
+            val b = System.nanoTime()
+            val result = Core.minMaxLoc(mat)
+            val c = System.nanoTime()
+            val tmpMin = result.minVal
+            val tmpMax = result.maxVal
+
+            if (tmpMin < min) min = tmpMin
+            if (tmpMax > max) max = tmpMax
+        }
+
+        return Pair(min, max)
     }
-
-    return Pair(min, max)
 }
 
 fun Mat.normalize(): Mat {

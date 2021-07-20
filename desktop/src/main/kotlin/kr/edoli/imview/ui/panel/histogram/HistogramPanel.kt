@@ -45,7 +45,7 @@ class HistogramPanel : Panel(false) {
         var maxValue = 1.0
 
         if (!CvType.isInteger(spec.type)) {
-            val minMax = mat.minMax()
+            val minMax = ImContext.imageMinMax.get()
             minValue = minMax.first
             maxValue = minMax.second
         }
