@@ -15,6 +15,7 @@ import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.ui.contextmenu.ContextMenuManager
 import kr.edoli.imview.ui.custom.CustomSlider
+import kr.edoli.imview.ui.drawable.BorderedDrawable
 import kr.edoli.imview.ui.res.Colors
 import kr.edoli.imview.ui.res.Font
 import kr.edoli.imview.ui.res.uiSkin
@@ -42,16 +43,17 @@ object UIFactory {
         overFontColor = Colors.over
         disabledFontColor = Colors.inactive
     }
+
     val textToggleButtonStyle = TextButton.TextButtonStyle().apply {
         font = Font.defaultFont
         fontColor = Colors.normal
         downFontColor = Colors.negative
-        overFontColor = Colors.over
         disabledFontColor = Colors.inactive
 
-        up = uiSkin.getDrawable("default-round")
-        down = uiSkin.getDrawable("default-round-down")
-        checked = uiSkin.getDrawable("default-round-down")
+        up = BorderedDrawable(Colors.background, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
+        over = BorderedDrawable(Colors.backgroundOver, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
+        down = BorderedDrawable(Colors.backgroundDown, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
+        checked = BorderedDrawable(Colors.accentDark, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
     }
 
     val iconLabelStyle = Label.LabelStyle(Font.ioniconsFont, Colors.normal)

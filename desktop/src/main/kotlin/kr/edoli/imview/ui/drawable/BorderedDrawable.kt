@@ -34,4 +34,18 @@ open class BorderedDrawable(private val fill: Color, private val border: Color) 
             }
         }
     }
+
+    fun pad(all: Float) {
+        topHeight = all
+        rightWidth = all
+        bottomHeight = all
+        leftWidth = all
+    }
+
+    fun pad(top: Float, right: Float, bottom: Float, left: Float) {
+        topHeight = top
+        rightWidth = right
+        bottomHeight = bottom
+        leftWidth = left
+    }
 }

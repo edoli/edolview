@@ -9,9 +9,13 @@ import kr.edoli.imview.ui.res.Ionicons
 
 open class CollapsiblePanel(val title: String, val panel: Table, private val initCollapse: Boolean = false)
     : Panel(false) {
+
+    var onCollapseChanged: (Boolean) -> Unit = {}
+
     private val titleLabel = Label(title, skin).apply {
         setAlignment(Align.left)
     }
+
     private val collapseButton = UIFactory.createIconButton(Ionicons.ionMdFiling) { button ->
         collapse = button.isChecked
     }.apply {
@@ -32,6 +36,7 @@ open class CollapsiblePanel(val title: String, val panel: Table, private val ini
                 row()
                 add(panel).expandX().fillX()
             }
+            onCollapseChanged(value)
             field = value
         }
 

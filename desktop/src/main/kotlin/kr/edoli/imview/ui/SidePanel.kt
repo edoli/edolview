@@ -34,7 +34,20 @@ class SidePanel : Panel() {
         addHorizontalDivider().padTop(4f).padBottom(4f)
 
         // Temporary disable histogram
-        add(CollapsiblePanel("Histogram", HistogramPanel(), true)).fillX()
+        val histogramPanel = HistogramPanel()
+        val histogramCollapsible = CollapsiblePanel("Histogram", histogramPanel, true)
+        ImContext.mainImage.subscribe(this, "Update histogram") {
+            if (!histogramCollapsible.collapse) {
+                histogramPanel.updateHistogram()
+            }
+        }
+
+        histogramCollapsible.onCollapseChanged = { isCollapse ->
+            if (!isCollapse) {
+                histogramPanel.updateHistogram()
+            }
+        }
+        add(histogramCollapsible).fillX()
 
         ImContext.isShowController.subscribe(this, "Layout") {
             isVisible = it
