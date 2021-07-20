@@ -76,8 +76,10 @@ class ObservableLazyValue<T>(val initValue: T, val name: String, val checkValue:
     }
 
 
-    fun once(onNext: (T) -> Unit) {
-        executeUpdate()
+    fun once(onNext: (T) -> Unit, doExecute: Boolean = true) {
+        if (doExecute) {
+            executeUpdate()
+        }
         observable.subscribe(onNext).unsubscribe()
     }
 
