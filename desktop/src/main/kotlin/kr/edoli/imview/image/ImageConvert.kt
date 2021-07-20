@@ -53,6 +53,16 @@ object ImageConvert {
                 mat = Mat(height, width, type)
                 mat.put(0, 0, rawData)
             }
+            DataBuffer.TYPE_BYTE -> {
+                val dataBufferTyped = bufferedImage.data.dataBuffer as DataBufferByte
+                val byteData = dataBufferTyped.data
+                val byteBuffer = ByteBuffer.allocate(byteData.size * channels)
+                byteBuffer.put(byteData)
+                val rawData = byteBuffer.array()
+                val type = CvType.CV_8UC4
+                mat = Mat(height, width, type)
+                mat.put(0, 0, rawData)
+            }
             else -> {
                 val dataBufferTyped = bufferedImage.data.dataBuffer as DataBufferByte
                 val rawData = dataBufferTyped.data

@@ -27,7 +27,7 @@ object ImContext {
     val mainFileDirectory = ObservableValue("", "Main File directory")
 
     val mainImageSpec = ObservableValue<ImageSpec?>(null, "Image spec")
-    val marqueeImage = ObservableValue<Mat?>(null, "Marqueed image")
+    val marqueeImage = ObservableLazyValue<Mat?>(null, "Marqueed image")
 
     val cursorPosition = ObservableValue(Point2D(0.0, 0.0), "Cursor position")
     val cursorRGB = ObservableValue(doubleArrayOf(), "Cursor RGB")
@@ -157,7 +157,7 @@ object ImContext {
         marqueeBox.subscribe(this, "Update marquee image and RGB") {
             val mainImage = mainImage.get()
             if (it.width > 0 && it.height > 0 && mainImage != null) {
-                marqueeImage.update(mainImage[it])
+                marqueeImage.update {mainImage[it]}
                 marqueeBoxRGB.update(MarqueeUtils.boxMeanColor())
             }
         }
