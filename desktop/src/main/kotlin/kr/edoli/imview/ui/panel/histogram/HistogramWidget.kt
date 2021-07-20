@@ -8,13 +8,18 @@ import kr.edoli.imview.util.Histogram
 
 class HistogramWidget : Widget() {
     val histograms = ArrayList<Histogram>()
+    val isShow = ArrayList<Boolean>()
     val colors = arrayOf(Color.RED, Color.GREEN, Color.BLUE, Color.GRAY)
 
     override fun draw(batch: Batch, parentAlpha: Float) {
         super.draw(batch, parentAlpha)
 
+        while (isShow.size < histograms.size) {
+            isShow.add(true)
+        }
+
         histograms.forEachIndexed { histIndex, hist ->
-            if (!hist.isShow) {
+            if (!isShow[histIndex]) {
                 return@forEachIndexed
             }
 

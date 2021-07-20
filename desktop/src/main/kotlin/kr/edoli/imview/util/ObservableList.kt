@@ -1,6 +1,5 @@
 package kr.edoli.imview.util
 
-import rx.Subscription
 import rx.subjects.BehaviorSubject
 import rx.subjects.Subject
 
@@ -13,7 +12,7 @@ class ObservableList<T>(
         val name: String = "") {
 
     private val observable: Subject<T, T> = BehaviorSubject.create<T>()
-    val subjects = ArrayList<ObservableValue.Subscriber>()
+    val subscribers = ArrayList<ObservableValue.Subscriber>()
 
     val items: List<T>
         get() = list.toList()
@@ -31,19 +30,19 @@ class ObservableList<T>(
     fun subscribe(subject: Any, description: String, onNext: (T) -> Unit): ObservableValue.Subscriber {
         val subscription = observable.subscribe(onNext)
         val subscriber = ObservableValue.Subscriber(subject, subscription, description)
-        subjects.add(subscriber)
+        subscribers.add(subscriber)
         return subscriber
     }
 
     fun unsubscribe(subject: Any) {
-        subjects.filter { it.subject == subject }.forEach {
+        subscribers.filter { it.subject == subject }.forEach {
             unsubscribe(it)
         }
     }
 
     fun unsubscribe(subscriber: ObservableValue.Subscriber) {
         subscriber.subscription.unsubscribe()
-        subjects.remove(subscriber)
+        subscribers.remove(subscriber)
     }
 
     fun update(index: Int) {

@@ -46,7 +46,7 @@ class FileInfoPanel : Panel(false) {
             if (imageSpec == null) return@subscribe
 
             bitPerPixelLabel.value = imageSpec.bitsPerPixel.toDouble()
-            maxValueLabel.value = imageSpec.maxValue
+            maxValueLabel.value = imageSpec.typeMaxValue
             numChannelsLabel.value = imageSpec.numChannels.toDouble()
         }
     }

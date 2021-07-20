@@ -1,12 +1,10 @@
 package kr.edoli.imview.ui
 
-import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Cursor
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
-import com.badlogic.gdx.scenes.scene2d.actions.Actions
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
@@ -15,7 +13,6 @@ import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
-import kr.edoli.imview.ui.UIFactory.checkArray
 import kr.edoli.imview.ui.contextmenu.ContextMenuManager
 import kr.edoli.imview.ui.custom.CustomSlider
 import kr.edoli.imview.ui.res.Colors
@@ -26,7 +23,6 @@ import kr.edoli.imview.util.ObservableValue
 import kr.edoli.imview.util.toColor
 import kr.edoli.imview.util.toColorStr
 import org.opencv.core.Rect
-import tornadofx.isDouble
 import tornadofx.isFloat
 import tornadofx.isInt
 import kotlin.math.abs
@@ -337,7 +333,7 @@ object UIFactory {
         return createLabel(observable) { newValue ->
             val imageSpec = ImContext.mainImageSpec.get()
             if (imageSpec != null) {
-                "(${newValue.toColorStr(imageSpec.maxValue)})"
+                "(${newValue.toColorStr(imageSpec.typeMaxValue)})"
             } else {
                 ""
             }
@@ -349,7 +345,7 @@ object UIFactory {
                 val color = observable.get()
                 val imageSpec = ImContext.mainImageSpec.get()
                 if (imageSpec != null) {
-                    ClipboardUtils.putString("(${color.toColorStr(imageSpec.maxValue)})")
+                    ClipboardUtils.putString("(${color.toColorStr(imageSpec.typeMaxValue)})")
                 }
             }
         }

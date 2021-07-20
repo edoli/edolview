@@ -6,16 +6,18 @@ import com.badlogic.gdx.scenes.scene2d.ui.Slider
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import kr.edoli.imview.ImContext
+import kr.edoli.imview.image.minMax
 import kr.edoli.imview.image.split
 import kr.edoli.imview.ui.Panel
 import kr.edoli.imview.ui.UIFactory
 import kr.edoli.imview.util.Histogram
+import org.opencv.core.CvType
 
 class HistogramPanel : Panel(false) {
 
     val histogramActor = HistogramWidget()
     val buttons = Table()
-    val slider = Slider(1f, 255f, 1f, false, skin).apply {
+    val slider = Slider(0f, 1f, 0.01f, false, skin).apply {
         setButton(Input.Buttons.LEFT)
         value = 100f
         addListener(object : ChangeListener() {
@@ -36,13 +38,23 @@ class HistogramPanel : Panel(false) {
     }
 
     fun updateHistogram() {
-        val mat = ImContext.mainImage.get() ?: return
+        val spec = ImContext.mainImageSpec.get() ?: return
+        val mat = spec.mat
 
-        val binSize = slider.value
+        var minValue = 0.0
+        var maxValue = 1.0
+
+        if (!CvType.isInteger(spec.type)) {
+            val minMax = mat.minMax()
+            minValue = minMax.first
+            maxValue = minMax.second
+        }
+
+        val numBin = 256
 
         val histograms = mat.split().map { singleMat ->
-            Histogram(binSize.toInt(), (1 / (binSize - 1)).toDouble()).apply {
-                computeHistMat(singleMat)
+            Histogram(numBin).apply {
+                computeHistMat(singleMat, minValue, maxValue)
             }
         }
 
@@ -59,7 +71,7 @@ class HistogramPanel : Panel(false) {
 
         (names.indices).forEach { index ->
             buttons.add(UIFactory.createTextButton(names[index]) {
-                histograms[index].isShow = it.isChecked
+                histogramActor.isShow[index] = it.isChecked
             }.apply {
                 isChecked = true
                 style = UIFactory.textToggleButtonStyle

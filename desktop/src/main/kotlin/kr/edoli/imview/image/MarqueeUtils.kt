@@ -13,14 +13,14 @@ import java.io.IOException
 
 object MarqueeUtils {
 
-    fun copyImageToClipboard(doImageProc: Boolean = false) {
-        val mat = croppedImage(doImageProc)
+    fun copyImageToClipboard() {
+        val mat = croppedImage()
         if (mat != null) {
             ClipboardUtils.putImage(mat)
         }
     }
 
-    fun saveImage(doImageProc: Boolean = false) {
+    fun saveImage() {
         ImContext.mainImage.get() ?: return
 
         // UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
@@ -47,10 +47,10 @@ object MarqueeUtils {
         //
         if (dest != null) {
             try {
-                val selectedMat = croppedImage(doImageProc)
+                val selectedMat = croppedImage()
                 if (selectedMat != null) {
                     val mat = selectedMat.clone()
-                    val maxValue = ImContext.mainImageSpec.get()!!.maxValue
+                    val maxValue = ImContext.mainImageSpec.get()!!.typeMaxValue
                     val factor = when (dest.extension.toLowerCase()) {
                         "png" -> if (maxValue != -1.0) maxValue else 255.0
                         "tiff" -> 255.0
@@ -104,7 +104,7 @@ object MarqueeUtils {
         return doubleArrayOf(0.0)
     }
 
-    private fun croppedImage(doImageProc: Boolean = false): Mat? {
+    private fun croppedImage(): Mat? {
         if (!ImContext.isValidMarquee) {
             return null
         }
@@ -116,9 +116,9 @@ object MarqueeUtils {
         return if (mainImage != null) {
             if (selectBoxActive) {
                 val mat = mainImage[selectBox]
-                if (doImageProc) ImageProc.process(mat, false) else mat
+                mat
             } else {
-                if (doImageProc) ImageProc.process(mainImage, false) else mainImage
+                mainImage
             }
         } else {
             null

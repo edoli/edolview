@@ -120,8 +120,10 @@ object ImContext {
                 val mat = spec.mat
                 if (!mat.empty()) {
                     mainImageSpec.update(spec)
-                    val normalized = ImageStore.normalize(mat)
-                    mainImage.update(normalized)
+                    if (!spec.isNormalized) {
+                        spec.normalize()
+                    }
+                    mainImage.update(spec.mat)
 
                     updateCursorColor()
                     marqueeBoxRGB.update(MarqueeUtils.boxMeanColor())

@@ -45,10 +45,11 @@ class ToolBar : Panel() {
         add(UIFactory.createIconButton(Ionicons.ionMdClipboard) {
             val image = ClipboardUtils.getImage() as BufferedImage?
             if (image != null) {
-                val mat = ImageStore.normalize(ImageConvert.bufferedToMat(image))
+                val spec = ImageSpec(ImageConvert.bufferedToMat(image), 255.0, 8)
+                spec.normalize()
                 ImContext.mainFile.update(File("Clipboard"))
-                ImContext.mainImageSpec.update(ImageSpec(mat, 255.0, mat.channels(), 8))
-                ImContext.mainImage.update(mat)
+                ImContext.mainImageSpec.update(spec)
+                ImContext.mainImage.update(spec.mat)
             }
         }.tooltip("Show clipboard")).width(iconWidth)
 

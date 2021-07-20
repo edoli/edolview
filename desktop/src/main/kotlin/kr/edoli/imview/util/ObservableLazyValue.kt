@@ -7,21 +7,20 @@ import rx.subjects.Subject
 /**
  * Created by daniel on 16. 10. 2.
  */
-class ObservableValue<T>(val initValue: T, val name: String, val checkValue: (T) -> T = {it}) {
+class ObservableLazyValue<T>(val initValue: T, val name: String, val checkValue: (T) -> T = {it}) {
     private val observable: Subject<T, T> = BehaviorSubject.create()
     val subscribers = ArrayList<Subscriber>()
-    private var value = initValue
+    private var storedAction: (() -> T)? = null
 
     var lastTotalUpdateTime = 0L
 
     init {
         observable.onNext(initValue)
-        observable.subscribe { value = it }
-
-        ObservableContext.observableValues.add(this)
+        ObservableContext.observableLazyValues.add(this)
     }
 
     fun subscribe(subject: Any, description: String, onNext: (T) -> Unit): Subscriber {
+        executeUpdate()
         val subscription = observable.subscribe(onNext)
         val subscriber = Subscriber(subject, subscription, description)
         subscribers.add(subscriber)
@@ -39,28 +38,32 @@ class ObservableValue<T>(val initValue: T, val name: String, val checkValue: (T)
         subscribers.remove(subscriber)
     }
 
-    fun update(action: (T) -> T) {
-        value = checkValue(action(value))
+    fun update(action: () -> T) {
+        storedAction = action
 
-        val startTime = System.nanoTime()
-        observable.onNext(value)
-        lastTotalUpdateTime = System.nanoTime() - startTime
+        if (subscribers.size > 0) {
+            executeUpdate()
+        }
     }
 
-    fun update(newValue: T) {
-        val startTime = System.nanoTime()
-        observable.onNext(checkValue(newValue))
-        lastTotalUpdateTime = System.nanoTime() - startTime
+    private fun executeUpdate() {
+        val action = storedAction
+        if (action != null) {
+            val startTime = System.nanoTime()
+            observable.onNext(checkValue(action()))
+            lastTotalUpdateTime = System.nanoTime() - startTime
+        }
+        storedAction = null
     }
-
-    fun get() = value
 
     fun once(onNext: (T) -> Unit) {
+        executeUpdate()
         observable.subscribe(onNext).unsubscribe()
     }
 
     fun reset() {
-        update(initValue)
+        storedAction = null
+        observable.onNext(initValue)
     }
 
     data class Subscriber(val subject: Any, val subscription: Subscription, val description: String)

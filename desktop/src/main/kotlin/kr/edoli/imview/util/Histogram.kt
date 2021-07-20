@@ -5,14 +5,12 @@ import org.opencv.core.Mat
 /**
  * Created by daniel on 16. 2. 27.
  */
-class Histogram(val n: Int, val binSize: Double) {
-    var isShow = true
-    val freq: IntArray
-    var maxFreq: Int = 0
+class Histogram(val n: Int) {
+    val freq = IntArray(n)
+    var maxFreq = 0
         private set
 
     init {
-        freq = IntArray(n)
         clear()
     }
 
@@ -27,24 +25,25 @@ class Histogram(val n: Int, val binSize: Double) {
         }
     }
 
-    fun computeHistMat(mat: Mat) {
+    fun computeHistMat(mat: Mat, minValue: Double, maxValue: Double) {
         val channels = mat.channels()
         val num = (mat.total() * channels).toInt()
 
         val rawData = DoubleArray(num)
         mat.get(0, 0, rawData)
 
+        val denominator = (maxValue - minValue)
+
         rawData.forEach { v ->
-            val ind = (v / binSize).toInt()
+            val ind = (n * ((v - minValue) / denominator)).toInt()
             addDataPoint(ind)
         }
     }
 
-    val number: Int
-        get() = freq.size
-
     fun clear() {
-        freq.map { 0 }
+        for (i in freq.indices) {
+            freq[i] = 0
+        }
         maxFreq = 0
     }
 }

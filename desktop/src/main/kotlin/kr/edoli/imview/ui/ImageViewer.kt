@@ -240,7 +240,7 @@ class ImageViewer : WidgetGroup() {
         contextMenu {
             val cursorPosition = ImContext.cursorPosition.get().toString()
             val cursorRGB = ImContext.mainImageSpec.get()?.let { imageSpec ->
-                ImContext.cursorRGB.get().toColorStr(imageSpec.maxValue) }
+                ImContext.cursorRGB.get().toColorStr(imageSpec.typeMaxValue) }
 
             addMenu("Copy visible image") {
                 bufferCallbacks.add { byteArray ->
@@ -288,12 +288,12 @@ class ImageViewer : WidgetGroup() {
                 }
                 addMenu("Copy selection RGB") {
                     ImContext.mainImageSpec.get()?.let { imageSpec ->
-                        ClipboardUtils.putString(ImContext.marqueeBoxRGB.get().toColorStr(imageSpec.maxValue))
+                        ClipboardUtils.putString(ImContext.marqueeBoxRGB.get().toColorStr(imageSpec.typeMaxValue))
                     }
                 }
                 addMenu("Save selected image") {
                     ImContext.marqueeImage.get()?.let { mat ->
-                        MarqueeUtils.saveImage(false)
+                        MarqueeUtils.saveImage()
                     }
                 }
                 addMenu("Copy selected image") {

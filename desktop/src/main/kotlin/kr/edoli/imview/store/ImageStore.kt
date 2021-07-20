@@ -40,7 +40,7 @@ object ImageStore {
     private fun loadFromPath(path: String): ImageSpec {
         val ext = FilenameUtils.getExtension(path)
         if (!File(path).exists()) {
-            return ImageSpec(Mat(), 0.0, 0, 0 )
+            return ImageSpec(Mat())
         }
         val bytes = FileUtils.readFileToByteArray(File(path))
         val mat = Imgcodecs.imdecode(MatOfByte(*bytes), -1)
@@ -63,40 +63,12 @@ object ImageStore {
             mat *= abs(scale.toDouble())
         }
 
-        return ImageSpec(mat, mat.typeMax(), mat.channels(), mat.bitsPerPixel())
+        return ImageSpec(mat)
     }
 
     fun clearCache() {
         imageStoreMap.cleanUp()
         imageStoreMap.invalidateAll()
-    }
-
-    fun normalize(mat: Mat): Mat {
-        when (mat.channels()) {
-            1 -> {
-                val alpha = when (mat.type()) {
-                    CvType.CV_8U -> 1.0 / 255.0
-                    CvType.CV_16U -> 1.0 / 65535.0
-                    else -> 1.0
-                }
-                mat.convertTo(mat, CvType.CV_64FC3, alpha)
-            }
-            3 -> {
-                when {
-                    mat.type() == CvType.CV_8UC3 -> mat.convertTo(mat, CvType.CV_64FC3, 1.0 / 255.0)
-                    mat.type() == CvType.CV_16UC3 -> mat.convertTo(mat, CvType.CV_64FC3, 1.0 / 65535.0)
-                    else -> mat.convertTo(mat, CvType.CV_64FC3)
-                }
-            }
-            4 -> {
-                when {
-                    mat.type() == CvType.CV_8UC4 -> mat.convertTo(mat, CvType.CV_64FC3, 1.0 / 255.0)
-                    mat.type() == CvType.CV_16UC4 -> mat.convertTo(mat, CvType.CV_64FC3, 1.0 / 65535.0)
-                    else -> mat.convertTo(mat, CvType.CV_64FC3)
-                }
-            }
-        }
-        return mat
     }
 
     fun get(file: File): ImageSpec {

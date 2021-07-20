@@ -53,9 +53,9 @@ class ObservableInfo : JFrame() {
         val data = Array(ObservableContext.observableValues.size) { Array<Any>(4) {} }
         ObservableContext.observableValues.forEachIndexed { index, value ->
             data[index][0] = value.name
-            data[index][1] = value.subjects.size
+            data[index][1] = value.subscribers.size
             data[index][2] = "${value.lastTotalUpdateTime.toFloat() / 1000 / 1000}ms"
-            data[index][3] = value.subjects.map { it.subject }
+            data[index][3] = value.subscribers.map { it.subject }
         }
         return data
     }

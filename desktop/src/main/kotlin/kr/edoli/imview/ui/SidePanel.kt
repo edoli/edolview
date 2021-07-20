@@ -7,6 +7,7 @@ import kr.edoli.imview.ui.panel.CollapsiblePanel
 import kr.edoli.imview.ui.panel.DisplayProfilePanel
 import kr.edoli.imview.ui.panel.NavigationPanel
 import kr.edoli.imview.ui.panel.StatisticsPanel
+import kr.edoli.imview.ui.panel.histogram.HistogramPanel
 
 class SidePanel : Panel() {
     init {
@@ -33,7 +34,7 @@ class SidePanel : Panel() {
         addHorizontalDivider().padTop(4f).padBottom(4f)
 
         // Temporary disable histogram
-//        add(CollapsiblePanel("Histogram", HistogramPanel(), true)).fillX()
+        add(CollapsiblePanel("Histogram", HistogramPanel(), true)).fillX()
 
         ImContext.isShowController.subscribe(this, "Layout") {
             isVisible = it
