@@ -24,7 +24,7 @@ class SidePanel : Panel() {
 
 //        add(CollapsiblePanel("Image statistics", StatisticsPanel(ImContext.mainImage), true)).fillX()
 
-        addHorizontalDivider().padTop(4f).padBottom(4f)
+//        addHorizontalDivider().padTop(4f).padBottom(4f)
 
         // add(CollapsiblePanel("Selection statistics", StatisticsPanel(ImContext.marqueeImage), true)).fillX()
 
