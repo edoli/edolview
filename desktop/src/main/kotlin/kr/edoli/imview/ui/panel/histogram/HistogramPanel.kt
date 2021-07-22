@@ -6,7 +6,6 @@ import kr.edoli.imview.image.split
 import kr.edoli.imview.ui.Panel
 import kr.edoli.imview.ui.UIFactory
 import kr.edoli.imview.util.Histogram
-import org.opencv.core.CvType
 
 class HistogramPanel : Panel(false) {
 
@@ -17,6 +16,18 @@ class HistogramPanel : Panel(false) {
         add(histogramActor).expandX().fillX().height(128f)
         row()
         add(buttons).expandX().fillX()
+
+        ImContext.mainImage.subscribe(this, "Update histogram") {
+            if (!isGone()) {
+                updateHistogram()
+            }
+        }
+
+        onGoneChanged = { isGone ->
+            if (!isGone) {
+                updateHistogram()
+            }
+        }
     }
 
     fun updateHistogram() {

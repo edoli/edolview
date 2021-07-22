@@ -4,10 +4,14 @@ import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.Cell
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import kr.edoli.imview.ui.drawable.BorderedDrawable
+import kr.edoli.imview.ui.panel.CollapsiblePanel
 import kr.edoli.imview.ui.res.Colors
 import kr.edoli.imview.ui.res.uiSkin
 
 open class Panel(showBackground: Boolean = true) : Table(uiSkin) {
+
+    var onGoneChanged: (isGone: Boolean) -> Unit = {}
+
     init {
         if (showBackground) {
             background = BorderedDrawable(Colors.background, Colors.backgroundBorder)
@@ -24,5 +28,16 @@ open class Panel(showBackground: Boolean = true) : Table(uiSkin) {
 
     fun addVerticalDivider(): Cell<ColorRect> {
         return add(ColorRect(Colors.backgroundBorder)).expandY().fillY().width(1f)
+    }
+
+    fun isGone(): Boolean {
+        if (stage == null) {
+            return true
+        }
+        val parent = this.parent
+        if (parent is CollapsiblePanel) {
+            return parent.isGone()
+        }
+        return false
     }
 }

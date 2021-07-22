@@ -31,6 +31,9 @@ open class CollapsiblePanel(val title: String, val panel: Table, private val ini
     var collapse = initCollapse
         set(value) {
             clearChildren()
+            if (panel is Panel) {
+                panel.onGoneChanged(value)
+            }
             add(titleTable).expandX().fillX().pad(0f, 4f, 0f, 4f)
             if (!value) {
                 row()

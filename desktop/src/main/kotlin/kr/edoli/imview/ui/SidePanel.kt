@@ -3,10 +3,7 @@ package kr.edoli.imview.ui
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.ui.drawable.BorderedDrawable
-import kr.edoli.imview.ui.panel.CollapsiblePanel
-import kr.edoli.imview.ui.panel.DisplayProfilePanel
-import kr.edoli.imview.ui.panel.NavigationPanel
-import kr.edoli.imview.ui.panel.StatisticsPanel
+import kr.edoli.imview.ui.panel.*
 import kr.edoli.imview.ui.panel.histogram.HistogramPanel
 
 class SidePanel : Panel() {
@@ -33,21 +30,13 @@ class SidePanel : Panel() {
 
         // addHorizontalDivider().padTop(4f).padBottom(4f)
 
-        // Temporary disable histogram
-        val histogramPanel = HistogramPanel()
-        val histogramCollapsible = CollapsiblePanel("Histogram", histogramPanel, true)
-        ImContext.mainImage.subscribe(this, "Update histogram") {
-            if (!histogramCollapsible.collapse) {
-                histogramPanel.updateHistogram()
-            }
-        }
+        add(CollapsiblePanel("Histogram", HistogramPanel(), true)).fillX()
 
-        histogramCollapsible.onCollapseChanged = { isCollapse ->
-            if (!isCollapse) {
-                histogramPanel.updateHistogram()
-            }
-        }
-        add(histogramCollapsible).fillX()
+        addHorizontalDivider().padTop(4f).padBottom(4f)
+
+        add(CollapsiblePanel("Plot", PlotPanel(), true)).fillX()
+
+        addHorizontalDivider().padTop(4f).padBottom(4f)
 
         ImContext.isShowController.subscribe(this, "Layout") {
             isVisible = it
