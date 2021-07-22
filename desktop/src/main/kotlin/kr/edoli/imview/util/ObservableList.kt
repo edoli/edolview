@@ -20,6 +20,8 @@ class ObservableList<T>(
     var currentIndex = initialIndex
     var value = list[currentIndex]
 
+    var lastTotalUpdateTime = 0L
+
     init {
         observable.onNext(list[initialIndex])
         observable.subscribe { value = it }
@@ -47,7 +49,10 @@ class ObservableList<T>(
 
     fun update(index: Int) {
         currentIndex = index
+
+        val startTime = System.nanoTime()
         observable.onNext(list[index])
+        lastTotalUpdateTime = System.nanoTime() - startTime
     }
 
     fun update(newList: List<T>, newInitIndex: Int = 0) {
@@ -55,7 +60,10 @@ class ObservableList<T>(
         list = newList
 
         currentIndex = newInitIndex
+
+        val startTime = System.nanoTime()
         observable.onNext(newList[newInitIndex])
+        lastTotalUpdateTime = System.nanoTime() - startTime
     }
 
     fun get() = value

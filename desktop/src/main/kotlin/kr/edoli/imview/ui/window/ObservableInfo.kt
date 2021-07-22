@@ -50,8 +50,26 @@ class ObservableInfo : JFrame() {
     }
 
     fun createData(): Array<Array<Any>> {
-        val data = Array(ObservableContext.observableValues.size) { Array<Any>(4) {} }
+        val allSize = ObservableContext.observableValues.size +
+                ObservableContext.observableLazyValues.size +
+                ObservableContext.observableLists.size
+
+        val data = Array(allSize) { Array<Any>(4) {} }
         ObservableContext.observableValues.forEachIndexed { index, value ->
+            data[index][0] = value.name
+            data[index][1] = value.subscribers.size
+            data[index][2] = "${value.lastTotalUpdateTime.toFloat() / 1000 / 1000}ms"
+            data[index][3] = value.subscribers.map { it.subject }
+        }
+        ObservableContext.observableLazyValues.forEachIndexed { ti, value ->
+            val index = ti + ObservableContext.observableValues.size
+            data[index][0] = value.name
+            data[index][1] = value.subscribers.size
+            data[index][2] = "${value.lastTotalUpdateTime.toFloat() / 1000 / 1000}ms"
+            data[index][3] = value.subscribers.map { it.subject }
+        }
+        ObservableContext.observableLists.forEachIndexed { ti, value ->
+            val index = ti + ObservableContext.observableValues.size + ObservableContext.observableLazyValues.size
             data[index][0] = value.name
             data[index][1] = value.subscribers.size
             data[index][2] = "${value.lastTotalUpdateTime.toFloat() / 1000 / 1000}ms"
