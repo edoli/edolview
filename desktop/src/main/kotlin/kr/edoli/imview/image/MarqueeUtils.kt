@@ -29,7 +29,7 @@ object MarqueeUtils {
 
         val frame: Frame? = null
         val fileChooser = FileDialog(frame, "Save file", FileDialog.SAVE)
-        fileChooser.directory = ImContext.mainFile.get().absoluteFile.parent
+        fileChooser.directory = File(ImContext.mainPath.get()).absoluteFile.parent
         fileChooser.isVisible = true
 
         val filePath = fileChooser.file

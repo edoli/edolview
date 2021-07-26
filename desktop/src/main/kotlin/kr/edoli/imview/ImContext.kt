@@ -5,14 +5,12 @@ import kr.edoli.imview.image.*
 import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.ui.Colormap
 import kr.edoli.imview.util.*
-import org.opencv.core.Core
-import org.opencv.core.Mat
-import org.opencv.core.MatOfByte
-import org.opencv.core.Rect
+import org.opencv.core.*
 import org.opencv.imgcodecs.Imgcodecs
 import rx.subjects.PublishSubject
 import java.awt.image.BufferedImage
 import java.io.File
+import java.io.FileNotFoundException
 import java.net.URI
 import java.net.URL
 import java.util.*
@@ -28,7 +26,7 @@ object ImContext {
     val args = ObservableValue(arrayOf<String>(), "Args")
 
     val mainImage = ObservableValue<Mat?>(null, "Main image")
-    val mainFile = ObservableValue(File("EdolView"), "Main file")
+    val mainPath = ObservableValue("EdolView", "Main path")
     val mainFileName = ObservableValue("", "Main File name")
     val mainFileDirectory = ObservableValue("", "Main File directory")
 
@@ -112,36 +110,103 @@ object ImContext {
     init {
         loadPreferences()
 
-        mainFile.subscribe(this, "Update image") { file ->
-            if (file.isDirectory) {
-                fileManager.setFile(file)
-                frameSpeed.update(5.0f)
-                nextImage()
-            } else if (file.isFile) {
-                mainFileName.update(file.name)
-                mainFileDirectory.update(file.absoluteFile.parent)
-                fileManager.setFile(file)
-                val spec = ImageStore.get(file)
-                val mat = spec.mat
-                if (!mat.empty()) {
-                    mainImageSpec.update(spec)
-                    if (!spec.isNormalized) {
-                        spec.normalize()
-                    }
-                    imageMinMax.update {
-                        spec.mat.minMax()
-                    }
-                    mainImage.update(spec.mat)
+        val urlProtocols = arrayOf("http", "https", "ftp")
 
-                    updateCursorColor()
-                    marqueeBoxRGB.update(MarqueeUtils.boxMeanColor())
+        mainPath.subscribe(this, "Update image") { path ->
+            if (path == "clipboard") {
+                // from clipboard
+                val image = ClipboardUtils.getImage() as BufferedImage?
+                if (image != null) {
+                    val spec = ImageSpec(ImageConvert.bufferedToMat(image), 255.0, 8)
+                    spec.normalize()
+                    mainImageSpec.update(spec)
+                    mainFileName.update("clipboard")
+                    mainFileDirectory.update("")
+                    fileManager.setFile(null)
+                }
+                return@subscribe
+            }
+
+            var isLocal = true
+            if (":" in path) {
+                val protocol = path.split(":")[0]
+                if (protocol in urlProtocols) {
+                    isLocal = false
+                }
+                if (protocol.count { it == '.' } == 3) {
+                    isLocal = false
+                }
+            }
+            if ("/" in path) {
+                if (path.split("/")[0].count { it == '.' } == 3) {
+                    isLocal = false
+                }
+            }
+
+            if (isLocal) {
+                // local file
+                val file = File(path)
+
+                if (!fileManager.isImageFile(file)) {
+                    return@subscribe
+                }
+
+                if (file.isDirectory) {
+                    fileManager.setFile(file)
+                    nextImage()
+                } else if (file.isFile) {
+                    mainFileName.update(file.name)
+                    mainFileDirectory.update(file.absoluteFile.parent)
+                    fileManager.setFile(file)
+                    val spec = ImageStore.get(file)
+                    val mat = spec.mat
+                    if (!mat.empty()) {
+                        mainImageSpec.update(spec)
+                    }
+                } else {
+                    // Not from file. Clear file manager
+                    mainFileName.update(path)
+                    mainFileDirectory.update("")
+                    fileManager.setFile(null)
                 }
             } else {
-                // Not from file. Maybe from clipboard. Clear file manager
-                // Title would be file name
-                mainFileName.update("")
+                // from url
+                val url = URL(path)
+                val bytes = try {
+                    url.readBytes()
+                } catch (e: FileNotFoundException) {
+                    // url file not found
+                    return@subscribe
+                }
+                val mat = ImageConvert.bytesToMat(bytes)
+
+                if (mat.width() <= 0 || mat.height() <= 0) {
+                    return@subscribe
+                }
+
+                val spec = ImageSpec(mat)
+                spec.normalize()
+                mainImageSpec.update(spec)
+                mainFileName.update(path)
                 mainFileDirectory.update("")
                 fileManager.setFile(null)
+            }
+        }
+
+        mainImageSpec.subscribe(this, "Update image spec") { spec ->
+            if (spec != null) {
+                if (!spec.isNormalized) {
+                    spec.normalize()
+                }
+
+                imageMinMax.update {
+                    spec.mat.minMax()
+                }
+
+                mainImage.update(spec.mat)
+
+                updateCursorColor()
+                marqueeBoxRGB.update(MarqueeUtils.boxMeanColor())
             }
         }
 
@@ -209,14 +274,14 @@ object ImContext {
     fun nextImage() {
         val nextFile = fileManager.next(frameInterval.get())
         if (nextFile != null) {
-            mainFile.update(nextFile)
+            mainPath.update(nextFile.path)
         }
     }
 
     fun prevImage() {
         val prevFile = fileManager.prev(frameInterval.get())
         if (prevFile != null) {
-            mainFile.update(prevFile)
+            mainPath.update(prevFile.path)
         }
     }
 
@@ -228,52 +293,11 @@ object ImContext {
 
     }
 
-    val urlProtocols = arrayOf("http", "https", "ftp")
-
     fun loadFromClipboard() {
-        val image = ClipboardUtils.getImage() as BufferedImage?
-        if (image != null) {
-            val spec = ImageSpec(ImageConvert.bufferedToMat(image), 255.0, 8)
-            spec.normalize()
-            mainFile.update(File("Clipboard"))
-            mainImageSpec.update(spec)
-            mainImage.update(spec.mat)
+        if (ClipboardUtils.hasImage()) {
+            mainPath.update("clipboard")
         } else {
-            // load from url
-            val str = ClipboardUtils.getString()
-
-            var isLocal = true
-            if (":" in str) {
-                val protocol = str.split(":")[0]
-                if (protocol in urlProtocols) {
-                    isLocal = false
-                }
-                if (protocol.count { it == '.' } == 3) {
-                    isLocal = false
-                }
-            }
-            if ("/" in str) {
-                if (str.split("/")[0].count { it == '.' } == 3) {
-                    isLocal = false
-                }
-            }
-
-
-            if (isLocal) {
-                val file = File(str)
-                if (ImContext.fileManager.isImageFile(file)) {
-                    ImContext.fileManager.reset()
-                    ImContext.mainFile.update(file)
-                }
-            } else {
-                val url = URL(str)
-                val mat = ImageConvert.bytesToMat(url.readBytes())
-                val spec = ImageSpec(mat)
-                spec.normalize()
-                mainFile.update(File("Url"))
-                mainImageSpec.update(spec)
-                mainImage.update(spec.mat)
-            }
+            mainPath.update(ClipboardUtils.getString())
         }
     }
 }

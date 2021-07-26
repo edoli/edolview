@@ -58,11 +58,20 @@ object ClipboardUtils {
         Toolkit.getDefaultToolkit().systemClipboard.setContents(imgSel, null)
     }
 
+    fun hasImage(): Boolean {
+        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+        val content = clipboard.getContents(null)
+        if (!content.isDataFlavorSupported(DataFlavor.imageFlavor)) {
+            return false
+        }
+        return true
+    }
+
     fun getImage(): Image? {
         val clipboard = Toolkit.getDefaultToolkit().systemClipboard
         val content = clipboard.getContents(null)
         if (!content.isDataFlavorSupported(DataFlavor.imageFlavor)) {
-            return  null
+            return null
         }
         return content.getTransferData(DataFlavor.imageFlavor) as Image?
     }

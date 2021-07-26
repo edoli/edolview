@@ -17,9 +17,9 @@ class App(private val initPath: String?) : Game() {
     override fun create() {
         ShaderProgram.pedantic = false
         if (initPath != null) {
-            ImContext.mainFile.update(File(initPath))
+            ImContext.mainPath.update(initPath)
         }
-        ImContext.mainFile.subscribe(this, "Update title") { Gdx.graphics.setTitle(it.name) }
+        ImContext.mainFileName.subscribe(this, "Update title") { Gdx.graphics.setTitle(it) }
         Gdx.graphics.isContinuousRendering = false
 
         setScreen(MainScreen())

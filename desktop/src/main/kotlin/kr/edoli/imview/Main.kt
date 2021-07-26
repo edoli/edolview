@@ -34,11 +34,7 @@ fun main(args: Array<String>) {
     config.setHdpiMode(HdpiMode.Logical)
     config.setWindowListener(object : Lwjgl3WindowAdapter() {
         override fun filesDropped(files: Array<String>) {
-            val file = File(files[0])
-            if (ImContext.fileManager.isImageFile(file)) {
-                ImContext.fileManager.reset()
-                ImContext.mainFile.update(file)
-            }
+            ImContext.mainPath.update(files[0])
         }
 
         override fun closeRequested(): Boolean {
