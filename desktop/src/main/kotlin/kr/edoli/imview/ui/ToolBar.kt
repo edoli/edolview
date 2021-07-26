@@ -30,9 +30,11 @@ class ToolBar : Panel() {
         }
 
         align(Align.left)
-        add(UIFactory.createIconButton(Ionicons.ionMdSync) {
+        add(UIFactory.createIconButton(Ionicons.ionMdTrash) {
             ImageStore.clearCache()
         }.tooltip("Clear cache")).width(iconWidth)
+
+        add(UIFactory.createToggleIconButton(Ionicons.ionMdSync, ImContext.autoRefresh)).width(iconWidth)
 
 //        add(UIFactory.createIconButton(Ionicons.ionMdSave) {
 //            MarqueeUtils.saveImage(false)

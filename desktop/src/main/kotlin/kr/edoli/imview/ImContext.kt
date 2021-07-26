@@ -5,13 +5,12 @@ import kr.edoli.imview.image.*
 import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.ui.Colormap
 import kr.edoli.imview.util.*
-import org.opencv.core.*
-import org.opencv.imgcodecs.Imgcodecs
+import org.opencv.core.Mat
+import org.opencv.core.Rect
 import rx.subjects.PublishSubject
 import java.awt.image.BufferedImage
 import java.io.File
 import java.io.FileNotFoundException
-import java.net.URI
 import java.net.URL
 import java.util.*
 import java.util.prefs.Preferences
@@ -27,8 +26,12 @@ object ImContext {
 
     val mainImage = ObservableValue<Mat?>(null, "Main image")
     val mainPath = ObservableValue("EdolView", "Main path")
-    val mainFileName = ObservableValue("", "Main File name")
-    val mainFileDirectory = ObservableValue("", "Main File directory")
+    val mainFile = ObservableValue<File?>(null, "Main file")
+    val mainFileLastModified = ObservableValue(0L, "Main file last modified")
+    val mainFileName = ObservableValue("", "Main file name")
+    val mainFileDirectory = ObservableValue("", "Main file directory")
+
+    val autoRefresh = ObservableValue(false, "Auto refresh")
 
     val mainImageSpec = ObservableValue<ImageSpec?>(null, "Image spec")
     val marqueeImage = ObservableLazyValue<Mat?>(null, "Marqueed image")
@@ -119,6 +122,7 @@ object ImContext {
                 if (image != null) {
                     val spec = ImageSpec(ImageConvert.bufferedToMat(image), 255.0, 8)
                     spec.normalize()
+                    mainFile.update(null)
                     mainImageSpec.update(spec)
                     mainFileName.update("clipboard")
                     mainFileDirectory.update("")
@@ -155,6 +159,7 @@ object ImContext {
                     fileManager.setFile(file)
                     nextImage()
                 } else if (file.isFile) {
+                    mainFile.update(file)
                     mainFileName.update(file.name)
                     mainFileDirectory.update(file.absoluteFile.parent)
                     fileManager.setFile(file)
@@ -165,6 +170,7 @@ object ImContext {
                     }
                 } else {
                     // Not from file. Clear file manager
+                    mainFile.update(null)
                     mainFileName.update(path)
                     mainFileDirectory.update("")
                     fileManager.setFile(null)
@@ -186,10 +192,19 @@ object ImContext {
 
                 val spec = ImageSpec(mat)
                 spec.normalize()
+                mainFile.update(null)
                 mainImageSpec.update(spec)
                 mainFileName.update(path)
                 mainFileDirectory.update("")
                 fileManager.setFile(null)
+            }
+        }
+
+        mainFile.subscribe(this, "Update last modified when file updated") { file ->
+            if (file != null) {
+                mainFileLastModified.update(file.lastModified())
+            } else {
+                mainFileLastModified.update(0)
             }
         }
 
@@ -228,7 +243,7 @@ object ImContext {
         marqueeBox.subscribe(this, "Update marquee image and RGB") {
             val mainImage = mainImage.get()
             if (it.width > 0 && it.height > 0 && mainImage != null) {
-                marqueeImage.update {mainImage[it]}
+                marqueeImage.update { mainImage[it] }
                 marqueeBoxRGB.update(MarqueeUtils.boxMeanColor())
             }
         }
@@ -299,5 +314,9 @@ object ImContext {
         } else {
             mainPath.update(ClipboardUtils.getString())
         }
+    }
+
+    fun refreshMainPath() {
+        mainPath.update(mainPath.get())
     }
 }

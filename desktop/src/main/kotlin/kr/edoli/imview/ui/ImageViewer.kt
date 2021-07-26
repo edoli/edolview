@@ -62,15 +62,11 @@ class ImageViewer : WidgetGroup() {
 
         // Mat -> Texture using [FloatTextureData]
         ImContext.mainImage.subscribe(this, "Update texture") { mat ->
-            Gdx.app.postRunnable {
-                updateTexture(mat)
-            }
+            updateTexture(mat)
         }
 
         ImContext.visibleChannel.subscribe(this, "Update texture") {
-            Gdx.app.postRunnable {
-                updateTexture(ImContext.mainImage.get())
-            }
+            updateTexture(ImContext.mainImage.get())
         }
 
         ImContext.smoothing.subscribe(this, "Update texture smoothing") { updateSmoothing() }
