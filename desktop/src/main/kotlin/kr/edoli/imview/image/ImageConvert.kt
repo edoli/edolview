@@ -4,8 +4,12 @@ import com.badlogic.gdx.graphics.Pixmap
 import org.opencv.core.Core
 import org.opencv.core.CvType
 import org.opencv.core.Mat
+import org.opencv.core.MatOfByte
+import org.opencv.imgcodecs.Imgcodecs
+import org.opencv.imgproc.Imgproc
 import java.awt.Transparency
 import java.awt.image.*
+import java.net.URL
 import java.nio.ByteBuffer
 
 
@@ -107,5 +111,20 @@ object ImageConvert {
             val colorModel = ComponentColorModel(ColorModel.getRGBdefault().colorSpace, false, true, Transparency.OPAQUE, DataBuffer.TYPE_BYTE)
             BufferedImage(colorModel, raster, true, null)
         }
+    }
+
+    fun bytesToMat(bytes: ByteArray): Mat {
+        val mat = Imgcodecs.imdecode(MatOfByte(*bytes), -1)
+
+        when (mat.channels()) {
+            3 -> {
+                Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2RGB)
+            }
+            4 -> {
+                Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGRA2RGBA)
+            }
+        }
+
+        return mat
     }
 }

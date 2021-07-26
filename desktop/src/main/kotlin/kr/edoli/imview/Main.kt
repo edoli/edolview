@@ -35,7 +35,7 @@ fun main(args: Array<String>) {
     config.setWindowListener(object : Lwjgl3WindowAdapter() {
         override fun filesDropped(files: Array<String>) {
             val file = File(files[0])
-            if (ImContext.fileManager.isImage(file.name)) {
+            if (ImContext.fileManager.isImageFile(file)) {
                 ImContext.fileManager.reset()
                 ImContext.mainFile.update(file)
             }

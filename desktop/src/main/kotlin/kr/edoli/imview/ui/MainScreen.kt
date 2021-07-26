@@ -130,8 +130,14 @@ class MainScreen : Screen {
                 if (keycode == Input.Keys.F4) {
                     stage.isDebugAll = !stage.isDebugAll
                 }
+
                 if (keycode == Input.Keys.F3) {
                     ObservableInfo()
+                }
+
+                if (keycode == Input.Keys.F5) {
+                    // refresh
+                    ImContext.mainFile.update(ImContext.mainFile.get())
                 }
 
                 if (keycode == Input.Keys.F11) {

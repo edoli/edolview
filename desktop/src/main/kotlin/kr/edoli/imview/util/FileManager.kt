@@ -26,7 +26,7 @@ class FileManager {
             if (siblingFiles == null) {
                 siblingFiles = file.getSiblingFiles()
             }
-            return file.nextFile(interval, siblingFiles) { nextFile -> isImage(nextFile.name) }
+            return file.nextFile(interval, siblingFiles) { nextFile -> isImageFile(nextFile) }
         }
         return currentFile
     }
@@ -36,12 +36,12 @@ class FileManager {
             if (siblingFiles == null) {
                 siblingFiles = file.getSiblingFiles()
             }
-            return file.prevFile(interval, siblingFiles) { nextFile -> isImage(nextFile.name) }
+            return file.prevFile(interval, siblingFiles) { nextFile -> isImageFile(nextFile) }
         }
         return currentFile
     }
 
-    fun isImage(filePath: String): Boolean {
+    fun isImageFile(file: File): Boolean {
         // Take too much time
         // try {
         //     ImageIO.read(File(filePath)) ?: return false
@@ -50,7 +50,8 @@ class FileManager {
         // }
         // return true
 
-        val ext = FilenameUtils.getExtension(filePath).toLowerCase()
-        return availableExts.contains(ext)
+        val name = file.name
+        val ext = FilenameUtils.getExtension(name).lowercase()
+        return file.exists() && availableExts.contains(ext)
     }
 }

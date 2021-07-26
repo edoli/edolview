@@ -2,10 +2,7 @@ package kr.edoli.imview.store
 
 import com.google.common.cache.CacheBuilder
 import com.google.common.cache.CacheLoader
-import kr.edoli.imview.image.ImageSpec
-import kr.edoli.imview.image.bitsPerPixel
-import kr.edoli.imview.image.timesAssign
-import kr.edoli.imview.image.typeMax
+import kr.edoli.imview.image.*
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FilenameUtils
 import org.opencv.core.CvType
@@ -16,6 +13,7 @@ import org.opencv.imgproc.Imgproc
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
+import java.net.URL
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
@@ -43,18 +41,9 @@ object ImageStore {
             return ImageSpec(Mat())
         }
         val bytes = FileUtils.readFileToByteArray(File(path))
-        val mat = Imgcodecs.imdecode(MatOfByte(*bytes), -1)
+        val mat = ImageConvert.bytesToMat(bytes)
 
-        when (mat.channels()) {
-            3 -> {
-                Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGR2RGB)
-            }
-            4 -> {
-                Imgproc.cvtColor(mat, mat, Imgproc.COLOR_BGRA2RGBA)
-            }
-        }
-
-        if (ext.toLowerCase() == "pfm") {
+        if (ext.lowercase() == "pfm") {
             val reader = BufferedReader(FileReader(path))
             val header = reader.readLine()
             val dimension = reader.readLine()

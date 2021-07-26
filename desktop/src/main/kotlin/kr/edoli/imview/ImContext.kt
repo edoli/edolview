@@ -5,11 +5,16 @@ import kr.edoli.imview.image.*
 import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.ui.Colormap
 import kr.edoli.imview.util.*
+import org.opencv.core.Core
 import org.opencv.core.Mat
+import org.opencv.core.MatOfByte
 import org.opencv.core.Rect
+import org.opencv.imgcodecs.Imgcodecs
 import rx.subjects.PublishSubject
 import java.awt.image.BufferedImage
 import java.io.File
+import java.net.URI
+import java.net.URL
 import java.util.*
 import java.util.prefs.Preferences
 import kotlin.math.min
@@ -223,6 +228,8 @@ object ImContext {
 
     }
 
+    val urlProtocols = arrayOf("http", "https", "ftp")
+
     fun loadFromClipboard() {
         val image = ClipboardUtils.getImage() as BufferedImage?
         if (image != null) {
@@ -231,6 +238,42 @@ object ImContext {
             mainFile.update(File("Clipboard"))
             mainImageSpec.update(spec)
             mainImage.update(spec.mat)
+        } else {
+            // load from url
+            val str = ClipboardUtils.getString()
+
+            var isLocal = true
+            if (":" in str) {
+                val protocol = str.split(":")[0]
+                if (protocol in urlProtocols) {
+                    isLocal = false
+                }
+                if (protocol.count { it == '.' } == 3) {
+                    isLocal = false
+                }
+            }
+            if ("/" in str) {
+                if (str.split("/")[0].count { it == '.' } == 3) {
+                    isLocal = false
+                }
+            }
+
+
+            if (isLocal) {
+                val file = File(str)
+                if (ImContext.fileManager.isImageFile(file)) {
+                    ImContext.fileManager.reset()
+                    ImContext.mainFile.update(file)
+                }
+            } else {
+                val url = URL(str)
+                val mat = ImageConvert.bytesToMat(url.readBytes())
+                val spec = ImageSpec(mat)
+                spec.normalize()
+                mainFile.update(File("Url"))
+                mainImageSpec.update(spec)
+                mainImage.update(spec.mat)
+            }
         }
     }
 }
