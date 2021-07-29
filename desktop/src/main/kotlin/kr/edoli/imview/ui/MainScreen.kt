@@ -34,7 +34,7 @@ class MainScreen : Screen {
         }
 
         // Top
-        layoutTable.add(ToolBar()).height(ToolBar.barHeight + 2f).expandX().fillX()
+        layoutTable.add(ToolBar()).height(ToolBar.barHeight + 2f).expandX().fillX().minWidth(0f)
         layoutTable.row()
 
         // middle
@@ -81,13 +81,13 @@ class MainScreen : Screen {
                 middleTable.layout()
             }
         }
-        layoutTable.add(middleTable).expand().fill()
+        layoutTable.add(middleTable).expand().fill().minWidth(0f)
 
         // bottom
         layoutTable.row()
         val statusBar = StatusBar()
         val statusBarCell = layoutTable.add(statusBar)
-        statusBarCell.expandX().fillX()
+        statusBarCell.expandX().fillX().minWidth(0f)
 
         ImContext.isShowStatusBar.subscribe(this, "Statusbar visibility") {
             statusBar.isVisible = it

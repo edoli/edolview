@@ -395,9 +395,17 @@ class ImageViewer : WidgetGroup() {
 
         imageToLocalCoordinates(vecA)
         imageToLocalCoordinates(vecB)
-        imageScale *= height / (vecB.y - vecA.y)
 
-        ImContext.zoomLevel.update(log(imageScale.toDouble(), 1.1).floor().toInt())
+        val viewerAspectRatio = width / height
+        val rectAspectRatio = rect.width.toFloat() / rect.height
+
+        val newImageScale = if (rectAspectRatio > viewerAspectRatio) {
+            imageScale * width / (vecB.x - vecA.x)
+        } else {
+            imageScale * height / (vecB.y - vecA.y)
+        }
+
+        ImContext.zoomLevel.update(log(newImageScale.toDouble(), 1.1).floor().toInt())
 
         centerRect(rect)
     }
