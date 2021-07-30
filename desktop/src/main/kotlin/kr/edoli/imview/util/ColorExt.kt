@@ -18,3 +18,5 @@ fun DoubleArray.toColorStr(scale: Double, fixed: Int = -1) = map {
     // scale == 0 means that an opened image is not uint image
     if (scale > 0) (it * scale).toInt().toString() else (if (fixed == -1) it else it.format(fixed))
 }.joinToString(", ")
+
+fun Color.toFloatArray() = floatArrayOf(this.r, this.g, this.b, this.a)

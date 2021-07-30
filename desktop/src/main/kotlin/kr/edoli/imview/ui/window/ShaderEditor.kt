@@ -16,15 +16,15 @@ class ShaderEditor : JFrame() {
 
     init {
         val container = contentPane
-        val extraCodeTextField = JTextField(shaderBuilder.extra_code)
-        val pixelExpressionTextField = JTextField(shaderBuilder.pixel_expression)
+        val extraCodeTextField = JTextField(shaderBuilder.extraCode)
+        val pixelExpressionTextField = JTextField(shaderBuilder.pixelExpression)
         val logLabel = JTextArea()
         logLabel.isEditable = false
 
         val updateShader = {
-            val lastPixelExpression = shaderBuilder.pixel_expression
-            shaderBuilder.extra_code = extraCodeTextField.text
-            shaderBuilder.pixel_expression = pixelExpressionTextField.text
+            val lastPixelExpression = shaderBuilder.pixelExpression
+            shaderBuilder.extraCode = extraCodeTextField.text
+            shaderBuilder.pixelExpression = pixelExpressionTextField.text
 
             Gdx.app.postRunnable {
                 try {
@@ -33,7 +33,7 @@ class ShaderEditor : JFrame() {
                     logLabel.text = ""
                 } catch (ex: Exception) {
                     logLabel.text = ex.stackTraceToString()
-                    shaderBuilder.pixel_expression = lastPixelExpression
+                    shaderBuilder.pixelExpression = lastPixelExpression
                 }
             }
         }

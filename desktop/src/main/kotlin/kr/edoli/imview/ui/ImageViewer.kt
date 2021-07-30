@@ -2,14 +2,12 @@ package kr.edoli.imview.ui
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
-import com.badlogic.gdx.graphics.Color
-import com.badlogic.gdx.graphics.OrthographicCamera
-import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.*
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.SpriteBatch
 import com.badlogic.gdx.graphics.g2d.TextureRegion
-import com.badlogic.gdx.graphics.glutils.FloatTextureData
 import com.badlogic.gdx.graphics.glutils.FrameBuffer
+import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.InputEvent
@@ -23,10 +21,9 @@ import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.image.ImageConvert
 import kr.edoli.imview.image.MarqueeUtils
 import kr.edoli.imview.image.bound
-import kr.edoli.imview.util.ceil
-import kr.edoli.imview.util.floor
-import kr.edoli.imview.util.reset
-import kr.edoli.imview.util.toColorStr
+import kr.edoli.imview.shader.BackgroundShaderBuilder
+import kr.edoli.imview.ui.res.Colors
+import kr.edoli.imview.util.*
 import org.lwjgl.opengl.GL30
 import org.opencv.core.Mat
 import org.opencv.core.Point
@@ -47,6 +44,12 @@ class ImageViewer : WidgetGroup() {
     val handleSize = 3f
 
     val shapeRenderer = ShapeRenderer()
+
+    val backgroundShader = BackgroundShaderBuilder().build(Gdx.files.internal("backgroundShader.frag").readString())
+    val backgroundMesh = Mesh(false, 4, 6,
+            VertexAttribute(VertexAttributes.Usage.Position, 2, ShaderProgram.POSITION_ATTRIBUTE)).apply {
+        setIndices(shortArrayOf(0, 1, 2, 0, 2, 3))
+    }
 
     val bufferCallbacks = ArrayList<(ByteArray) -> Unit>()
 
@@ -236,7 +239,8 @@ class ImageViewer : WidgetGroup() {
         contextMenu {
             val cursorPosition = ImContext.cursorPosition.get().toString()
             val cursorRGB = ImContext.mainImageSpec.get()?.let { imageSpec ->
-                ImContext.cursorRGB.get().toColorStr(imageSpec.typeMaxValue) }
+                ImContext.cursorRGB.get().toColorStr(imageSpec.typeMaxValue)
+            }
 
             addMenu("Copy visible image") {
                 bufferCallbacks.add { byteArray ->
@@ -466,6 +470,20 @@ class ImageViewer : WidgetGroup() {
         batch.color = Color.WHITE
         batch.end()
 
+        // draw background
+        if (ImContext.isShowBackground.get()) {
+            backgroundShader.bind()
+            val combined = batch.projectionMatrix.cpy().mul(batch.transformMatrix)
+            backgroundShader.setUniformMatrix("u_projTrans", combined)
+            backgroundShader.setUniformf("u_grid_size", 8.0f)
+            backgroundShader.setUniform2fv("u_translate", floatArrayOf(imageX, imageY), 0, 2)
+            backgroundShader.setUniform4fv("grid_color_a", Colors.background.toFloatArray(), 0, 4)
+            backgroundShader.setUniform4fv("grid_color_b", Colors.backgroundDown.toFloatArray(), 0, 4)
+            backgroundMesh.setVertices(floatArrayOf(x, y, x + width, y, x + width, y + height, x, y + height))
+            backgroundMesh.render(backgroundShader, GL20.GL_TRIANGLES)
+        }
+
+        // draw image
         if (bufferCallbacks.isNotEmpty()) {
             val buffer = drawBuffer()
             if (buffer != null) {
@@ -484,6 +502,8 @@ class ImageViewer : WidgetGroup() {
         shapeRenderer.projectionMatrix = batch.projectionMatrix
         shapeRenderer.transformMatrix = batch.transformMatrix
         shapeRenderer.color = Color.WHITE
+        Gdx.gl.glEnable(GL30.GL_BLEND)
+        Gdx.gl.glBlendFunc(GL30.GL_ONE_MINUS_DST_COLOR, GL30.GL_ZERO)
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
         shapeRenderer.rect(vecA.x, vecA.y, vecB.x - vecA.x, vecB.y - vecA.y)
         shapeRenderer.end()
@@ -499,6 +519,8 @@ class ImageViewer : WidgetGroup() {
             }
             shapeRenderer.end()
         }
+        Gdx.gl.glBlendFunc(GL30.GL_SRC_ALPHA, GL30.GL_ONE_MINUS_SRC_ALPHA)
+        Gdx.gl.glDisable(GL30.GL_BLEND)
 
         // draw crosshair
         if (ImContext.isShowCrosshair.get()) {
@@ -511,40 +533,39 @@ class ImageViewer : WidgetGroup() {
             shapeRenderer.line(mousePos.x, y, mousePos.x, height)
             shapeRenderer.end()
         }
-
         batch.begin()
     }
 
     fun drawImage(batch: Batch, localX: Float, localY: Float, localScale: Float) {
         batch.begin()
-        if (ImContext.enableDisplayProfile.get()) {
-            val shader = ImContext.viewerShader.get()
-            batch.shader = shader
-            shader.setUniformf("brightness", ImContext.imageBrightness.get())
-            shader.setUniformf("contrast", ImContext.imageContrast.get())
-            shader.setUniformf("gamma", ImContext.imageGamma.get())
-            if (ImContext.normalize.get()) {
-                val minMax =  ImContext.imageMinMax.get()
-                shader.setUniformf("min", minMax.first.toFloat())
-                shader.setUniformf("max", minMax.second.toFloat())
-            } else {
-                shader.setUniformf("min", ImContext.displayMin.get())
-                shader.setUniformf("max", ImContext.displayMax.get())
-            }
-            if (ImContext.visibleChannel.get() != 0 || ImContext.mainImage.get()?.channels() == 1) {
-                shader.setUniformi("colormap", ImContext.imageColormap.currentIndex)
-            } else {
-                shader.setUniformi("colormap", 0)
-            }
-//            shader.setUniformi("normalize", ImContext.normalize.get().let { if (it) 1 else 0 })
-            textureRegion?.let { region ->
+        textureRegion?.let { region ->
+            if (ImContext.enableDisplayProfile.get()) {
+                val shader = ImContext.viewerShader.get()
+                batch.shader = shader
+                //shader.setUniformi("width", region.regionWidth)
+                //shader.setUniformi("height", region.regionHeight)
+
+                shader.setUniformf("brightness", ImContext.imageBrightness.get())
+                shader.setUniformf("contrast", ImContext.imageContrast.get())
+                shader.setUniformf("gamma", ImContext.imageGamma.get())
+                if (ImContext.normalize.get()) {
+                    val minMax = ImContext.imageMinMax.get()
+                    shader.setUniformf("min", minMax.first.toFloat())
+                    shader.setUniformf("max", minMax.second.toFloat())
+                } else {
+                    shader.setUniformf("min", ImContext.displayMin.get())
+                    shader.setUniformf("max", ImContext.displayMax.get())
+                }
+                if (ImContext.visibleChannel.get() != 0 || ImContext.mainImage.get()?.channels() == 1) {
+                    shader.setUniformi("colormap", ImContext.imageColormap.currentIndex)
+                } else {
+                    shader.setUniformi("colormap", 0)
+                }
                 batch.draw(region, localX, localY, 0f, 0f,
                         region.regionWidth.toFloat(), region.regionHeight.toFloat(), localScale, localScale, 0f)
-            }
 
-            batch.shader = defaultShader
-        } else {
-            textureRegion?.let { region ->
+                batch.shader = defaultShader
+            } else {
                 batch.draw(region, localX, localY, 0f, 0f,
                         region.regionWidth.toFloat(), region.regionHeight.toFloat(), localScale, localScale, 0f)
             }

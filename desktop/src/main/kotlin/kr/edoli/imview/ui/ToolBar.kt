@@ -35,6 +35,7 @@ class ToolBar : Panel() {
         }.tooltip("Clear cache")).width(iconWidth)
 
         add(UIFactory.createToggleIconButton(Ionicons.ionMdSync, ImContext.autoRefresh)).width(iconWidth)
+        add(UIFactory.createToggleIconButton(Ionicons.ionMdCalendar, ImContext.isShowBackground)).width(iconWidth)
 
 //        add(UIFactory.createIconButton(Ionicons.ionMdSave) {
 //            MarqueeUtils.saveImage(false)

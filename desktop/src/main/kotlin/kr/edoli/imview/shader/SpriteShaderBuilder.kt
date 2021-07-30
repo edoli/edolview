@@ -1,11 +1,10 @@
-package kr.edoli.imview.image
+package kr.edoli.imview.shader
 
-import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 
-class ViewerShaderBuilder {
+class SpriteShaderBuilder {
     companion object {
-        val vertexShader = ("attribute vec4 " + ShaderProgram.POSITION_ATTRIBUTE + ";\n" //
+        const val vertexShader = ("attribute vec4 " + ShaderProgram.POSITION_ATTRIBUTE + ";\n" //
                 + "attribute vec4 " + ShaderProgram.COLOR_ATTRIBUTE + ";\n" //
                 + "attribute vec2 " + ShaderProgram.TEXCOORD_ATTRIBUTE + "0;\n" //
                 + "uniform mat4 u_projTrans;\n" //
@@ -19,18 +18,10 @@ class ViewerShaderBuilder {
                 + "   v_texCoords = " + ShaderProgram.TEXCOORD_ATTRIBUTE + "0;\n" //
                 + "   gl_Position =  u_projTrans * " + ShaderProgram.POSITION_ATTRIBUTE + ";\n" //
                 + "}\n")
-
-        val fragShader = Gdx.files.internal("imageShader.frag").readString()
-        val default_pixel_expression = "pow(p * contrast + brightness, 1.0 / gamma)"
     }
 
-    var extra_code = ""
-    var pixel_expression = default_pixel_expression
-
-    fun build(): ShaderProgram {
-        return ShaderProgram(vertexShader, fragShader
-                .replace("%extra_code%", extra_code.replace("%pixel_expression%", ""))
-                .replace("%pixel_expression%", pixel_expression)).also {
+    fun build(fragShader: String): ShaderProgram {
+        return ShaderProgram(vertexShader, fragShader).also {
             require(it.isCompiled) { "Error compiling shader: " + it.log }
         }
     }
