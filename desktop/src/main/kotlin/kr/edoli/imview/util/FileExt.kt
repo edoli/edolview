@@ -68,7 +68,12 @@ fun File.prevFile(interval: Int = 1, fileList: List<String>? = null, filter: ((f
     return siblingFile(-interval, fileList, filter)
 }
 
-fun File.getSiblingFiles(): List<String> {
+fun File.getSiblingFiles(existFileList: List<String>? = null): List<String> {
     val absFile = this.absoluteFile
-    return (absFile.parentFile.list() as Array<String>).sortedWith(FilenameComparator())
+    val fileList = absFile.parentFile.list() as Array<String>
+    if (existFileList == null || fileList.size != existFileList.size) {
+        fileList.sortWith(FilenameComparator())
+        return fileList.toList()
+    }
+    return existFileList
 }

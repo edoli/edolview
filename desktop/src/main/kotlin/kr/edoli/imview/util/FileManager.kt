@@ -23,9 +23,7 @@ class FileManager {
 
     fun next(interval: Int): File? {
         currentFile?.let { file ->
-            if (siblingFiles == null) {
-                siblingFiles = file.getSiblingFiles()
-            }
+            siblingFiles = file.getSiblingFiles(siblingFiles)
             return file.nextFile(interval, siblingFiles) { nextFile -> isImageFile(nextFile) }
         }
         return currentFile
@@ -33,9 +31,7 @@ class FileManager {
 
     fun prev(interval: Int): File? {
         currentFile?.let { file ->
-            if (siblingFiles == null) {
-                siblingFiles = file.getSiblingFiles()
-            }
+            siblingFiles = file.getSiblingFiles(siblingFiles)
             return file.prevFile(interval, siblingFiles) { nextFile -> isImageFile(nextFile) }
         }
         return currentFile
