@@ -8,6 +8,7 @@ import java.awt.datatransfer.StringSelection
 import java.awt.datatransfer.Transferable
 import java.awt.datatransfer.UnsupportedFlavorException
 import java.awt.image.BufferedImage
+import java.io.File
 import java.lang.Error
 import javax.swing.ImageIcon
 import javax.swing.JFrame
@@ -67,6 +68,22 @@ object ClipboardUtils {
         return true
     }
 
+    fun processClipboard(
+            imageHandler: ((Transferable?) -> Unit)?,
+            fileHandler: ((Transferable?) -> Unit)?,
+            stringHandler: ((Transferable?) -> Unit)?
+    ) {
+        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+        val content = clipboard.getContents(null)
+        if (content.isDataFlavorSupported(DataFlavor.imageFlavor) && imageHandler != null) {
+            imageHandler(content)
+        } else if (content.isDataFlavorSupported(DataFlavor.javaFileListFlavor) && fileHandler != null) {
+            fileHandler(content)
+        } else if (content.isDataFlavorSupported(DataFlavor.stringFlavor) && stringHandler != null) {
+            stringHandler(content)
+        }
+    }
+
     fun getImage(): Image? {
         val clipboard = Toolkit.getDefaultToolkit().systemClipboard
         val content = clipboard.getContents(null)
@@ -101,5 +118,11 @@ object ClipboardUtils {
         val clipboard = Toolkit.getDefaultToolkit().systemClipboard
         val content = clipboard.getContents(null)
         return content.getTransferData(DataFlavor.stringFlavor) as String? ?: ""
+    }
+
+    fun getFileList(): List<File> {
+        val clipboard = Toolkit.getDefaultToolkit().systemClipboard
+        val content = clipboard.getContents(null)
+        return content.getTransferData(DataFlavor.javaFileListFlavor) as List<File>? ?: listOf()
     }
 }

@@ -329,11 +329,14 @@ object ImContext {
     }
 
     fun loadFromClipboard() {
-        if (ClipboardUtils.hasImage()) {
+        ClipboardUtils.processClipboard({
             mainPath.update("clipboard")
-        } else {
+        }, {
+            val file = ClipboardUtils.getFileList()[0]
+            mainPath.update(file.absolutePath)
+        }, {
             mainPath.update(ClipboardUtils.getString())
-        }
+        })
     }
 
     fun refreshMainPath() {

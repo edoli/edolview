@@ -38,7 +38,6 @@ object ImageConvert {
     fun bufferedToMat(bufferedImage: BufferedImage): Mat {
         val width = bufferedImage.width
         val height = bufferedImage.height
-        val channels = if (bufferedImage.colorModel.hasAlpha()) 4 else 3
 
         val dataBuffer = bufferedImage.data.dataBuffer
 
@@ -58,16 +57,18 @@ object ImageConvert {
             DataBuffer.TYPE_BYTE -> {
                 val dataBufferTyped = bufferedImage.data.dataBuffer as DataBufferByte
                 val byteData = dataBufferTyped.data
+                val channels = byteData.size / (width * height)
                 val byteBuffer = ByteBuffer.allocate(byteData.size * channels)
                 byteBuffer.put(byteData)
                 val rawData = byteBuffer.array()
-                val type = CvType.CV_8UC4
+                val type = if (channels == 4) CvType.CV_8UC4 else CvType.CV_8UC3
                 mat = Mat(height, width, type)
                 mat.put(0, 0, rawData)
             }
             else -> {
                 val dataBufferTyped = bufferedImage.data.dataBuffer as DataBufferByte
                 val rawData = dataBufferTyped.data
+                val channels = rawData.size / (width * height)
                 val type = if (channels == 4) CvType.CV_8UC4 else CvType.CV_8UC3
                 mat = Mat(height, width, type)
                 mat.put(0, 0, rawData)
@@ -82,10 +83,14 @@ object ImageConvert {
             4 -> {
                 val matChannels = mat.split()
                 if (bufferedImageType <= 3) {
-                    Core.merge(listOf(matChannels[1], matChannels[2], matChannels[3], matChannels[0]), mat)
+                    Core.merge(listOf(matChannels[0], matChannels[1], matChannels[2], matChannels[3]), mat)
                 } else if (bufferedImageType <= 7) {
                     Core.merge(listOf(matChannels[3], matChannels[2], matChannels[1], matChannels[0]), mat)
                 }
+            }
+            3 -> {
+                val matChannels = mat.split()
+                Core.merge(listOf(matChannels[2], matChannels[1], matChannels[0]), mat)
             }
         }
         return mat
