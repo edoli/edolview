@@ -122,6 +122,16 @@ ${String.join(',\n', new File("${rootPath}/build/install/desktop/lib").list().co
 
 installDist.finalizedBy(installAfter)
 
+startScripts {
+    doLast {
+        unixScript.text = unixScript.text.replace('# Attempt to set APP_HOME', '''
+JAVA_HOME=./jre
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib
+# Attempt to set APP_HOME
+''')
+    }
+}
+
 distributions {
     main {
         contents {
@@ -133,6 +143,15 @@ distributions {
             exclude('imview.bat')
             exclude('icon.ico')
             exclude('config.json')
+
+            OperatingSystem os = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem;
+            if (os.isWindows()) {
+                exclude('lib/')
+            }
+            if (os.isLinux()) {
+                exclude('*.exe')
+                exclude('*.dll')
+            }
         }
     }
 }
