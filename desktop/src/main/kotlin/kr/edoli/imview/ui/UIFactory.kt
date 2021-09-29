@@ -6,6 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.ui.*
+import com.badlogic.gdx.scenes.scene2d.ui.List
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
@@ -15,7 +16,9 @@ import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.ClipboardUtils
 import kr.edoli.imview.ui.contextmenu.ContextMenuManager
 import kr.edoli.imview.ui.custom.CustomSlider
+import kr.edoli.imview.ui.custom.DropDownMenu
 import kr.edoli.imview.ui.drawable.BorderedDrawable
+import kr.edoli.imview.ui.drawable.ColorDrawable
 import kr.edoli.imview.ui.res.Colors
 import kr.edoli.imview.ui.res.Font
 import kr.edoli.imview.ui.res.uiSkin
@@ -42,6 +45,10 @@ object UIFactory {
         downFontColor = Colors.negative
         overFontColor = Colors.over
         disabledFontColor = Colors.inactive
+
+        up = BorderedDrawable(Colors.background, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
+        over = BorderedDrawable(Colors.backgroundOver, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
+        down = BorderedDrawable(Colors.backgroundDown, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
     }
 
     val textToggleButtonStyle = TextButton.TextButtonStyle().apply {
@@ -53,8 +60,8 @@ object UIFactory {
         up = BorderedDrawable(Colors.background, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
         over = BorderedDrawable(Colors.backgroundOver, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
         down = BorderedDrawable(Colors.backgroundDown, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
-        checked = BorderedDrawable(Colors.accentDark, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
-        checkedOver = BorderedDrawable(Colors.accent, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
+        checked = BorderedDrawable(Colors.accentDarkSemi, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
+        checkedOver = BorderedDrawable(Colors.accentSemi, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
     }
 
     val iconLabelStyle = Label.LabelStyle(Font.ioniconsFont, Colors.normal)
@@ -72,6 +79,17 @@ object UIFactory {
         overFontColor = Colors.over
         checkedFontColor = Colors.accent
         disabledFontColor = Colors.inactive
+    }
+
+    val listStyle = List.ListStyle().apply {
+        font = Font.defaultFont
+        fontColorSelected = Colors.normal
+        fontColorUnselected = Colors.normal
+
+        background = BorderedDrawable(Colors.backgroundDark, Colors.backgroundBorder)
+        over = ColorDrawable(Colors.backgroundOver).apply { pad(2f, 6f, 2f, 6f) }
+        down = ColorDrawable(Colors.backgroundDown).apply { pad(2f, 6f, 2f, 6f) }
+        selection = ColorDrawable(Colors.accent).apply { pad(2f, 6f, 2f, 6f) }
     }
 
     fun <T> createField(observable: ObservableValue<T>, strToValue: (String) -> T, valueToString: (T) -> String,
@@ -218,6 +236,20 @@ object UIFactory {
         }.tooltip("${observable.name}\n[negative]Red[] means negative")
     }
 
+    fun <T> createDropdownMenu(name: String, observable: ObservableValue<kotlin.collections.List<T>>, onSelected: (T) -> Unit): DropDownMenu<T> {
+        return DropDownMenu(createTextButton(name).apply { style = textToggleButtonStyle }, listStyle, onSelected).apply {
+            observable.subscribe(this@UIFactory, "Double binding") { newValue ->
+                if (newValue != list.items) {
+                    val array = com.badlogic.gdx.utils.Array<T>()
+                    newValue.forEach { array.add(it) }
+                    list.setItems(array)
+                    list.selection.clear()
+                    hideDropDown()
+                }
+            }
+        }
+    }
+
     fun <T> createSelectBox(observable: ObservableList<T>): SelectBox<T> {
         return SelectBox<T>(uiSkin).apply {
             observable.subscribe(this@UIFactory, "Double binding") { newValue ->
@@ -284,7 +316,7 @@ object UIFactory {
             }
 
     fun createToggleTextButton(text: String, observable: ObservableValue<Boolean>): TextButton {
-        return TextButton(text, uiSkin.get("toggle", TextButton.TextButtonStyle::class.java)).apply {
+        return TextButton(text, textToggleButtonStyle).apply {
             observable.subscribe(this@UIFactory, "Double binding") { newValue -> isChecked = newValue }
             addListener(object : ChangeListener() {
                 override fun changed(event: ChangeEvent?, actor: Actor?) {
@@ -298,19 +330,21 @@ object UIFactory {
         }
     }
 
-    fun createIconButton(text: String, action: (button: Button) -> Unit) =
+    fun createIconButton(text: String, action: ((button: Button) -> Unit)? = null) =
             createTextButton(text, action).apply {
                 style = iconButtonStyle
                 align(Align.center)
             }
 
-    fun createTextButton(text: String, action: (button: Button) -> Unit): TextButton {
-        return TextButton(text, uiSkin).apply {
-            addListener(object : ClickListener() {
-                override fun clicked(event: InputEvent?, x: Float, y: Float) {
-                    action(this@apply)
-                }
-            })
+    fun createTextButton(text: String, action: ((button: Button) -> Unit)? = null): TextButton {
+        return TextButton(text, textButtonStyle).apply {
+            if (action != null) {
+                addListener(object : ClickListener() {
+                    override fun clicked(event: InputEvent?, x: Float, y: Float) {
+                        action(this@apply)
+                    }
+                })
+            }
         }
     }
 
@@ -362,9 +396,7 @@ object UIFactory {
         return createLabel(observable) { newValue -> "(${newValue.x.toInt()}, ${newValue.y.toInt()})" }
     }
 
-    fun <T> createLabel(observable: ObservableValue<T>
-                        , tooltipText: String? = observable.name
-                        , text: (value: T) -> String = { it.toString() })
+    fun <T> createLabel(observable: ObservableValue<T>, tooltipText: String? = observable.name, text: (value: T) -> String = { it.toString() })
             : Label {
         var lastValue: T? = null
         return Label("", uiSkin).apply {

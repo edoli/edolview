@@ -1,19 +1,12 @@
 package kr.edoli.imview.ui
 
-import com.badlogic.gdx.scenes.scene2d.utils.NinePatchDrawable
 import com.badlogic.gdx.utils.Align
 import kr.edoli.imview.ImContext
-import kr.edoli.imview.image.ClipboardUtils
-import kr.edoli.imview.image.ImageConvert
-import kr.edoli.imview.image.ImageSpec
-import kr.edoli.imview.image.MarqueeUtils
 import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.ui.drawable.BorderedDrawable
 import kr.edoli.imview.ui.res.Colors
 import kr.edoli.imview.ui.res.Ionicons
 import kr.edoli.imview.ui.window.ShaderEditor
-import java.awt.image.BufferedImage
-import java.io.File
 
 class ToolBar : Panel() {
 
@@ -30,6 +23,11 @@ class ToolBar : Panel() {
         }
 
         align(Align.left)
+
+        add(UIFactory.createDropdownMenu("Recent files", ImContext.recentFiles) { path ->
+            ImContext.mainPath.update(path)
+        })
+
         add(UIFactory.createIconButton(Ionicons.ionMdTrash) {
             ImageStore.clearCache()
         }.tooltip("Clear cache")).width(iconWidth)

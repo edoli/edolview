@@ -36,6 +36,8 @@ object ImContext {
 
     val mainFileNavigator = Observable<Int>("Main file navigation")
 
+    val recentFiles = ObservableValue(emptyList<String>(), "Recently opened files")
+
     val autoRefresh = ObservableValue(false, "Auto refresh")
 
     val mainImageSpec = ObservableValue<ImageSpec?>(null, "Image spec")
@@ -217,6 +219,21 @@ object ImContext {
         mainFile.subscribe(this, "Check is file in same directory") { file ->
             if (file != null && !fileManager.isInSameDirectory(file)) {
                 fileManager.reset()
+            }
+        }
+
+        mainFile.subscribe(this, "Add to recent files") { file ->
+            if (file != null) {
+                val list = recentFiles.get().toMutableList()
+                val path = file.absolutePath
+                if (list.contains(path)) {
+                    list.remove(path)
+                }
+                list.add(path)
+                while (list.size > 15) {
+                    list.removeFirst()
+                }
+                recentFiles.update(list)
             }
         }
 

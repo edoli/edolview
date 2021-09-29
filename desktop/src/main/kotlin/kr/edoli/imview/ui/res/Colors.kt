@@ -5,7 +5,10 @@ import kotlin.reflect.full.declaredMemberProperties
 
 
 object Colors {
+    val transpent = Color.valueOf("00000000")
+
     val background = Color.valueOf("474747")
+    val backgroundDark = Color.valueOf("363636")
     val backgroundOver = Color.valueOf("676767")
     val backgroundDown = Color.valueOf("272727")
     val backgroundBorder = Color.valueOf("333333")
@@ -16,6 +19,8 @@ object Colors {
     val inactive = Color.valueOf("ACACAC")
     val accent = Color.valueOf("4ECDC4")
     val accentDark = Color.valueOf("2E8D84")
+    val accentSemi = Color.valueOf("4ECDC488")
+    val accentDarkSemi = Color.valueOf("2E8D8488")
 
     init {
         Colors::class.declaredMemberProperties.forEach {
