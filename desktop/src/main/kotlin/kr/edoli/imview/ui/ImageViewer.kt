@@ -201,11 +201,11 @@ class ImageViewer : WidgetGroup() {
 
             override fun keyDown(event: InputEvent, keycode: Int): Boolean {
                 if (keycode == Input.Keys.LEFT) {
-                    ImContext.prevImage()
+                    ImContext.mainFileNavigator.update(-1)
                     return true
                 }
                 if (keycode == Input.Keys.RIGHT) {
-                    ImContext.nextImage()
+                    ImContext.mainFileNavigator.update(1)
                     return true
                 }
                 if (keycode == Input.Keys.C && UIUtils.ctrl()) {

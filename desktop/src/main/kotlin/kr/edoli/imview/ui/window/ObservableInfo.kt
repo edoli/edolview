@@ -50,30 +50,40 @@ class ObservableInfo : JFrame() {
     }
 
     fun createData(): Array<Array<Any>> {
-        val allSize = ObservableContext.observableValues.size +
+        val allSize = ObservableContext.observables.size +
+                ObservableContext.observableValues.size +
                 ObservableContext.observableLazyValues.size +
                 ObservableContext.observableLists.size
 
         val data = Array(allSize) { Array<Any>(4) {} }
-        ObservableContext.observableValues.forEachIndexed { index, value ->
+        var index = 0
+        ObservableContext.observables.forEachIndexed { i, value ->
             data[index][0] = value.name
             data[index][1] = value.subscribers.size
             data[index][2] = "${value.lastTotalUpdateTime.toFloat() / 1000 / 1000}ms"
             data[index][3] = value.subscribers.map { it.subject }
+            index += 1
         }
-        ObservableContext.observableLazyValues.forEachIndexed { ti, value ->
-            val index = ti + ObservableContext.observableValues.size
+        ObservableContext.observableValues.forEachIndexed { i, value ->
             data[index][0] = value.name
             data[index][1] = value.subscribers.size
             data[index][2] = "${value.lastTotalUpdateTime.toFloat() / 1000 / 1000}ms"
             data[index][3] = value.subscribers.map { it.subject }
+            index += 1
         }
-        ObservableContext.observableLists.forEachIndexed { ti, value ->
-            val index = ti + ObservableContext.observableValues.size + ObservableContext.observableLazyValues.size
+        ObservableContext.observableLazyValues.forEachIndexed { i, value ->
             data[index][0] = value.name
             data[index][1] = value.subscribers.size
             data[index][2] = "${value.lastTotalUpdateTime.toFloat() / 1000 / 1000}ms"
             data[index][3] = value.subscribers.map { it.subject }
+            index += 1
+        }
+        ObservableContext.observableLists.forEachIndexed { i, value ->
+            data[index][0] = value.name
+            data[index][1] = value.subscribers.size
+            data[index][2] = "${value.lastTotalUpdateTime.toFloat() / 1000 / 1000}ms"
+            data[index][3] = value.subscribers.map { it.subject }
+            index += 1
         }
         return data
     }

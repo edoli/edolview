@@ -70,10 +70,13 @@ fun File.prevFile(interval: Int = 1, fileList: List<String>? = null, filter: ((f
 
 fun File.getSiblingFiles(existFileList: List<String>? = null): List<String> {
     val absFile = this.absoluteFile
-    val fileList = absFile.parentFile.list() as Array<String>
-    if (existFileList == null || fileList.size != existFileList.size) {
-        fileList.sortWith(FilenameComparator())
-        return fileList.toList()
+
+    // Optimize for folder with many files
+    if (existFileList != null && existFileList.size > 200) {
+        return existFileList
     }
-    return existFileList
+
+    val fileList = absFile.parentFile.list() as Array<String>
+    fileList.sortWith(FilenameComparator())
+    return fileList.toList()
 }

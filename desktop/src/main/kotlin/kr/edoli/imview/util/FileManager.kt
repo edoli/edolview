@@ -37,6 +37,12 @@ class FileManager {
         return currentFile
     }
 
+    fun isInSameDirectory(file: File): Boolean {
+        val cFile = currentFile ?: return false
+
+        return file.parent == cFile.parent
+    }
+
     fun isImageFile(file: File): Boolean {
         // Take too much time
         // try {

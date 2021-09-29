@@ -7,6 +7,7 @@ import kr.edoli.imview.shader.ViewerShaderBuilder
 import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.ui.Colormap
 import kr.edoli.imview.util.*
+import kr.edoli.imview.util.Observable
 import org.opencv.core.Mat
 import org.opencv.core.Rect
 import rx.subjects.PublishSubject
@@ -32,6 +33,8 @@ object ImContext {
     val mainFileLastModified = ObservableValue(0L, "Main file last modified")
     val mainFileName = ObservableValue("", "Main file name")
     val mainFileDirectory = ObservableValue("", "Main file directory")
+
+    val mainFileNavigator = Observable<Int>("Main file navigation")
 
     val autoRefresh = ObservableValue(false, "Auto refresh")
 
@@ -160,7 +163,7 @@ object ImContext {
 
                 if (file.isDirectory) {
                     fileManager.setFile(file)
-                    nextImage()
+                    mainFileNavigator.update(1)
                 } else if (file.isFile) {
                     mainFile.update(file)
                     mainFileName.update(file.name)
@@ -211,6 +214,12 @@ object ImContext {
             }
         }
 
+        mainFile.subscribe(this, "Check is file in same directory") { file ->
+            if (file != null && !fileManager.isInSameDirectory(file)) {
+                fileManager.reset()
+            }
+        }
+
         mainImageSpec.subscribe(this, "Update image spec") { spec ->
             if (spec != null) {
                 if (!spec.isNormalized) {
@@ -236,6 +245,14 @@ object ImContext {
                 val numChannels = mat.channels()
                 val channelIndex = min(visibleChannel.currentIndex, numChannels)
                 visibleChannel.update(IntRange(0, mat.channels()).toList(), channelIndex)
+            }
+        }
+
+        mainFileNavigator.subscribe(this, "Image navigation") { shift ->
+            if (shift == 1) {
+                nextImage()
+            } else {
+                prevImage()
             }
         }
 
@@ -289,14 +306,14 @@ object ImContext {
         preferences.flush()
     }
 
-    fun nextImage() {
+    private fun nextImage() {
         val nextFile = fileManager.next(frameInterval.get())
         if (nextFile != null) {
             mainPath.update(nextFile.path)
         }
     }
 
-    fun prevImage() {
+    private fun prevImage() {
         val prevFile = fileManager.prev(frameInterval.get())
         if (prevFile != null) {
             mainPath.update(prevFile.path)
