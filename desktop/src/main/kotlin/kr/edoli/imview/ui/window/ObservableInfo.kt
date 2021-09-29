@@ -1,18 +1,34 @@
 package kr.edoli.imview.ui.window
 
+import kotlinx.coroutines.delay
 import kr.edoli.imview.util.ObservableContext
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
+import java.util.*
 import javax.swing.JFrame
 import javax.swing.JScrollPane
 import javax.swing.JTable
+import kotlin.concurrent.fixedRateTimer
 
 class ObservableInfo : JFrame() {
+
+    val refresher = fixedRateTimer(period = 1000) {
+        if (isVisible) {
+            val newData = createData()
+
+            (0 until table.rowCount).forEach { i ->
+                (0 until table.columnCount).forEach { j ->
+                    table.setValueAt(newData[i][j], i, j)
+                }
+            }
+        }
+    }
+
+    val table = JTable(createData(), arrayOf("Name", "Count", "Update Time", "Subjects"))
+
     init {
         title = "Good"
 
-        val data = createData()
-        val table = JTable(data, arrayOf("Name", "Count", "Update Time", "Subjects"))
         (0 until table.rowCount).forEach { i ->
             (0 until table.columnCount).forEach { j ->
                 table.editCellAt(i, j)
@@ -47,6 +63,12 @@ class ObservableInfo : JFrame() {
 
         table.isFocusable = true
         isVisible = true
+
+    }
+
+    override fun dispose() {
+        super.dispose()
+        refresher.cancel()
     }
 
     fun createData(): Array<Array<Any>> {
