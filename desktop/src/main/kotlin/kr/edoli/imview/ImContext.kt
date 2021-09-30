@@ -2,7 +2,6 @@ package kr.edoli.imview
 
 import kr.edoli.imview.geom.Point2D
 import kr.edoli.imview.image.*
-import kr.edoli.imview.shader.SpriteShaderBuilder
 import kr.edoli.imview.shader.ViewerShaderBuilder
 import kr.edoli.imview.store.ImageStore
 import kr.edoli.imview.ui.Colormap

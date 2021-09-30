@@ -2,18 +2,15 @@ package kr.edoli.imview.store
 
 import com.google.common.cache.CacheBuilder
 import com.google.common.cache.CacheLoader
-import kr.edoli.imview.image.*
+import kr.edoli.imview.image.ImageConvert
+import kr.edoli.imview.image.ImageSpec
+import kr.edoli.imview.image.timesAssign
 import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FilenameUtils
-import org.opencv.core.CvType
 import org.opencv.core.Mat
-import org.opencv.core.MatOfByte
-import org.opencv.imgcodecs.Imgcodecs
-import org.opencv.imgproc.Imgproc
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
-import java.net.URL
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 

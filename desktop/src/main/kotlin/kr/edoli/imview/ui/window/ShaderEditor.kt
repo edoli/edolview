@@ -2,16 +2,14 @@ package kr.edoli.imview.ui.window
 
 import com.badlogic.gdx.Gdx
 import kr.edoli.imview.ImContext
-import java.awt.Dimension
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
-import java.awt.Rectangle
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
-import java.awt.event.WindowAdapter
-import java.awt.event.WindowEvent
-import java.lang.Exception
-import javax.swing.*
+import javax.swing.JButton
+import javax.swing.JFrame
+import javax.swing.JTextArea
+import javax.swing.JTextField
 
 class ShaderEditor private constructor(): JFrame() {
     companion object {

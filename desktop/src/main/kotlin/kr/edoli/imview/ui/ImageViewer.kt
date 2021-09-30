@@ -458,11 +458,6 @@ class ImageViewer : WidgetGroup() {
                 Point2D(vecA.x.toDouble(), vecB.y.toDouble()),
                 Point2D(vecB.x.toDouble(), vecA.y.toDouble()),
                 Point2D(vecB.x.toDouble(), vecB.y.toDouble())
-//
-//                Point2D(((vecA.x + vecB.x) / 2).toDouble(), vecA.y.toDouble()),
-//                Point2D(((vecA.x + vecB.x) / 2).toDouble(), vecB.y.toDouble()),
-//                Point2D(vecA.x.toDouble(), ((vecA.y + vecB.y) / 2).toDouble()),
-//                Point2D(vecB.x.toDouble(), ((vecA.y + vecB.y) / 2).toDouble())
         )
     }
 

@@ -9,7 +9,6 @@ import java.awt.datatransfer.Transferable
 import java.awt.datatransfer.UnsupportedFlavorException
 import java.awt.image.BufferedImage
 import java.io.File
-import java.lang.Error
 import javax.swing.ImageIcon
 import javax.swing.JFrame
 import javax.swing.JLabel

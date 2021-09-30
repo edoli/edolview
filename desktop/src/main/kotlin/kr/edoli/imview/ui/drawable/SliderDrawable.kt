@@ -2,8 +2,6 @@ package kr.edoli.imview.ui.drawable
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.Batch
-import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
-import com.badlogic.gdx.math.MathUtils
 import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
 import kr.edoli.imview.ui.UIRes
 import kr.edoli.imview.ui.res.Colors

@@ -6,7 +6,6 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.Timer
 import kr.edoli.imview.ImContext
 import org.opencv.core.Core
-import java.io.File
 
 class App(private val initPath: String?) : Game() {
     companion object {

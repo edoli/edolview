@@ -1,6 +1,5 @@
 package kr.edoli.imview.util
 
-import org.apache.commons.io.FilenameUtils
 import java.io.File
 import kotlin.math.sign
 

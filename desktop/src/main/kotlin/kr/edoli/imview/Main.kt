@@ -8,7 +8,6 @@ import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
 import kr.edoli.imview.ui.App
-import java.io.File
 import javax.swing.UIManager
 import kotlin.system.exitProcess
 
