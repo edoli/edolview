@@ -24,9 +24,11 @@ class ToolBar : Panel() {
 
         align(Align.left)
 
-        add(UIFactory.createDropdownMenu("Recent files", ImContext.recentFiles) { path ->
+        add(UIFactory.createDropdownMenu("Recent files ▼", ImContext.recentFiles) { path ->
             ImContext.mainPath.update(path)
         })
+
+        add().width(16f)
 
         add(UIFactory.createIconButton(Ionicons.ionMdTrash) {
             ImageStore.clearCache()
@@ -34,14 +36,6 @@ class ToolBar : Panel() {
 
         add(UIFactory.createToggleIconButton(Ionicons.ionMdSync, ImContext.autoRefresh)).width(iconWidth)
         add(UIFactory.createToggleIconButton(Ionicons.ionMdCalendar, ImContext.isShowBackground)).width(iconWidth)
-
-//        add(UIFactory.createIconButton(Ionicons.ionMdSave) {
-//            MarqueeUtils.saveImage(false)
-//        }.tooltip("Save selected image")).width(iconWidth)
-
-//        add(UIFactory.createIconButton(Ionicons.ionMdImage) {
-//            ClipboardUtils.showClipboardImage()
-//        }.tooltip("Show clipboard")).width(iconWidth)
 
         add(UIFactory.createIconButton(Ionicons.ionMdClipboard) {
             ImContext.loadFromClipboard()
@@ -61,7 +55,7 @@ class ToolBar : Panel() {
         add().width(32f)
         add(UIFactory.createToggleIconButton(Ionicons.ionMdAdd, ImContext.isShowCrosshair)).width(iconWidth)
         add(UIFactory.createIconButton(Ionicons.ionMdPaper) {
-            ShaderEditor()
+            ShaderEditor.show()
         }).width(iconWidth)
 
         add().expandX()

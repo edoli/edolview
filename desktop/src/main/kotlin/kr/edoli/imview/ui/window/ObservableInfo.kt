@@ -1,19 +1,30 @@
 package kr.edoli.imview.ui.window
 
-import kotlinx.coroutines.delay
 import kr.edoli.imview.util.ObservableContext
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
-import java.util.*
 import javax.swing.JFrame
 import javax.swing.JScrollPane
 import javax.swing.JTable
 import kotlin.concurrent.fixedRateTimer
 
-class ObservableInfo : JFrame() {
+class ObservableInfo private constructor() : JFrame() {
+    companion object {
+        var infoPanel: ObservableInfo? = null
+
+        fun show() {
+            val panel = infoPanel
+            if (panel == null) {
+                infoPanel = ObservableInfo()
+            } else {
+                panel.isVisible = true
+            }
+        }
+    }
 
     val refresher = fixedRateTimer(period = 1000) {
         if (isVisible) {
+            println("updated: " + System.currentTimeMillis())
             val newData = createData()
 
             (0 until table.rowCount).forEach { i ->
@@ -27,7 +38,7 @@ class ObservableInfo : JFrame() {
     val table = JTable(createData(), arrayOf("Name", "Count", "Update Time", "Subjects"))
 
     init {
-        title = "Good"
+        title = "Info"
 
         (0 until table.rowCount).forEach { i ->
             (0 until table.columnCount).forEach { j ->

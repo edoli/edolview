@@ -132,7 +132,7 @@ class MainScreen : Screen {
                 }
 
                 if (keycode == Input.Keys.F3) {
-                    ObservableInfo()
+                    ObservableInfo.show()
                 }
 
                 if (keycode == Input.Keys.F5) {

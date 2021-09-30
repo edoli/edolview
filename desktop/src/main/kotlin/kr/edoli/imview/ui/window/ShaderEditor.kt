@@ -8,10 +8,25 @@ import java.awt.GridBagLayout
 import java.awt.Rectangle
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
+import java.awt.event.WindowAdapter
+import java.awt.event.WindowEvent
 import java.lang.Exception
 import javax.swing.*
 
-class ShaderEditor : JFrame() {
+class ShaderEditor private constructor(): JFrame() {
+    companion object {
+        var shaderEditor: ShaderEditor? = null
+
+        fun show() {
+            val editor = shaderEditor
+            if (editor == null) {
+                shaderEditor = ShaderEditor()
+            } else {
+                editor.isVisible = true
+            }
+        }
+    }
+
     val shaderBuilder = ImContext.viewerShaderBuilder
 
     init {
