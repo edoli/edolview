@@ -7,6 +7,9 @@ import org.opencv.core.Rect
  * Created by daniel on 16. 9. 10.
  */
 
+fun String.isInt(): Boolean = toIntOrNull() !== null
+fun String.isFloat(): Boolean = toFloatOrNull() !== null
+
 fun Double.clamp(min: Double, max: Double): Double = Math.max(min, Math.min(this, max))
 fun Double.floor(): Double = Math.floor(this)
 fun Double.ceil(): Double = Math.ceil(this)

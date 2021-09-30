@@ -22,13 +22,8 @@ import kr.edoli.imview.ui.drawable.ColorDrawable
 import kr.edoli.imview.ui.res.Colors
 import kr.edoli.imview.ui.res.Font
 import kr.edoli.imview.ui.res.uiSkin
-import kr.edoli.imview.util.ObservableList
-import kr.edoli.imview.util.ObservableValue
-import kr.edoli.imview.util.toColor
-import kr.edoli.imview.util.toColorStr
+import kr.edoli.imview.util.*
 import org.opencv.core.Rect
-import tornadofx.isFloat
-import tornadofx.isInt
 import kotlin.math.abs
 
 object UIFactory {
