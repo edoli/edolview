@@ -119,6 +119,7 @@ object ClipboardUtils {
         return content.getTransferData(DataFlavor.stringFlavor) as String? ?: ""
     }
 
+    @Suppress("UNCHECKED_CAST")
     fun getFileList(): List<File> {
         val clipboard = Toolkit.getDefaultToolkit().systemClipboard
         val content = clipboard.getContents(null)

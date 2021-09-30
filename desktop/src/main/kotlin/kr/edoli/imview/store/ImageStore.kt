@@ -42,8 +42,8 @@ object ImageStore {
 
         if (ext.lowercase() == "pfm") {
             val reader = BufferedReader(FileReader(path))
-            val header = reader.readLine()
-            val dimension = reader.readLine()
+            // val header = reader.readLine()
+            // val dimension = reader.readLine()
             val scale = reader.readLine()
 
             mat *= abs(scale.toDouble())

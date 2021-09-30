@@ -292,7 +292,7 @@ class ImageViewer : WidgetGroup() {
                     }
                 }
                 addMenu("Save selected image") {
-                    ImContext.marqueeImage.get()?.let { mat ->
+                    ImContext.marqueeImage.get()?.let { _ ->
                         MarqueeUtils.saveImage()
                     }
                 }
@@ -308,7 +308,6 @@ class ImageViewer : WidgetGroup() {
                             val box = ImContext.marqueeBox.get()
 
                             val matWidth = mat.width()
-                            val rowSize = matWidth * 4
 
                             val croppedByteArray = ByteArray(box.height * box.width * 4)
                             val croppedRowSize = box.width * 4

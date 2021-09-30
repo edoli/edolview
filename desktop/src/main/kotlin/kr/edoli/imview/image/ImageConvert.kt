@@ -19,7 +19,6 @@ object ImageConvert {
         val width = mat.cols()
         val height = mat.rows()
         val channels = mat.channels()
-        val bitsPerPixel = mat.bitsPerPixel()
         val arraySize = (mat.total() * channels).toInt()
 
         when (channels) {
