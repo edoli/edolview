@@ -50,13 +50,7 @@ class MainScreen : Screen {
 
         val middleTable = SplitPane(imageViewer, sidePane, false, uiSkin).apply {
             setSplitAmount(1f)
-            var isLastCollapsed = false
-            addListener(object : InputListener() {
-                override fun touchDown(event: InputEvent?, x: Float, y: Float, pointer: Int, button: Int): Boolean {
-                    isLastCollapsed = isCollapsed
-                    return super.touchDown(event, x, y, pointer, button)
-                }
-            })
+
             onSplitChanged = {
                 if (it > width - sidePane.minWidth / 2) {
                     ImContext.isShowController.update(false)

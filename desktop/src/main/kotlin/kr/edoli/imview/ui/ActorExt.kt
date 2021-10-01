@@ -22,7 +22,7 @@ fun <T : Actor> T.contextMenu(builder: ContextMenuPanel.() -> Unit): T {
     if (contextMenuListeners.isEmpty()) {
         addListener(ContextMenu(UIFactory.contextMenuManager, builder))
     } else {
-        (contextMenuListeners[0] as ContextMenu).builders.add(builder)
+        contextMenuListeners[0].builders.add(builder)
     }
     return this
 }

@@ -218,7 +218,6 @@ fun Mat.pow(value: Double): Mat {
 }
 
 fun Mat.powAssign(value: Double) {
-    val newMat = Mat(rows(), cols(), type())
     Core.pow(this, value, this)
 }
 

@@ -10,6 +10,7 @@ import java.awt.FileDialog
 import java.awt.Frame
 import java.io.File
 import java.io.IOException
+import java.util.*
 
 object MarqueeUtils {
 
@@ -51,7 +52,7 @@ object MarqueeUtils {
                 if (selectedMat != null) {
                     val mat = selectedMat.clone()
                     val maxValue = ImContext.mainImageSpec.get()!!.typeMaxValue
-                    val factor = when (dest.extension.toLowerCase()) {
+                    val factor = when (dest.extension.lowercase(Locale.getDefault())) {
                         "png" -> if (maxValue != -1.0) maxValue else 255.0
                         "tiff" -> 255.0
                         "jpg" -> 255.0

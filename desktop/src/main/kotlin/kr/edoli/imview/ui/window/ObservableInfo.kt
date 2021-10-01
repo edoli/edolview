@@ -89,21 +89,21 @@ class ObservableInfo private constructor() : JFrame() {
 
         val data = Array(allSize) { Array<Any>(4) {} }
         var index = 0
-        ObservableContext.observables.forEachIndexed { i, value ->
+        ObservableContext.observables.forEachIndexed { _, value ->
             data[index][0] = value.name
             data[index][1] = value.subscribers.size
             data[index][2] = "${value.lastTotalUpdateTime.toFloat() / 1000 / 1000}ms"
             data[index][3] = value.subscribers.map { it.subject }
             index += 1
         }
-        ObservableContext.observableValues.forEachIndexed { i, value ->
+        ObservableContext.observableValues.forEachIndexed { _, value ->
             data[index][0] = value.name
             data[index][1] = value.subscribers.size
             data[index][2] = "${value.lastTotalUpdateTime.toFloat() / 1000 / 1000}ms"
             data[index][3] = value.subscribers.map { it.subject }
             index += 1
         }
-        ObservableContext.observableLazyValues.forEachIndexed { i, value ->
+        ObservableContext.observableLazyValues.forEachIndexed { _, value ->
             data[index][0] = value.name
             data[index][1] = value.subscribers.size
             data[index][2] = "${value.lastTotalUpdateTime.toFloat() / 1000 / 1000}ms"

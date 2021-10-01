@@ -34,7 +34,7 @@ import java.nio.IntBuffer;
 
 public class MyLwjgl3Application implements Lwjgl3ApplicationBase {
     private Lwjgl3ApplicationConfiguration config;
-    final Array<Lwjgl3Window> windows = new Array<Lwjgl3Window>();
+    public final Array<Lwjgl3Window> windows = new Array<Lwjgl3Window>();
     private volatile Lwjgl3Window currentWindow;
     private Lwjgl3Audio audio;
     private Files files;
