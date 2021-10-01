@@ -1,0 +1,156 @@
+buildscript {
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
+    }
+
+    ext {
+        appName = "EdolView"
+        kotlin_version = '1.5.10'
+        openjfx_version = '0.0.8'
+        gdx_version = "1.9.12"
+        ikonli_version = "11.3.4"
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+    }
+}
+
+plugins {
+    id 'application'
+    id 'org.jetbrains.kotlin.jvm' version "$kotlin_version"
+}
+
+compileKotlin {
+    kotlinOptions.useIR = true
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation "org.jetbrains.kotlin:kotlin-reflect:$kotlin_version"
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.5.0"
+
+    implementation "com.badlogicgames.gdx:gdx:$gdx_version"
+    implementation "com.badlogicgames.gdx:gdx-freetype:$gdx_version"
+//    implementation "com.badlogicgames.gdx:gdx-tools:$gdx_version"
+    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdx_version"
+    implementation "com.badlogicgames.gdx:gdx-platform:$gdx_version:natives-desktop"
+    implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdx_version:natives-desktop"
+
+    implementation "org.jetbrains.kotlinx:kotlinx-cli:0.3.2"
+    implementation "io.reactivex:rxjava:1.1.6"
+    implementation "commons-io:commons-io:2.4"
+
+    implementation 'com.drewnoakes:metadata-extractor:2.11.0'
+    implementation 'org.apache.commons:commons-lang3:3.9'
+
+    implementation group: 'com.google.guava', name: 'guava', version: '20.0'
+}
+
+project.ext.mainClassName = "kr.edoli.imview.MainKt"
+project.ext.appname = 'EdolView'
+project.ext.assetsDir = new File("./assets")
+
+application {
+    mainClassName = project.mainClassName
+    applicationDefaultJvmArgs = ["-Dfile.encoding=UTF-8"]
+}
+
+run {
+    workingDir = project.assetsDir
+    args = ["-d"]
+    jvmArgs = []
+}
+
+distTar.enabled = false
+
+task installAfter() {
+    doLast {
+        OperatingSystem os = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem;
+        var rootPath = project.projectDir.absolutePath
+        if (os.isWindows()) {
+            new File("${rootPath}/build/install/desktop/lib").listFiles().findAll{
+                String fn = it.name
+                fn.contains("arm") || fn.contains("x86") || fn.contains("linux") || fn.contains("macos")
+            }.each{it.delete()}
+        }
+        else if (os.isLinux()) {
+            new File("${rootPath}/build/install/desktop/lib").listFiles().findAll{
+                String fn = it.name
+                fn.contains("arm") || fn.contains("x86") || fn.contains("windows") || fn.contains("macos")
+            }.each{it.delete()}
+        }
+        else if (os.isMacOsX()) {
+            new File("${rootPath}/build/install/desktop/lib").listFiles().findAll{
+                String fn = it.name
+                fn.contains("arm") || fn.contains("x86") || fn.contains("linux") || fn.contains("windows")
+            }.each{it.delete()}
+        }
+        exec {
+            executable = "${System.properties['java.home']}/bin/jlink"
+            args("--module-path")
+            args("./build/install/desktop/lib")
+            args("--add-modules")
+            args("java.base,java.desktop,java.logging,jdk.unsupported")
+            args("--no-header-files")
+            args("--no-man-pages")
+            args("--compress=1")
+            args("--output")
+            args("${rootPath}/build/install/desktop/jre")
+        }
+        def configJson = """{
+  "classPath": [
+${String.join(',\n', new File("${rootPath}/build/install/desktop/lib").list().collect {"    \"lib/${it}\"" })}
+  ],
+  "mainClass": "${project.mainClassName}",
+  "vmArgs": [
+    "-Xmx4G"
+  ]
+}
+    """
+        new File("${rootPath}/build/install/desktop/config.json").write(configJson)
+    }
+}
+
+installDist.finalizedBy(installAfter)
+
+startScripts {
+    doLast {
+        unixScript.text = unixScript.text.replace('# Attempt to set APP_HOME', '''
+JAVA_HOME=./jre
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib
+# Attempt to set APP_HOME
+''')
+    }
+}
+
+distributions {
+    main {
+        contents {
+            from('./assets')
+            exclude('test*')
+            exclude('*.svg')
+            exclude('*.log')
+            exclude('build*')
+            exclude('imview.bat')
+            exclude('icon.ico')
+            exclude('config.json')
+
+            OperatingSystem os = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem;
+            if (os.isWindows()) {
+                exclude('lib/')
+            }
+            if (os.isLinux()) {
+                exclude('*.exe')
+                exclude('*.dll')
+            }
+        }
+    }
+}
