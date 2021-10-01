@@ -24,7 +24,6 @@ class ObservableInfo private constructor() : JFrame() {
 
     val refresher = fixedRateTimer(period = 1000) {
         if (isVisible) {
-            println("updated: " + System.currentTimeMillis())
             val newData = createData()
 
             (0 until table.rowCount).forEach { i ->

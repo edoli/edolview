@@ -18,14 +18,6 @@ fun main(args: Array<String>) {
     val devMode by parser.option(ArgType.Boolean, shortName = "d", description = "Turn on dev mode").default(false)
     parser.parse(args)
 
-    if (devMode) {
-//        val setting = TexturePacker.Settings()
-//        setting.useIndexes = false
-//        setting.maxWidth = 2048
-//        setting.maxHeight = 2048
-//        TexturePacker.processIfModified(setting, "../../inputdir/ui", ".", "ui")
-    }
-
     UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
 
     val config = Lwjgl3ApplicationConfiguration()

@@ -36,3 +36,6 @@ export JAVA_HOME={java_path}
 
 ./gradlew installDist
 ```
+
+# Test data
+https://github.com/edoli/edolview/tree/data
