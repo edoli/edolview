@@ -1,0 +1,28 @@
+#!/bin/bash
+
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root" 
+   exit 1
+fi
+
+cp lib/libopencv_core.so.4.5 /usr/local/lib
+cp lib/libopencv_imgproc.so.4.5 /usr/local/lib
+cp lib/libopencv_imgcodecs.so.4.5 /usr/local/lib
+cp lib/libopencv_java450.so /usr/lib64
+
+APP_HOME=`pwd -P`
+
+rm /usr/share/applications/edolview.desktop 
+cat >/usr/share/applications/edolview.desktop <<EOL
+[Desktop Entry]
+Comment=Image viewer
+Name=Edolview
+Exec=$APP_HOME/edolview
+Terminal=false
+Type=Application
+Icon=$APP_HOME/icon.png
+StartupWMClass=Edolview
+Categories=Graphics;
+EOL
+
+echo Install finished

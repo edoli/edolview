@@ -92,6 +92,7 @@ task installAfter() {
                 String fn = it.name
                 fn.contains("arm") || fn.contains("x86") || fn.contains("linux") || fn.contains("windows")
             }.each{it.delete()}
+            new File("${rootPath}/build/install/desktop/install").delete()
         }
         exec {
             executable = "${System.properties['java.home']}/bin/jlink"
@@ -154,6 +155,9 @@ distributions {
             if (os.isLinux()) {
                 exclude('*.exe')
                 exclude('*.dll')
+            } else {
+                exclude('install')
+                exclude('edolview')
             }
         }
     }
