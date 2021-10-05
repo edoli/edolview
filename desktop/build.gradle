@@ -115,7 +115,11 @@ ${String.join(',\n', new File("${rootPath}/build/install/desktop/lib").list().co
   ]
 }
     """
-        new File("${rootPath}/build/install/desktop/config.json").write(configJson)
+        if (os.isLinux()) {
+            new File("${rootPath}/build/install/desktop/edolview.json").write(configJson)
+        } else {
+            new File("${rootPath}/build/install/desktop/config.json").write(configJson)
+        }
     }
 }
 

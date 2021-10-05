@@ -32,6 +32,7 @@ fun main(args: Array<String>) {
             exitProcess(0)
         }
     })
+    config.setTitle("Edolview")
     config.setWindowedMode(1280, 720)
     config.setWindowIcon("icon.png")
     MyLwjgl3Application(App(initPath), config)
