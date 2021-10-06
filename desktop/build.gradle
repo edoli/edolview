@@ -128,10 +128,13 @@ installDist.finalizedBy(installAfter)
 
 startScripts {
     doLast {
-        unixScript.text = unixScript.text.replace('# Attempt to set APP_HOME', '''
+        unixScript.text = unixScript.text.replace('APP_NAME="desktop"', '''
+cd $APP_HOME
+
 JAVA_HOME=./jre
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib
-# Attempt to set APP_HOME
+
+APP_NAME="desktop"
 ''')
     }
 }
@@ -156,7 +159,7 @@ distributions {
                 exclude('*.exe')
                 exclude('*.dll')
             } else {
-                exclude('install')
+                exclude('install.sh')
                 exclude('edolview')
             }
         }
