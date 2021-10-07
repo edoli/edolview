@@ -31,7 +31,7 @@ echo Create desktop file
 
 APP_HOME=`pwd -P`
 
-rm /usr/share/applications/edolview.desktop 
+rm -f /usr/share/applications/edolview.desktop 
 cat >/usr/share/applications/edolview.desktop <<EOL
 [Desktop Entry]
 Comment=Image viewer
