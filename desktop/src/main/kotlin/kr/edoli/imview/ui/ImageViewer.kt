@@ -544,16 +544,11 @@ class ImageViewer : WidgetGroup() {
                 shader.setUniformf("gamma", ImContext.imageGamma.get())
                 if (ImContext.normalize.get()) {
                     val minMax = ImContext.imageMinMax.get()
-                    shader.setUniformf("min", minMax.first.toFloat())
-                    shader.setUniformf("max", minMax.second.toFloat())
+                    shader.setUniformf("minV", minMax.first.toFloat())
+                    shader.setUniformf("maxV", minMax.second.toFloat())
                 } else {
-                    shader.setUniformf("min", ImContext.displayMin.get())
-                    shader.setUniformf("max", ImContext.displayMax.get())
-                }
-                if (ImContext.visibleChannel.get() != 0 || ImContext.mainImage.get()?.channels() == 1) {
-                    shader.setUniformi("colormap", ImContext.imageColormap.currentIndex)
-                } else {
-                    shader.setUniformi("colormap", 0)
+                    shader.setUniformf("minV", ImContext.displayMin.get())
+                    shader.setUniformf("maxV", ImContext.displayMax.get())
                 }
                 batch.draw(region, localX, localY, 0f, 0f,
                         region.regionWidth.toFloat(), region.regionHeight.toFloat(), localScale, localScale, 0f)

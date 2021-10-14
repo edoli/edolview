@@ -41,8 +41,8 @@ class ShaderEditor private constructor(): JFrame() {
 
             Gdx.app.postRunnable {
                 try {
-                    val shader = shaderBuilder.build()
-                    ImContext.viewerShader.update(shader)
+                    shaderBuilder.clearCache()
+                    ImContext.updateCurrentShader()
                     logLabel.text = ""
                 } catch (ex: Exception) {
                     logLabel.text = ex.stackTraceToString()

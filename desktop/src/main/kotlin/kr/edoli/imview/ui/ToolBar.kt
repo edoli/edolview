@@ -56,7 +56,7 @@ class ToolBar : Panel() {
         add(UIFactory.createToggleIconButton(Ionicons.ionMdAdd, ImContext.isShowCrosshair)).width(iconWidth)
         add(UIFactory.createIconButton(Ionicons.ionMdPaper) {
             ShaderEditor.show()
-        }).width(iconWidth)
+        }.tooltip("Edit shader script")).width(iconWidth)
 
         add().expandX()
         add(UIFactory.createToggleIconButton(Ionicons.ionMdOptions, ImContext.isShowController)).width(iconWidth)
