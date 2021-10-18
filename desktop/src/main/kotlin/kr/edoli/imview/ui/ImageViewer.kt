@@ -22,6 +22,7 @@ import kr.edoli.imview.image.ImageConvert
 import kr.edoli.imview.image.MarqueeUtils
 import kr.edoli.imview.image.bound
 import kr.edoli.imview.shader.BackgroundShaderBuilder
+import kr.edoli.imview.ui.custom.MyInputListener
 import kr.edoli.imview.ui.res.Colors
 import kr.edoli.imview.util.*
 import org.lwjgl.opengl.GL30
@@ -75,7 +76,7 @@ class ImageViewer : WidgetGroup() {
         ImContext.smoothing.subscribe(this, "Update texture smoothing") { updateSmoothing() }
 
         // Drag listener
-        addListener(object : InputListener() {
+        addListener(object : MyInputListener() {
             var touchDownX = 0f
             var touchDownY = 0f
 
@@ -199,7 +200,18 @@ class ImageViewer : WidgetGroup() {
                 return super.scrolled(event, x, y, amountX, amountY)
             }
 
+            override fun keyLongDown(keycode: Int) {
+                super.keyLongDown(keycode)
+                if (keycode == Input.Keys.LEFT) {
+                    ImContext.mainFileNavigator.update(-1)
+                }
+                if (keycode == Input.Keys.RIGHT) {
+                    ImContext.mainFileNavigator.update(1)
+                }
+            }
+
             override fun keyDown(event: InputEvent, keycode: Int): Boolean {
+                super.keyDown(event, keycode)
                 if (keycode == Input.Keys.LEFT) {
                     ImContext.mainFileNavigator.update(-1)
                     return true

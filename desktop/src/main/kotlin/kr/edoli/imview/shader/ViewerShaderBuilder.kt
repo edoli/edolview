@@ -14,7 +14,8 @@ class ViewerShaderBuilder {
     companion object {
         fun getColormapNames(): List<String> {
             val file = File("colormap")
-            return file.list()?.map {
+            return file.list()?.filter { it.contains(".glsl")
+            }?.map {
                 it.replace(".glsl", "")
             }?.sortedBy { if (it == "normal") "" else it } ?: listOf()
         }
@@ -80,7 +81,6 @@ class ViewerShaderBuilder {
                 .replace("%extra_code%", extraCode.replace("%pixel_expression%", ""))
                 .replace("%pixel_expression%", pixelExpression)
 
-        print(shaderCode)
         return ShaderProgram(SpriteShaderBuilder.vertexShader, shaderCode).also {
             require(it.isCompiled) { "Error compiling shader[${colormapName}]: " + it.log }
         }
