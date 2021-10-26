@@ -39,7 +39,6 @@ dependencies {
 
     implementation "com.badlogicgames.gdx:gdx:$gdx_version"
     implementation "com.badlogicgames.gdx:gdx-freetype:$gdx_version"
-//    implementation "com.badlogicgames.gdx:gdx-tools:$gdx_version"
     implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdx_version"
     implementation "com.badlogicgames.gdx:gdx-platform:$gdx_version:natives-desktop"
     implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdx_version:natives-desktop"
