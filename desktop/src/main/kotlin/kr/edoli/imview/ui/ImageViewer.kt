@@ -455,7 +455,7 @@ class ImageViewer : WidgetGroup() {
         if (isSmoothing) {
             texture?.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear)
         } else {
-            texture?.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Nearest)
+            texture?.setFilter(Texture.TextureFilter.Nearest, Texture.TextureFilter.Nearest)
         }
     }
 
