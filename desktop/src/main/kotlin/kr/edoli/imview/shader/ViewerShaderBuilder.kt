@@ -4,50 +4,59 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.google.common.cache.CacheBuilder
 import com.google.common.cache.CacheLoader
-import kr.edoli.imview.image.ImageSpec
-import kr.edoli.imview.store.ImageStore
 import org.apache.commons.io.FileUtils
 import java.io.File
-import java.util.concurrent.TimeUnit
 
 class ViewerShaderBuilder {
     companion object {
-        fun getColormapNames(): List<String> {
-            val file = File("colormap")
-            return file.list()?.filter { it.contains(".glsl")
+        fun getColormapNames(subDir: String): List<String> {
+            val file = File("colormap/${subDir}")
+            return file.list()?.filter {
+                it.contains(".glsl")
             }?.map {
                 it.replace(".glsl", "")
-            }?.sortedBy { if (it == "normal") "" else it } ?: listOf()
+            }?.sortedBy { if (it == "color") "" else it } ?: listOf()
         }
 
         val fragShader: String = Gdx.files.internal("imageShader.frag").readString()
         const val default_pixel_expression = "pow(p * contrast + brightness, 1.0 / gamma)"
     }
 
-    private val shaderStore = CacheBuilder.newBuilder()
+    private val rgbShaderStore = CacheBuilder.newBuilder()
             .removalListener<String, ShaderProgram> { it.value?.dispose() }
             .build(object : CacheLoader<String, ShaderProgram>() {
                 override fun load(shaderName: String): ShaderProgram {
-                    return build(shaderName)
+                    return build(shaderName, false)
+                }
+            })
+
+    private val monoShaderStore = CacheBuilder.newBuilder()
+            .removalListener<String, ShaderProgram> { it.value?.dispose() }
+            .build(object : CacheLoader<String, ShaderProgram>() {
+                override fun load(shaderName: String): ShaderProgram {
+                    return build(shaderName, true)
                 }
             })
 
     var extraCode = ""
     var pixelExpression = default_pixel_expression
 
-    private val colorProcessDefault = """
-    vec4 v;
-    p = tex.r;
+    // colormap before pixel processing for RGB images
+    private val colorProcessRGBColormap = """
+    vec3 t = %colormap_name%_colormap(tex.rgb);
+    vec3 v;
+    p = t.r;
     v.r = %pixel_expression%;
-    p = tex.g;
+    p = t.g;
     v.g = %pixel_expression%;
-    p = tex.b;
+    p = t.b;
     v.b = %pixel_expression%;
-    gl_FragColor = v_color * v;
+    gl_FragColor = v_color * vec4(v, 1.0);
     gl_FragColor.a = alpha;
     """
 
-    private val colorProcessUseColorMap = """
+    // colormap after pixel processing for Mono images
+    private val colorProcessMonoColorMap = """
     p = tex.r;
     float v = %pixel_expression%;
     v = clamp(v, 0.0, 1.0);
@@ -55,28 +64,23 @@ class ViewerShaderBuilder {
     gl_FragColor = vec4(color.r, color.g, color.b, alpha);
     """
 
-    private val defaultColorShader = build()
-
-    fun get(colormapName: String? = null): ShaderProgram {
-        return if (colormapName == null) {
-            defaultColorShader
-        } else {
-            shaderStore.get(colormapName)
-        }
-    }
+    fun getRGB(colormapName: String) = rgbShaderStore.get(colormapName)
+    fun getMono(colormapName: String) = monoShaderStore.get(colormapName)
 
     fun clearCache() {
-        shaderStore.cleanUp()
+        rgbShaderStore.cleanUp()
+        monoShaderStore.cleanUp()
     }
 
-    private fun build(colormapName: String? = null): ShaderProgram {
-        val colormapShaderCode =
-                if (colormapName == null) ""
-                else FileUtils.readFileToString(File("colormap/${colormapName}.glsl"))
+    private fun build(colormapName: String, isMono: Boolean): ShaderProgram {
+        val colormapShaderCode = if (isMono)
+            FileUtils.readFileToString(File("colormap/mono/${colormapName}.glsl")) else
+            FileUtils.readFileToString(File("colormap/rgb/${colormapName}.glsl"))
 
         val shaderCode = fragShader
-                .replace("%color_process%", if (colormapName == null) colorProcessDefault
-                    else colorProcessUseColorMap.replace("%colormap_name%", colormapName))
+                .replace("%color_process%", if (isMono)
+                    colorProcessMonoColorMap.replace("%colormap_name%", colormapName) else
+                    colorProcessRGBColormap.replace("%colormap_name%", colormapName))
                 .replace("%colormap_function%", colormapShaderCode)
                 .replace("%extra_code%", extraCode.replace("%pixel_expression%", ""))
                 .replace("%pixel_expression%", pixelExpression)

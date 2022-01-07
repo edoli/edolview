@@ -1,6 +1,7 @@
 package kr.edoli.imview.ui.panel
 
 import com.badlogic.gdx.scenes.scene2d.Touchable
+import com.badlogic.gdx.scenes.scene2d.ui.Stack
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import kr.edoli.imview.ImContext
 import kr.edoli.imview.ui.Panel
@@ -70,10 +71,18 @@ class DisplayProfilePanel : Panel(false) {
         row()
         add(Table().apply {
             add(UIFactory.createSelectBox(ImContext.visibleChannel)).padRight(4f)
-            add(UIFactory.createSelectBox(ImContext.imageColormap).apply {
-                ImContext.visibleChannel.subscribe(this@DisplayProfilePanel, "Update display profile") { channel ->
-                    isVisible = channel != 0 || ImContext.mainImage.get()?.channels() == 1
-                }
+            add(Stack().apply {
+                add(UIFactory.createSelectBox(ImContext.imageMonoColormap).apply {
+                    ImContext.visibleChannel.subscribe(this@DisplayProfilePanel, "Update display profile") { channel ->
+                        isVisible = channel != 0 || ImContext.mainImage.get()?.channels() == 1
+                    }
+                })
+                add(UIFactory.createSelectBox(ImContext.imageRGBColormap).apply {
+                    ImContext.visibleChannel.subscribe(this@DisplayProfilePanel, "Update display profile") { channel ->
+                        val channels = ImContext.mainImage.get()?.channels()
+                        isVisible = channel == 0 && (channels == 3 || channels == 4)
+                    }
+                })
             })
         })
     }

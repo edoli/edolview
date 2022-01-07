@@ -66,7 +66,7 @@ object ImContext {
 
     // Display profile
     val viewerShaderBuilder = ViewerShaderBuilder()
-    val viewerShader = ObservableValue(viewerShaderBuilder.get(), "Viewer shader")
+    val viewerShader = ObservableValue(viewerShaderBuilder.getRGB("color"), "Viewer shader")
     val enableDisplayProfile = ObservableValue(true, "Enable display profile")
     val normalize = ObservableValue(false, "Normalize")
     val smoothing = ObservableValue(false, "Smoothing")
@@ -79,7 +79,8 @@ object ImContext {
     val imageContrast = ObservableValue(1.0f, "Contrast")
     val imageBrightness = ObservableValue(0.0f, "Brightness")
     val imageGamma = ObservableValue(1.0f, "Gamma")
-    val imageColormap = ObservableList(ViewerShaderBuilder.getColormapNames(), name = "Colormap")
+    val imageMonoColormap = ObservableList(ViewerShaderBuilder.getColormapNames("mono"), name = "Colormap")
+    val imageRGBColormap = ObservableList(ViewerShaderBuilder.getColormapNames("rgb"), name = "Colormap")
     val visibleChannel = ObservableList(listOf(0), name = "Visible channel")
 
     val frameInterval = ObservableValue(1, "Frame interval")
@@ -275,7 +276,11 @@ object ImContext {
             updateCurrentShader(channel)
         }
 
-        imageColormap.subscribe(this, "Colormap change") { colormapName ->
+        imageMonoColormap.subscribe(this, "Colormap change") { colormapName ->
+            updateCurrentShader()
+        }
+
+        imageRGBColormap.subscribe(this, "Colormap change") { colormapName ->
             updateCurrentShader()
         }
 
@@ -307,8 +312,11 @@ object ImContext {
     }
 
     fun updateCurrentShader(channel: Int = visibleChannel.get()) {
-        val colormapName = if (channel != 0 || mainImage.get()?.channels() == 1) imageColormap.get() else null
-        viewerShader.update(viewerShaderBuilder.get(colormapName))
+        if (channel != 0 || mainImage.get()?.channels() == 1) {
+            viewerShader.update(viewerShaderBuilder.getMono(imageMonoColormap.get()))
+        } else {
+            viewerShader.update(viewerShaderBuilder.getRGB(imageRGBColormap.get()))
+        }
     }
 
     fun updateCursorColor() {
