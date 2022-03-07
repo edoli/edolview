@@ -6,6 +6,8 @@ import com.google.common.cache.CacheBuilder
 import com.google.common.cache.CacheLoader
 import org.apache.commons.io.FileUtils
 import java.io.File
+import javax.swing.JFrame
+import javax.swing.JOptionPane
 
 class ViewerShaderBuilder {
     companion object {
@@ -86,7 +88,14 @@ class ViewerShaderBuilder {
                 .replace("%pixel_expression%", pixelExpression)
 
         return ShaderProgram(SpriteShaderBuilder.vertexShader, shaderCode).also {
-            require(it.isCompiled) { "Error compiling shader[${colormapName}]: " + it.log }
+            if (!it.isCompiled) {
+                Thread {
+                    val frame = JFrame()
+                    frame.isAlwaysOnTop = true
+                    JOptionPane.showMessageDialog(frame, "Error compiling shader[${colormapName}]: " + it.log, "Error message",
+                            JOptionPane.ERROR_MESSAGE)
+                }.start()
+            }
         }
     }
 }
