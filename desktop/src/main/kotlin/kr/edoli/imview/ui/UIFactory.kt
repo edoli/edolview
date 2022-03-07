@@ -163,7 +163,14 @@ object UIFactory {
         str.replace("(", "").replace(")", "").split(",").map {
             it.trim().isInt()
         }.reduce { acc, b -> acc && b }
-    })
+    }).contextMenu {
+        addMenu("Copy numpy indexing") {
+            val rect = observable.get()
+
+            val text = "${rect.y}:${rect.y + rect.height}, ${rect.x}:${rect.x + rect.width}"
+            ClipboardUtils.putString(text)
+        }
+    }
 
     fun createSlider(icon: String, min: Float, max: Float, stepSize: Float, observable: ObservableValue<Float>): Table {
         return Table().apply {
