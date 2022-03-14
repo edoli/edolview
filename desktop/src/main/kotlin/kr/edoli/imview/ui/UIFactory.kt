@@ -153,16 +153,29 @@ object UIFactory {
     })
 
     fun createRectField(observable: ObservableValue<Rect>) = createField(observable, { str ->
-        val numbers = str.replace("(", "").replace(")", "").split(",").map {
-            it.trim().toInt()
+        if (str.contains(":")) {
+            val numbers = str.replace(":", ",").split(",").map {
+                it.trim().toInt()
+            }
+            Rect(numbers[2], numbers[0], numbers[3] - numbers[2], numbers[1] - numbers[0])
+        } else {
+            val numbers = str.replace("(", "").replace(")", "").split(",").map {
+                it.trim().toInt()
+            }
+            Rect(numbers[0], numbers[1], numbers[2], numbers[3])
         }
-        Rect(numbers[0], numbers[1], numbers[2], numbers[3])
     }, { newValue ->
         "(${newValue.x}, ${newValue.y}, ${newValue.width}, ${newValue.height})"
     }, { str ->
-        str.replace("(", "").replace(")", "").split(",").map {
-            it.trim().isInt()
-        }.reduce { acc, b -> acc && b }
+        if (str.contains(":")) {
+            str.replace(":", ",").split(",").map {
+                it.trim().isInt()
+            }.reduce { acc, b -> acc && b }
+        } else {
+            str.replace("(", "").replace(")", "").split(",").map {
+                it.trim().isInt()
+            }.reduce { acc, b -> acc && b }
+        }
     }).contextMenu {
         addMenu("Copy numpy indexing") {
             val rect = observable.get()
