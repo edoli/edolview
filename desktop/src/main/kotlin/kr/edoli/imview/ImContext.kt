@@ -68,8 +68,9 @@ object ImContext {
     val viewerShaderBuilder = ViewerShaderBuilder()
     val viewerShader = ObservableValue(viewerShaderBuilder.getRGB("color"), "Viewer shader")
     val enableDisplayProfile = ObservableValue(true, "Enable display profile")
-    val normalize = ObservableValue(false, "Normalize")
     val smoothing = ObservableValue(false, "Smoothing")
+    val normalize = ObservableValue(false, "Normalize")
+    val inverse = ObservableValue(false, "Inverse")
 
     val displayMin = ObservableValue(0.0f, "Display min")
     val displayMax = ObservableValue(1.0f, "Display max")

@@ -24,14 +24,14 @@ class StatusBar : Panel() {
         }
 
         align(Align.left and Align.center)
-        add(UIFactory.createColorRect(ImContext.cursorRGB).tooltip("Cursors RGB")).width(rowHeight).height(rowHeight)
-        addContainer(UIFactory.createColorLabel(ImContext.cursorRGB).tooltip("Cursors RGB")).width(600f).height(rowHeight)
+        add(UIFactory.createColorRect(ImContext.marqueeBoxRGB).tooltip("Marquee RGB")).width(rowHeight).height(rowHeight)
+        addContainer(UIFactory.createColorLabel(ImContext.marqueeBoxRGB).tooltip("Marquee RGB")).width(600f).height(rowHeight)
         addContainer(UIFactory.createRectField(ImContext.marqueeBox).tooltip("Marquee bound"), true).width(196f).height(rowHeight)
         add().expandX().fillX()
 
         row()
-        add(UIFactory.createColorRect(ImContext.marqueeBoxRGB).tooltip("Marquee RGB")).width(rowHeight).height(rowHeight)
-        addContainer(UIFactory.createColorLabel(ImContext.marqueeBoxRGB).tooltip("Marquee RGB")).width(600f).height(rowHeight)
+        add(UIFactory.createColorRect(ImContext.cursorRGB).tooltip("Cursors RGB")).width(rowHeight).height(rowHeight)
+        addContainer(UIFactory.createColorLabel(ImContext.cursorRGB).tooltip("Cursors RGB")).width(600f).height(rowHeight)
         addContainer(UIFactory.createPointLabel(ImContext.cursorPosition).tooltip("Cursor position")).width(196f).height(rowHeight)
         add().expandX().fillX()
         add(UIFactory.createLabel(ImContext.zoomLevel) { "${(1.1.pow(it.toDouble()) * 100).format(2)}%" }).height(rowHeight)

@@ -17,6 +17,7 @@ uniform float contrast;
 uniform float gamma;
 uniform float minV;
 uniform float maxV;
+uniform int is_inverse;
 
 
 
@@ -112,6 +113,9 @@ void main()
     float image_x = v_texCoords.x * float(width);
     float image_y = v_texCoords.y * float(height);
 
+    if (is_inverse == 1) {
+        tex = 1.0 / tex;
+    }
     tex = (tex - minV) / (maxV - minV);
 
     %extra_code%

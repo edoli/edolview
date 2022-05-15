@@ -15,6 +15,7 @@ class DisplayProfilePanel : Panel(false) {
             add(UIFactory.createToggleIconButton(Ionicons.ionMdAperture, ImContext.enableDisplayProfile)).width(28f)
             add(UIFactory.createToggleIconButton(Ionicons.ionMdBrush, ImContext.smoothing)).width(28f)
             add(UIFactory.createToggleIconButton(Ionicons.ionMdSwitch, ImContext.normalize)).width(28f)
+            add(UIFactory.createToggleIconButton(Ionicons.ionMdSync, ImContext.inverse)).width(28f)
         })
 
         row()
@@ -54,6 +55,9 @@ class DisplayProfilePanel : Panel(false) {
                 }
             }
             ImContext.normalize.subscribe(this@DisplayProfilePanel, "Update display profile") {
+                update()
+            }
+            ImContext.inverse.subscribe(this@DisplayProfilePanel, "Update display profile") {
                 update()
             }
             ImContext.imageMinMax.subscribe(this@DisplayProfilePanel, "Update display image min max", false) {

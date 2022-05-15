@@ -221,8 +221,25 @@ class ImageViewer : WidgetGroup() {
                     return true
                 }
                 if (keycode == Input.Keys.C && UIUtils.ctrl()) {
-                    ImContext.marqueeImage.get()?.let { mat ->
-                        ClipboardUtils.putImage(mat)
+                    bufferCallbacks.add { byteArray ->
+                        val mat = ImContext.mainImage.get()
+                        if (mat != null) {
+                            val box = ImContext.marqueeBox.get()
+
+                            if (ImContext.isValidMarquee) {
+                                val matWidth = mat.width()
+
+                                val croppedByteArray = ByteArray(box.height * box.width * 4)
+                                val croppedRowSize = box.width * 4
+                                for (i in 0 until box.height) {
+                                    val colStart = (matWidth * (box.y + i) + box.x) * 4
+                                    byteArray.copyInto(croppedByteArray, i * croppedRowSize, colStart, colStart + croppedRowSize)
+                                }
+                                ClipboardUtils.putImage(ImageConvert.byteArrayToBuffered(croppedByteArray, box.width, box.height, 4))
+                            } else {
+                                ClipboardUtils.putImage(ImageConvert.byteArrayToBuffered(byteArray, mat.width(), mat.height(), 4))
+                            }
+                        }
                     }
                     return true
                 }
@@ -551,13 +568,20 @@ class ImageViewer : WidgetGroup() {
                 //shader.setUniformi("width", region.regionWidth)
                 //shader.setUniformi("height", region.regionHeight)
 
+                shader.setUniformi("is_inverse", if (ImContext.inverse.get()) 1 else 0)
                 shader.setUniformf("brightness", ImContext.imageBrightness.get())
                 shader.setUniformf("contrast", ImContext.imageContrast.get())
                 shader.setUniformf("gamma", ImContext.imageGamma.get())
                 if (ImContext.normalize.get()) {
                     val minMax = ImContext.imageMinMax.get()
-                    shader.setUniformf("minV", minMax.first.toFloat())
-                    shader.setUniformf("maxV", minMax.second.toFloat())
+
+                    if (ImContext.inverse.get()) {
+                        shader.setUniformf("minV", 1.0f / minMax.second.toFloat())
+                        shader.setUniformf("maxV", 1.0f / minMax.first.toFloat())
+                    } else {
+                        shader.setUniformf("minV", minMax.first.toFloat())
+                        shader.setUniformf("maxV", minMax.second.toFloat())
+                    }
                 } else {
                     shader.setUniformf("minV", ImContext.displayMin.get())
                     shader.setUniformf("maxV", ImContext.displayMax.get())

@@ -8,22 +8,15 @@ class FilenameComparator : Comparator<String> {
 
     companion object {
         private val NUMBERS = Pattern.compile("(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)")
-        private val FILE_ENDING = Pattern.compile("(?<=.*)(?=\\..*)")
+//        private val FILE_ENDING = Pattern.compile("(?<=.*)(?=\\..*)")
     }
 
     override fun compare(o1: String?, o2: String?): Int {
         if (o1 == null || o2 == null)
             return if (o1 == null) if (o2 == null) 0 else -1 else 1
 
-        val name1 = FILE_ENDING.split(o1)
-        val name2 = FILE_ENDING.split(o2)
-
-        if (name1.size == 1 || name2.size == 1) {
-            return o1.compareTo(o2)
-        }
-
-        val split1 = NUMBERS.split(name1[0])
-        val split2 = NUMBERS.split(name2[0])
+        val split1 = NUMBERS.split(o1)
+        val split2 = NUMBERS.split(o2)
         val length = Math.min(split1.size, split2.size)
 
         // Looping over the individual segments
@@ -46,11 +39,7 @@ class FilenameComparator : Comparator<String> {
         }
 
         var cmp = split1.size - split2.size
-        if (cmp != 0)
-            return cmp
-
-        cmp = name1.size - name2.size
-        return if (cmp != 0) cmp else name1[1].compareTo(name2[1])
+        return cmp
 
     }
 }
