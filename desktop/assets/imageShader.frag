@@ -113,10 +113,15 @@ void main()
     float image_x = v_texCoords.x * float(width);
     float image_y = v_texCoords.y * float(height);
 
+
+
     if (is_inverse == 1) {
-        tex = 1.0 / tex;
+        float invMinV = 1.0 / minV;
+        float invMaxV = 1.0 / maxV;
+        tex = ((1.0 / tex) - invMaxV) / (invMinV - invMaxV);
+    } else {
+        tex = (tex - minV) / (maxV - minV);
     }
-    tex = (tex - minV) / (maxV - minV);
 
     %extra_code%
     %color_process%
