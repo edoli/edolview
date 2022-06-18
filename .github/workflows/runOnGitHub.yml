@@ -10,6 +10,11 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest]  # macos-latest
+        include:
+          - os: ubuntu-latest
+            release_suffix: ubuntu
+          - os: windows-latest
+            release_suffix: win
 
     runs-on: ${{ matrix.os }}
 
@@ -34,7 +39,7 @@ jobs:
         uses: thedoctor0/zip-release@main
         with:
           type: 'zip'
-          filename: 'release-${{ matrix.os }}.zip'
+          filename: 'release-${{ matrix.release_suffix }}.zip'
           path: './desktop/build/install/desktop'
 
       - uses: actions/upload-artifact@v2
