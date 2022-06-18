@@ -89,7 +89,7 @@ object ImContext {
     val frameControl = FrameControl()
 
     // UI
-    val uiScale = ObservableValue(1.0f, "UI scaling factor")
+    val uiScale = ObservableValue(OS.getScalingFactor(), "UI scaling factor")
 
     val isShowBackground = ObservableValue(false, "Show background")
     val isShowCrosshair = ObservableValue(true, "Show crosshair")

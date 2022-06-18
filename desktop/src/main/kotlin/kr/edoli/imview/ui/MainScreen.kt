@@ -21,6 +21,7 @@ import kr.edoli.imview.ui.res.Ionicons
 import kr.edoli.imview.ui.res.uiSkin
 import kr.edoli.imview.ui.window.ObservableInfo
 import kr.edoli.imview.util.FullScreenManager
+import kr.edoli.imview.util.OS
 import org.lwjgl.opengl.GL30
 
 class MainScreen : Screen {
@@ -162,7 +163,7 @@ class MainScreen : Screen {
     override fun render(delta: Float) {
         val uiScale = ImContext.uiScale.get()
         if (lastUIScale != uiScale) {
-            (stage.viewport as ScreenViewport).unitsPerPixel = 1.0f
+            (stage.viewport as ScreenViewport).unitsPerPixel = 1.25f / uiScale
             stage.viewport.update(Gdx.graphics.width, Gdx.graphics.height, true)
             lastUIScale = uiScale
         }
