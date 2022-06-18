@@ -2,9 +2,10 @@ package kr.edoli.imview.image
 
 import org.opencv.core.CvType
 import org.opencv.core.Mat
+import kotlin.math.abs
 
 data class ImageSpec(val mat: Mat,
-                     val typeMaxValue: Double = mat.typeMax(),
+                     val typeMaxValue: Double = abs(mat.typeMax()),
                      val bitsPerPixel: Int = mat.bitsPerPixel()) {
     val numChannels = mat.channels()
     val type = mat.type()
