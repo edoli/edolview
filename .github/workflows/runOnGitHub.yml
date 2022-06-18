@@ -34,11 +34,34 @@ jobs:
         uses: thedoctor0/zip-release@main
         with:
           type: 'zip'
-          filename: 'release.zip'
+          filename: 'release-${{ matrix.os }}.zip'
           path: './desktop/build/install/desktop'
 
-      - name: Upload Release
-        uses: ncipollo/release-action@v1
+      - uses: actions/upload-artifact@v2
         with:
-          artifacts: "release.zip"
-          token: ${{ secrets.GITHUB_TOKEN }}
+          name: release-${{ matrix.os }}
+          path: '*.zip'
+
+  release:
+    name: "Prelease"
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/download-artifact@v2
+
+      - name: Display fetched artifacts
+        run: ls -R
+
+
+      - name: Upload release
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: true
+          title: "Development Build"
+          files: |
+            release-windows-latest/*.zip
+            release-ubuntu-latest/*.zip
+          # release-macos-latest/*.zip
