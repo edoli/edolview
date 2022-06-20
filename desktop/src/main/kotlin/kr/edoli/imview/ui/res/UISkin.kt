@@ -16,15 +16,16 @@ import kr.edoli.imview.ui.drawable.SplitHandleDrawable
 private val uiAtlas = TextureAtlas(Gdx.files.internal("uiskin.atlas"))
 private fun res(name: String): Drawable {
     val region = uiAtlas.findRegion(name) ?: throw Error("Not found drawable: $name")
-    val splits = region.splits
+    val splits = region.findValue("split")
     return if (splits == null) {
         TextureRegionDrawable(region)
     } else {
         val patch = NinePatch(region, splits[0], splits[1], splits[2], splits[3])
-        if (region.pads != null) {
+        val pads = region.findValue("pad")
+        if (pads != null) {
             patch.setPadding(
-                    region.pads[0].toFloat(), region.pads[1].toFloat(),
-                    region.pads[2].toFloat(), region.pads[3].toFloat())
+                    pads[0].toFloat(), pads[1].toFloat(),
+                    pads[2].toFloat(), pads[3].toFloat())
         }
         NinePatchDrawable(patch)
     }
@@ -39,7 +40,9 @@ val uiSkin = Skin(uiAtlas).apply {
     add("default", defaultLabelStyle)
     add("default", TextTooltip.TextTooltipStyle(
             defaultLabelStyle,
-            getDrawable("tooltip_background")))
+            getDrawable("tooltip_background")).apply {
+                wrapWidth = 156.0f
+    })
 
     add("default", Button.ButtonStyle(
             getDrawable("default-round"),

@@ -9,7 +9,7 @@ buildscript {
         appName = "EdolView"
         kotlin_version = '1.7.0'
         openjfx_version = '0.0.8'
-        gdx_version = "1.9.12"
+        gdx_version = '1.11.0'
         ikonli_version = "11.3.4"
     }
 

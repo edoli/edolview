@@ -21,7 +21,7 @@ fun main(args: Array<String>) {
     UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
 
     val config = Lwjgl3ApplicationConfiguration()
-    config.useOpenGL3(true, 3, 2)
+    config.setOpenGLEmulation(Lwjgl3ApplicationConfiguration.GLEmulation.GL30, 3, 2)
     config.setHdpiMode(HdpiMode.Logical)
     config.setWindowListener(object : Lwjgl3WindowAdapter() {
         override fun filesDropped(files: Array<String>) {
