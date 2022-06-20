@@ -21,7 +21,6 @@ import kr.edoli.imview.ui.res.Ionicons
 import kr.edoli.imview.ui.res.uiSkin
 import kr.edoli.imview.ui.window.ObservableInfo
 import kr.edoli.imview.util.FullScreenManager
-import kr.edoli.imview.util.OS
 import org.lwjgl.opengl.GL30
 
 class MainScreen : Screen {
