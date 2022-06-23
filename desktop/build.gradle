@@ -47,6 +47,8 @@ dependencies {
     implementation 'org.apache.commons:commons-lang3:3.12.0'
 
     implementation group: 'com.google.guava', name: 'guava', version: '20.0'
+
+    implementation 'io.sentry:sentry:6.1.2'
 }
 
 compileKotlin {
