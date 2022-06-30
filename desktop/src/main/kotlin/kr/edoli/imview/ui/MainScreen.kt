@@ -28,7 +28,9 @@ class MainScreen : Screen {
     var lastUIScale = 0f
 
     init {
-        val imageViewer = ImageViewer()
+        val mainImageViewer = ImageViewer()
+        val secondImageViewer = ImageViewer()
+
         val layoutTable = Table().apply {
             setFillParent(true)
         }
@@ -48,7 +50,12 @@ class MainScreen : Screen {
             setScrollingDisabled(true, false)
         }
 
-        val middleTable = SplitPane(imageViewer, sidePane, false, uiSkin).apply {
+        val imageViewerTable = Panel(false)
+        imageViewerTable.add(mainImageViewer).expand().fill()
+        imageViewerTable.addVerticalDivider(4f)
+        imageViewerTable.add(secondImageViewer).expand().fill()
+
+        val middleTable = SplitPane(imageViewerTable, sidePane, false, uiSkin).apply {
             setSplitAmount(1f)
 
             onSplitChanged = {
@@ -113,7 +120,8 @@ class MainScreen : Screen {
 
         })
 
-        imageViewer.zIndex = 0
+        mainImageViewer.zIndex = 0
+        secondImageViewer.zIndex = 1
         middleTable.zIndex = 0
 
         // Keyboard
