@@ -136,6 +136,8 @@ class ImageViewer : WidgetGroup() {
             }
 
             override fun touchDragged(event: InputEvent, x: Float, y: Float, pointer: Int) {
+                ImContext.cursorViewPosition.update(Point2D(x.toDouble(), y.toDouble()))
+
                 if (dragMode == DragMode.move) {
                     ImContext.imageX.update(x - touchDownX + touchDownImageX)
                     ImContext.imageY.update(y - touchDownY + touchDownImageY)
