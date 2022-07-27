@@ -9,6 +9,7 @@ data class ImageSpec(val mat: Mat,
                      val bitsPerPixel: Int = mat.bitsPerPixel()) {
     val numChannels = mat.channels()
     val type = mat.type()
+    val isInt = (mat.type() % 8 < 5)
     var isNormalized = false
 
 

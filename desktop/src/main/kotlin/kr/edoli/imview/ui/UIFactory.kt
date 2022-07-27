@@ -385,7 +385,7 @@ object UIFactory {
         return createLabel(observable) { newValue ->
             val imageSpec = ImContext.mainImageSpec.get()
             if (imageSpec != null) {
-                "(${newValue.toColorStr(imageSpec.typeMaxValue)})"
+                "(${newValue.toColorStr(imageSpec)})"
             } else {
                 ""
             }
@@ -397,7 +397,7 @@ object UIFactory {
                 val color = observable.get()
                 val imageSpec = ImContext.mainImageSpec.get()
                 if (imageSpec != null) {
-                    ClipboardUtils.putString("(${color.toColorStr(imageSpec.typeMaxValue)})")
+                    ClipboardUtils.putString("(${color.toColorStr(imageSpec)})")
                 }
             }
         }

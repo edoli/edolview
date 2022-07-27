@@ -1,6 +1,7 @@
 package kr.edoli.imview.util
 
 import com.badlogic.gdx.graphics.Color
+import kr.edoli.imview.image.ImageSpec
 
 
 fun DoubleArray.toColor(): Color {
@@ -14,9 +15,15 @@ fun DoubleArray.toColor(): Color {
     }
 }
 
-fun DoubleArray.toColorStr(scale: Double, fixed: Int = -1) = map {
+fun DoubleArray.toColorStr(imageSpec: ImageSpec) = map {
     // scale == 0 means that an opened image is not uint image
-    if (scale > 0) (it * scale).toInt().toString() else (if (fixed == -1) it else it.format(fixed))
+    val scale = imageSpec.typeMaxValue
+
+    var value = it
+    if (scale > 0) {
+        value *= scale
+    }
+    if (imageSpec.isInt) value.format(0) else value
 }.joinToString(", ")
 
 fun Color.toFloatArray() = floatArrayOf(this.r, this.g, this.b, this.a)
