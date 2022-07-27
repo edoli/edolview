@@ -504,9 +504,6 @@ class ImageViewer : WidgetGroup() {
             bufferCallbacks.clear()
         }
 
-        val glPos = Vector2(0f, 0f)
-        localToStageCoordinates(glPos)
-        Gdx.gl.glScissor(glPos.x.toInt(), glPos.y.toInt(), width.toInt(), height.toInt())
         drawImage(batch, ImContext.imageX.get(), ImContext.imageY.get(), ImContext.imageScale)
 
         // draw marquee box
