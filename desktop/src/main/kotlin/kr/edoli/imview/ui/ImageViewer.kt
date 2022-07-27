@@ -10,8 +10,8 @@ import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
-import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
@@ -36,9 +36,6 @@ class ImageViewer : WidgetGroup() {
     var texture: Texture? = null
     var textureRegion: TextureRegion? = null
 
-    var imageX = 0f
-    var imageY = 0f
-    var imageScale = 1f
     var imageWidth = 0
     var imageHeight = 0
 
@@ -130,8 +127,8 @@ class ImageViewer : WidgetGroup() {
                 touchDownX = x
                 touchDownY = y
 
-                touchDownImageX = imageX
-                touchDownImageY = imageY
+                touchDownImageX = ImContext.imageX.get()
+                touchDownImageY = ImContext.imageY.get()
 
                 stage.keyboardFocus = this@ImageViewer
 
@@ -139,9 +136,11 @@ class ImageViewer : WidgetGroup() {
             }
 
             override fun touchDragged(event: InputEvent, x: Float, y: Float, pointer: Int) {
+                ImContext.cursorViewPosition.update(Point2D(x.toDouble(), y.toDouble()))
+
                 if (dragMode == DragMode.move) {
-                    imageX = x - touchDownX + touchDownImageX
-                    imageY = y - touchDownY + touchDownImageY
+                    ImContext.imageX.update(x - touchDownX + touchDownImageX)
+                    ImContext.imageY.update(y - touchDownY + touchDownImageY)
                 } else if (dragMode == DragMode.marquee) {
                     localToImageCoordinates(imageCoord.set(marqueeOriginX, marqueeOriginY))
                     localToImageCoordinates(imageCoordB.set(x, y))
@@ -191,11 +190,16 @@ class ImageViewer : WidgetGroup() {
             override fun mouseMoved(event: InputEvent, x: Float, y: Float): Boolean {
                 stage.scrollFocus = this@ImageViewer
                 localToImageCoordinates(imageCoord.set(x, y))
-                ImContext.cursorPosition.update(Point2D(imageCoord.x.toDouble(), imageCoord.y.toDouble()))
+                ImContext.cursorImagePosition.update(Point2D(imageCoord.x.toDouble(), imageCoord.y.toDouble()))
+                ImContext.cursorViewPosition.update(Point2D(x.toDouble(), y.toDouble()))
                 return false
             }
 
             override fun scrolled(event: InputEvent?, x: Float, y: Float, amountX: Float, amountY: Float): Boolean {
+                val mousePos = Vector2(Gdx.input.x.toFloat(), Gdx.input.y.toFloat())
+                screenToLocalCoordinates(mousePos)
+
+                ImContext.cursorViewPosition.update(Point2D(mousePos.x.toDouble(), mousePos.y.toDouble()))
                 ImContext.zoomLevel.update(ImContext.zoomLevel.get() - amountY.toInt())
                 return super.scrolled(event, x, y, amountX, amountY)
             }
@@ -266,7 +270,7 @@ class ImageViewer : WidgetGroup() {
         })
 
         contextMenu {
-            val cursorPosition = ImContext.cursorPosition.get().toString()
+            val cursorPosition = ImContext.cursorImagePosition.get().toString()
             val cursorRGB = ImContext.mainImageSpec.get()?.let { imageSpec ->
                 ImContext.cursorRGB.get().toColorStr(imageSpec)
             }
@@ -351,24 +355,6 @@ class ImageViewer : WidgetGroup() {
             }
         }
 
-        ImContext.zoomLevel.subscribe(this, "Update image zoom") { zoomLevel ->
-            val mousePos = Vector2(Gdx.input.x.toFloat(), Gdx.input.y.toFloat())
-            screenToLocalCoordinates(mousePos)
-
-            val mousePosImageX = mousePos.x - imageX
-            val mousePosImageY = mousePos.y - imageY
-            val currentScale = imageScale
-
-            val newScale = 1.1f.pow(zoomLevel)
-
-            val newMousePosImageX = mousePosImageX * newScale / currentScale
-            val newMousePosImageY = mousePosImageY * newScale / currentScale
-
-            imageX = mousePos.x - newMousePosImageX
-            imageY = mousePos.y - newMousePosImageY
-            imageScale = newScale
-        }
-
         ImContext.centerCursor.subscribe {
             val mousePos = Vector2(Gdx.input.x.toFloat(), Gdx.input.y.toFloat())
             localToImageCoordinates(screenToLocalCoordinates(mousePos))
@@ -391,11 +377,14 @@ class ImageViewer : WidgetGroup() {
         if (mat == null) return
 
         val visibleChannel = ImContext.visibleChannel.get()
-        if (!TextureGenerator.isChanged(mat, visibleChannel)) return
 
-        texture?.dispose()
+        texture = if (!TextureGenerator.isChanged(mat, visibleChannel)) {
+            TextureGenerator.lastTexture
+        } else {
+            texture?.dispose()
+            TextureGenerator.load(mat, visibleChannel)
+        }
 
-        texture = TextureGenerator.load(mat, visibleChannel)
         textureRegion = TextureRegion(texture)
 
         // Statistics
@@ -432,9 +421,9 @@ class ImageViewer : WidgetGroup() {
         val rectAspectRatio = rect.width.toFloat() / rect.height
 
         val newImageScale = if (rectAspectRatio > viewerAspectRatio) {
-            imageScale * width / (vecB.x - vecA.x)
+            ImContext.imageScale * width / (vecB.x - vecA.x)
         } else {
-            imageScale * height / (vecB.y - vecA.y)
+            ImContext.imageScale * height / (vecB.y - vecA.y)
         }
 
         ImContext.zoomLevel.update(log(newImageScale.toDouble(), 1.1).floor().toInt())
@@ -451,19 +440,19 @@ class ImageViewer : WidgetGroup() {
 
         val marqueeWidth = vecB.x - vecA.x
         val marqueeHeight = vecB.y - vecA.y
-        imageX = imageX + (width - marqueeWidth) / 2 - vecA.x
-        imageY = imageY + (height - marqueeHeight) / 2 - vecA.y
+        ImContext.imageX.update(ImContext.imageX.get() + (width - marqueeWidth) / 2 - vecA.x)
+        ImContext.imageY.update(ImContext.imageX.get() + (height - marqueeHeight) / 2 - vecA.y)
     }
 
     private fun localToImageCoordinates(vec: Vector2): Vector2 {
-        vec.x = (vec.x - imageX) / imageScale
-        vec.y = imageHeight - ((vec.y - imageY) / imageScale)
+        vec.x = (vec.x - ImContext.imageX.get()) / ImContext.imageScale
+        vec.y = imageHeight - ((vec.y - ImContext.imageY.get()) / ImContext.imageScale)
         return vec
     }
 
     private fun imageToLocalCoordinates(vec: Vector2): Vector2 {
-        vec.x = (vec.x * imageScale) + imageX
-        vec.y = ((imageHeight - vec.y) * imageScale) + imageY
+        vec.x = (vec.x * ImContext.imageScale) + ImContext.imageX.get()
+        vec.y = ((imageHeight - vec.y) * ImContext.imageScale) + ImContext.imageY.get()
         return vec
     }
 
@@ -499,7 +488,7 @@ class ImageViewer : WidgetGroup() {
             val combined = batch.projectionMatrix.cpy().mul(batch.transformMatrix)
             backgroundShader.setUniformMatrix("u_projTrans", combined)
             backgroundShader.setUniformf("u_grid_size", 8.0f)
-            backgroundShader.setUniform2fv("u_translate", floatArrayOf(imageX, imageY), 0, 2)
+            backgroundShader.setUniform2fv("u_translate", floatArrayOf(ImContext.imageX.get(), ImContext.imageY.get()), 0, 2)
             backgroundShader.setUniform4fv("grid_color_a", Colors.background.toFloatArray(), 0, 4)
             backgroundShader.setUniform4fv("grid_color_b", Colors.backgroundDown.toFloatArray(), 0, 4)
             backgroundMesh.setVertices(floatArrayOf(x, y, x + width, y, x + width, y + height, x, y + height))
@@ -515,7 +504,10 @@ class ImageViewer : WidgetGroup() {
             bufferCallbacks.clear()
         }
 
-        drawImage(batch, imageX, imageY, imageScale)
+        val glPos = Vector2(0f, 0f)
+        localToStageCoordinates(glPos)
+        Gdx.gl.glScissor(glPos.x.toInt(), glPos.y.toInt(), width.toInt(), height.toInt())
+        drawImage(batch, ImContext.imageX.get(), ImContext.imageY.get(), ImContext.imageScale)
 
         // draw marquee box
         val marqueeBox = ImContext.marqueeBox.get()
@@ -549,11 +541,10 @@ class ImageViewer : WidgetGroup() {
         if (ImContext.isShowCrosshair.get()) {
             shapeRenderer.color = Color.GREEN
 
-            val mousePos = Vector2(Gdx.input.x.toFloat(), Gdx.input.y.toFloat())
-            screenToLocalCoordinates(mousePos)
+            val viewPos = ImContext.cursorViewPosition.get()
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line)
-            shapeRenderer.line(x, mousePos.y, width, mousePos.y)
-            shapeRenderer.line(mousePos.x, y, mousePos.x, height)
+            shapeRenderer.line(0f, viewPos.y.toFloat(), width, viewPos.y.toFloat())
+            shapeRenderer.line(viewPos.x.toFloat(), 0f, viewPos.x.toFloat(), height)
             shapeRenderer.end()
         }
         batch.begin()
@@ -639,5 +630,11 @@ class ImageViewer : WidgetGroup() {
             return byteArray
         }
         return null
+    }
+
+    override fun hit(x: Float, y: Float, touchable: Boolean): Actor? {
+        if (touchable && this.touchable != Touchable.enabled) return null
+        if (!isVisible) return null
+        return if (x >= 0 && x < width && y >= 0 && y < height) this else null
     }
 }

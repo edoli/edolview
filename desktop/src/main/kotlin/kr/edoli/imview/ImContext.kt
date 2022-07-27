@@ -16,6 +16,7 @@ import java.net.URL
 import java.util.*
 import java.util.prefs.Preferences
 import kotlin.math.min
+import kotlin.math.pow
 
 /**
  * Created by daniel on 16. 10. 2.
@@ -41,7 +42,8 @@ object ImContext {
     val mainImageSpec = ObservableValue<ImageSpec?>(null, "Image spec")
     val marqueeImage = ObservableLazyValue<Mat?>(null, "Marqueed image")
 
-    val cursorPosition = ObservableValue(Point2D(0.0, 0.0), "Cursor position")
+    val cursorImagePosition = ObservableValue(Point2D(0.0, 0.0), "Cursor image position")
+    val cursorViewPosition = ObservableValue(Point2D(0.0, 0.0), "Cursor view position")
     val cursorRGB = ObservableValue(doubleArrayOf(), "Cursor RGB")
 
     val marqueeBox = ObservableValue(Rect(), "Marquee box") { rect ->
@@ -63,6 +65,11 @@ object ImContext {
     val zoomLevel = ObservableValue(0, "Zoom level")
     val zoomCenter = ObservableValue(Point2D(0.0, 0.0), "Zoom center")
     val rotation = ObservableValue(0.0, "Rotation")
+
+    val imageX = ObservableValue(0.0f, "Image X")
+    val imageY = ObservableValue(0.0f, "Image Y")
+    val imageScale: Float
+        get() = 1.1f.pow(zoomLevel.get())
 
     // Display profile
     val viewerShaderBuilder = ViewerShaderBuilder()
@@ -296,7 +303,7 @@ object ImContext {
             updateCurrentShader()
         }
 
-        cursorPosition.subscribe(this, "Update mouse position and RGB") {
+        cursorImagePosition.subscribe(this, "Update mouse position and RGB") {
             updateCursorColor()
         }
 
@@ -306,6 +313,21 @@ object ImContext {
                 marqueeImage.update { mainImage[it] }
                 marqueeBoxRGB.update(MarqueeUtils.boxMeanColor())
             }
+        }
+
+        zoomLevel.subscribeWithLast(this, "Update image zoom") { zoomLevel, zoomLevelLast ->
+            val pos = cursorViewPosition.get()
+            val mousePosImageX = pos.x.toFloat() - imageX.get()
+            val mousePosImageY = pos.y.toFloat() - imageY.get()
+            val currentScale = 1.1f.pow(zoomLevelLast)
+
+            val newScale = imageScale
+
+            val newMousePosImageX = mousePosImageX * newScale / currentScale
+            val newMousePosImageY = mousePosImageY * newScale / currentScale
+
+            imageX.update(pos.x.toFloat() - newMousePosImageX)
+            imageY.update(pos.y.toFloat()  - newMousePosImageY)
         }
 
         isShowCrosshair.subscribe(this, "Preference") { savePreferences() }
@@ -333,7 +355,7 @@ object ImContext {
 
     fun updateCursorColor() {
         val mainImage = mainImage.get()
-        val point = cursorPosition.get().cvPoint
+        val point = cursorImagePosition.get().cvPoint
         if (mainImage != null && mainImage.contains(point)) {
             val color = mainImage[point]
             cursorRGB.update(color)

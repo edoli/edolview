@@ -11,6 +11,7 @@ import org.opencv.core.Mat
 object TextureGenerator {
     val emptyTexture = Texture(0, 0, Pixmap.Format.RGB888)
 
+    var lastTexture: Texture? = null
     var lastMat: Mat? = null
     var lastVisibleChannel = 0
 
@@ -75,6 +76,7 @@ object TextureGenerator {
             textureData.buffer.put(matData)
         }
         textureData.buffer.position(0)
-        return Texture(textureData)
+        lastTexture = Texture(textureData)
+        return lastTexture!!
     }
 }

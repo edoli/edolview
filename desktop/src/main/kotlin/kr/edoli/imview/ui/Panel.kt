@@ -19,15 +19,15 @@ open class Panel(showBackground: Boolean = true) : Table(uiSkin) {
         touchable = Touchable.enabled
     }
 
-    fun addHorizontalDivider(): Cell<ColorRect> {
+    fun addHorizontalDivider(thickness: Float = 1f): Cell<ColorRect> {
         row()
-        val cell = add(ColorRect(Colors.backgroundBorder)).expandX().fillX().height(1f)
+        val cell = add(ColorRect(Colors.backgroundBorder)).expandX().fillX().height(thickness)
         row()
         return cell
     }
 
-    fun addVerticalDivider(): Cell<ColorRect> {
-        return add(ColorRect(Colors.backgroundBorder)).expandY().fillY().width(1f)
+    fun addVerticalDivider(thickness: Float = 1f): Cell<ColorRect> {
+        return add(ColorRect(Colors.backgroundBorder)).expandY().fillY().width(thickness)
     }
 
     fun isGone(): Boolean {
