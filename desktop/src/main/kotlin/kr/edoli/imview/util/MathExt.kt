@@ -1,6 +1,8 @@
 package kr.edoli.imview.util
 
 import org.opencv.core.Rect
+import kotlin.math.max
+import kotlin.math.min
 
 
 /**
@@ -10,13 +12,15 @@ import org.opencv.core.Rect
 fun String.isInt(): Boolean = toIntOrNull() !== null
 fun String.isFloat(): Boolean = toFloatOrNull() !== null
 
-fun Double.clamp(min: Double, max: Double): Double = Math.max(min, Math.min(this, max))
-fun Double.floor(): Double = Math.floor(this)
-fun Double.ceil(): Double = Math.ceil(this)
+fun Int.clamp(min: Int, max: Int): Int = max(min, min(this, max))
 
-fun Float.clamp(min: Float, max: Float): Float = Math.max(min, Math.min(this, max))
-fun Float.floor(): Float = Math.floor(this.toDouble()).toFloat()
-fun Float.ceil(): Float = Math.ceil(this.toDouble()).toFloat()
+fun Double.clamp(min: Double, max: Double): Double = max(min, min(this, max))
+fun Double.floor(): Double = kotlin.math.floor(this)
+fun Double.ceil(): Double = kotlin.math.ceil(this)
+
+fun Float.clamp(min: Float, max: Float): Float = max(min, min(this, max))
+fun Float.floor(): Float = kotlin.math.floor(this.toDouble()).toFloat()
+fun Float.ceil(): Float = kotlin.math.ceil(this.toDouble()).toFloat()
 
 
 fun Rect.hflip(targetHeight: Int): Rect {

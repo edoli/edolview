@@ -264,6 +264,11 @@ object ImContext {
                 visibleChannel.update(IntRange(0, mat.channels()).toList(), channelIndex)
 
                 val box = marqueeBox.get()
+                box.x = box.x.clamp(0, mat.width())
+                box.y = box.y.clamp(0, mat.height())
+                box.width = box.width.clamp(0, mat.width() - box.x)
+                box.height = box.height.clamp(0, mat.height() - box.y)
+
                 if (box.width > 0 && box.height > 0) {
                     marqueeImage.update { mat[box] }
                     marqueeBoxRGB.update(MarqueeUtils.boxMeanColor())
