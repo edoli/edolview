@@ -105,7 +105,7 @@ object UIFactory {
 
             addListener(object : InputListener() {
                 override fun keyUp(event: InputEvent, keycode: Int): Boolean {
-                    if (keycode == Input.Keys.ENTER) {
+                    if (keycode == Input.Keys.ENTER || keycode == Input.Keys.NUMPAD_ENTER) {
                         if (checkValid(text)) {
                             observable.update(strToValue(text))
                         } else {
@@ -154,7 +154,8 @@ object UIFactory {
 
     fun createRectField(observable: ObservableValue<Rect>) = createField(observable, { str ->
         if (str.contains(":")) {
-            val numbers = str.replace(":", ",").split(",").map {
+            val numbers = str.replace("[()\\[\\]]".toRegex(), "").replace(":", ",").split(",").map {
+                println(it)
                 it.trim().toInt()
             }
             Rect(numbers[2], numbers[0], numbers[3] - numbers[2], numbers[1] - numbers[0])
@@ -168,7 +169,7 @@ object UIFactory {
         "(${newValue.x}, ${newValue.y}, ${newValue.width}, ${newValue.height})"
     }, { str ->
         if (str.contains(":")) {
-            str.replace(":", ",").split(",").map {
+            str.replace("[()\\[\\]]".toRegex(), "").replace(":", ",").split(",").map {
                 it.trim().isInt()
             }.reduce { acc, b -> acc && b }
         } else {
