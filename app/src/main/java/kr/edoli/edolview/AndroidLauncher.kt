@@ -38,7 +38,7 @@ class AndroidLauncher: AndroidApplication() {
 			override fun getScalingFactor(): Float {
 				return TypedValue.applyDimension(
 					TypedValue.COMPLEX_UNIT_DIP,
-					2f,
+					1.5f,
 					resources.displayMetrics
 				)
 			}

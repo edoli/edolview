@@ -1,16 +1,28 @@
 package kr.edoli.edolview.shader
 
-import com.badlogic.gdx.Application
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.google.common.cache.CacheBuilder
 import com.google.common.cache.CacheLoader
 import kr.edoli.edolview.util.Platform
-import org.apache.commons.io.FileUtils
-import java.io.File
-import javax.swing.JFrame
-import javax.swing.JOptionPane
 
+const val vertexShader = """
+
+attribute vec4 ${ShaderProgram.POSITION_ATTRIBUTE};
+attribute vec4 ${ShaderProgram.COLOR_ATTRIBUTE};
+attribute vec2 ${ShaderProgram.TEXCOORD_ATTRIBUTE}0;
+uniform mat4 u_projTrans;
+varying vec4 v_color;
+varying vec2 v_texCoords;
+
+void main()
+{
+   v_color = ${ShaderProgram.COLOR_ATTRIBUTE};
+   v_color.a = v_color.a * (255.0/254.0);
+   v_texCoords = ${ShaderProgram.TEXCOORD_ATTRIBUTE}0;
+   gl_Position =  u_projTrans * ${ShaderProgram.POSITION_ATTRIBUTE};
+}
+"""
 class ViewerShaderBuilder {
     companion object {
         fun getColormapNames(subDir: String): List<String> {
@@ -89,10 +101,11 @@ class ViewerShaderBuilder {
                 .replace("%extra_code%", extraCode.replace("%pixel_expression%", ""))
                 .replace("%pixel_expression%", pixelExpression)
 
-        return ShaderProgram(SpriteShaderBuilder.vertexShader, shaderCode).also {
+        return ShaderProgram(vertexShader, shaderCode).also {
             if (!it.isCompiled) {
                 Platform.showErrorMessage("Error compiling shader[${colormapName}]: " + it.log)
             }
         }
     }
 }
+
