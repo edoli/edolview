@@ -61,7 +61,7 @@ compileJava {
     targetCompatibility = JavaVersion.VERSION_16
 }
 
-project.ext.mainClassName = "kr.edoli.imview.MainKt"
+project.ext.mainClassName = "kr.edoli.edolview.MainKt"
 project.ext.appname = appName
 project.ext.assetsDir = new File("./assets")
 project.ext.version = '1.1'
@@ -155,7 +155,7 @@ distributions {
             exclude('*.svg')
             exclude('*.log')
             exclude('build*')
-            exclude('imview.bat')
+            exclude('edolview.bat')
             exclude('icon.ico')
             exclude('config.json')
 

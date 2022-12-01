@@ -59,7 +59,7 @@
     "lib/jinput-platform-2.0.5-natives-windows.jar",
     "lib/jinput-platform-2.0.5-natives-osx.ja"
   ],
-  "mainClass": "kr.edoli.imview.MainKt",
+  "mainClass": "kr.edoli.edolview.MainKt",
   "vmArgs": [
     "-Xmx4G"
   ]

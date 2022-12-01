@@ -31,7 +31,7 @@ com.badlogic.gdx.scenes.scene2d.ui.SelectBox$SelectBoxStyle: {
 		listStyle: { font: default-font, selection: default-select-selection }
 	}
 },
-kr.edoli.imview.ui.custom.SplitPane$SplitPaneStyle: {
+kr.edoli.edolview.ui.custom.SplitPane$SplitPaneStyle: {
 	default-vertical: { handle: default-splitpane-vertical },
 	default-horizontal: { handle: default-splitpane }
 },
