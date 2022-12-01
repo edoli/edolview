@@ -25,11 +25,9 @@ import kr.edoli.edolview.shader.BackgroundShaderBuilder
 import kr.edoli.edolview.ui.custom.MyInputListener
 import kr.edoli.edolview.ui.res.Colors
 import kr.edoli.edolview.util.*
-import org.checkerframework.checker.units.qual.h
 import org.opencv.core.Mat
 import org.opencv.core.Point
 import org.opencv.core.Rect
-import java.nio.ByteBuffer
 import kotlin.math.*
 
 
@@ -197,7 +195,7 @@ class ImageViewer : WidgetGroup() {
             }
 
             override fun scrolled(event: InputEvent?, x: Float, y: Float, amountX: Float, amountY: Float): Boolean {
-                ImContext.zoomLevel.update(ImContext.zoomLevel.get() - amountY.toInt())
+                ImContext.zoom.update(1.1f.pow(log(ImContext.zoom.get(), 1.1f) - amountY.toInt()))
                 return super.scrolled(event, x, y, amountX, amountY)
             }
 
@@ -352,21 +350,21 @@ class ImageViewer : WidgetGroup() {
             }
         }
 
-        ImContext.zoomLevel.subscribe(this, "Update image zoom") { zoomLevel ->
-            val mousePos = Vector2(Gdx.input.x.toFloat(), Gdx.input.y.toFloat())
-            screenToLocalCoordinates(mousePos)
+        ImContext.zoom.subscribe(this, "Update image zoom") { zoom ->
+            val zoomCenter = ImContext.zoomCenter.get() ?: Vector2(Gdx.input.x.toFloat(), Gdx.input.y.toFloat())
+            screenToLocalCoordinates(zoomCenter)
 
-            val mousePosImageX = mousePos.x - imageX
-            val mousePosImageY = mousePos.y - imageY
+            val mousePosImageX = zoomCenter.x - imageX
+            val mousePosImageY = zoomCenter.y - imageY
             val currentScale = imageScale
 
-            val newScale = 1.1f.pow(zoomLevel)
+            val newScale = zoom
 
             val newMousePosImageX = mousePosImageX * newScale / currentScale
             val newMousePosImageY = mousePosImageY * newScale / currentScale
 
-            imageX = mousePos.x - newMousePosImageX
-            imageY = mousePos.y - newMousePosImageY
+            imageX = zoomCenter.x - newMousePosImageX
+            imageY = zoomCenter.y - newMousePosImageY
             imageScale = newScale
         }
 
@@ -438,7 +436,7 @@ class ImageViewer : WidgetGroup() {
             imageScale * height / (vecB.y - vecA.y)
         }
 
-        ImContext.zoomLevel.update(log(newImageScale.toDouble(), 1.1).floor().toInt())
+        ImContext.zoom.update(newImageScale)
 
         centerRect(rect)
     }

@@ -1,6 +1,7 @@
 package kr.edoli.edolview
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.math.Vector2
 import kr.edoli.edolview.geom.Point2D
 import kr.edoli.edolview.image.*
 import kr.edoli.edolview.shader.ViewerShaderBuilder
@@ -22,6 +23,10 @@ import kotlin.math.min
  * Created by daniel on 16. 10. 2.
  */
 object ImContext {
+    enum class AssetType {
+        File, URL, Content
+    }
+
     private val preferences = Gdx.app.getPreferences("EdolView")
 
     val args = ObservableValue(arrayOf<String>(), "Args")
@@ -61,8 +66,8 @@ object ImContext {
     val marqueeBoxActive = ObservableValue(false, "Marquee box active")
     val marqueeBoxRGB = ObservableValue(doubleArrayOf(), "Marquee box RGB")
 
-    val zoomLevel = ObservableValue(0, "Zoom level")
-    val zoomCenter = ObservableValue(Point2D(0.0, 0.0), "Zoom center")
+    val zoom = ObservableValue(1f, "Zoom level")
+    val zoomCenter = ObservableValue<Vector2?>(null, "Zoom center")
     val rotation = ObservableValue(0.0, "Rotation")
 
     // Display profile
@@ -122,6 +127,7 @@ object ImContext {
     init {
         loadPreferences()
 
+
         val urlProtocols = arrayOf("http", "https", "ftp")
 
         mainPath.subscribe(this, "Update image") { path ->
@@ -140,72 +146,96 @@ object ImContext {
                 return@subscribe
             }
 
-            var isLocal = true
+            var assetType = AssetType.File
             if (":" in path) {
                 val protocol = path.split(":")[0]
                 if (protocol in urlProtocols) {
-                    isLocal = false
+                    assetType = AssetType.URL
                 }
+                // ex) 143.23.4.43:3432
                 if (protocol.count { it == '.' } == 3) {
-                    isLocal = false
+                    assetType = AssetType.URL
+                }
+                if (protocol == "content") {
+                    assetType = AssetType.Content
                 }
             }
             if ("/" in path) {
                 if (path.split("/")[0].count { it == '.' } == 3) {
-                    isLocal = false
+                    assetType = AssetType.URL
                 }
             }
 
-            if (isLocal) {
-                // local file
-                val file = File(path)
+            when (assetType) {
+                AssetType.File -> {
+                    // local file
+                    val file = File(path)
 
-                if (!fileManager.isImageFile(file)) {
-                    return@subscribe
-                }
-
-                if (file.isDirectory) {
-                    fileManager.setFile(file)
-                    mainFileNavigator.update(1)
-                } else if (file.isFile) {
-                    mainFile.update(file)
-                    mainFileName.update(file.name)
-                    mainFileDirectory.update(file.absoluteFile.parent)
-                    fileManager.setFile(file)
-                    val spec = ImageStore.get(file)
-                    val mat = spec.mat
-                    if (!mat.empty()) {
-                        mainImageSpec.update(spec)
+                    if (!fileManager.isImageFile(file)) {
+                        return@subscribe
                     }
-                } else {
-                    // Not from file. Clear file manager
+
+                    if (file.isDirectory) {
+                        fileManager.setFile(file)
+                        mainFileNavigator.update(1)
+                    } else if (file.isFile) {
+                        mainFile.update(file)
+                        mainFileName.update(file.name)
+                        mainFileDirectory.update(file.absoluteFile.parent)
+                        fileManager.setFile(file)
+                        val spec = ImageStore.get(file)
+                        val mat = spec.mat
+                        if (!mat.empty()) {
+                            mainImageSpec.update(spec)
+                        }
+                    } else {
+                        // Not from file. Clear file manager
+                        mainFile.update(null)
+                        mainFileName.update(path)
+                        mainFileDirectory.update("")
+                        fileManager.setFile(null)
+                    }
+                }
+                AssetType.URL -> {
+                    // from url
+                    val url = URL(path)
+                    val bytes = try {
+                        url.readBytes()
+                    } catch (e: FileNotFoundException) {
+                        // url file not found
+                        return@subscribe
+                    }
+                    val mat = ImageConvert.bytesToMat(bytes)
+
+                    if (mat.width() <= 0 || mat.height() <= 0) {
+                        return@subscribe
+                    }
+
+                    val spec = ImageSpec(mat)
+                    spec.normalize()
                     mainFile.update(null)
+                    mainImageSpec.update(spec)
                     mainFileName.update(path)
                     mainFileDirectory.update("")
                     fileManager.setFile(null)
                 }
-            } else {
-                // from url
-                val url = URL(path)
-                val bytes = try {
-                    url.readBytes()
-                } catch (e: FileNotFoundException) {
-                    // url file not found
-                    return@subscribe
-                }
-                val mat = ImageConvert.bytesToMat(bytes)
+                AssetType.Content -> {
+                    val bytes = Platform.contentResolve(path) ?: return@subscribe
 
-                if (mat.width() <= 0 || mat.height() <= 0) {
-                    return@subscribe
-                }
+                    val mat = ImageConvert.bytesToMat(bytes)
 
-                val spec = ImageSpec(mat)
-                spec.normalize()
-                mainFile.update(null)
-                mainImageSpec.update(spec)
-                mainFileName.update(path)
-                mainFileDirectory.update("")
-                fileManager.setFile(null)
+                    if (mat.width() <= 0 || mat.height() <= 0) {
+                        return@subscribe
+                    }
+
+                    val spec = ImageSpec(mat)
+                    spec.normalize()
+                    mainFile.update(null)
+                    mainImageSpec.update(spec)
+                    mainFileName.update(path)
+                    mainFileDirectory.update("")
+                    fileManager.setFile(null)
+                }
             }
         }
 

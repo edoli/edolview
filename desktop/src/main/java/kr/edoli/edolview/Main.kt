@@ -38,6 +38,10 @@ fun main(args: Array<String>) {
             val transform = ge.defaultTransform
             return transform.scaleX.toFloat()
         }
+
+        override fun contentResolve(uri: String): ByteArray? {
+            TODO("Not yet implemented")
+        }
     }
 
     try {

@@ -1,11 +1,10 @@
-#version 100
-
 #ifdef GL_ES
 #define LOWP lowp
-precision mediump float;
+    precision mediump float;
 #else
-#define LOWP
+    #define LOWP
 #endif
+
 varying LOWP vec4 v_color;
 varying vec2 v_texCoords;
 uniform sampler2D u_texture;
@@ -18,8 +17,6 @@ uniform float gamma;
 uniform float minV;
 uniform float maxV;
 uniform int is_inverse;
-
-
 
 mat3 rgb2xyz_mat = mat3(
 0.4124564, 0.3575761, 0.1804375,

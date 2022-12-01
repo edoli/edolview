@@ -34,7 +34,7 @@ class StatusBar : Panel() {
         addContainer(UIFactory.createColorLabel(ImContext.cursorRGB).tooltip("Cursors RGB")).width(600f).height(rowHeight)
         addContainer(UIFactory.createPointLabel(ImContext.cursorPosition).tooltip("Cursor position")).width(196f).height(rowHeight)
         add().expandX().fillX()
-        add(UIFactory.createLabel(ImContext.zoomLevel) { "${(1.1.pow(it.toDouble()) * 100).format(2)}%" }).height(rowHeight)
+        add(UIFactory.createLabel(ImContext.zoom) { "${(it * 100).format(2)}%" }).height(rowHeight)
     }
 
     fun addContainer(actor: Actor, fill: Boolean=false): Cell<Actor> {
