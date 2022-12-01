@@ -88,8 +88,12 @@ class AndroidLauncher: AndroidApplication() {
 				DragEvent.ACTION_DROP -> {
 					requestDragAndDropPermissions(event)
 
-					val item = event.clipData.getItemAt(0)
-					ImContext.mainPath.update(item.uri.toString())
+					Gdx.app.postRunnable {
+						val item = event.clipData.getItemAt(0)
+						ImContext.mainPath.update(item.uri.toString())
+
+						Gdx.graphics.requestRendering()
+					}
 					true
 				}
 
