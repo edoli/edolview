@@ -10,7 +10,7 @@ import org.opencv.core.Core
 class App(private val initPath: String?) : Game() {
     companion object {
         init {
-            System.loadLibrary(Core.NATIVE_LIBRARY_NAME)
+            System.loadLibrary(Core.NATIVE_LIBRARY_NAME.replace("450", "4"))
         }
     }
 

@@ -1,12 +1,15 @@
 package kr.edoli.edolview.ui
 
+import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.graphics.GL30
 import com.badlogic.gdx.graphics.Pixmap
 import com.badlogic.gdx.graphics.Texture
 import com.badlogic.gdx.graphics.glutils.FloatTextureData
+import com.badlogic.gdx.graphics.glutils.GLVersion
 import kr.edoli.edolview.image.split
 import org.opencv.core.CvType
 import org.opencv.core.Mat
+import org.opencv.imgproc.Imgproc
 
 object TextureGenerator {
     val emptyTexture = Texture(0, 0, Pixmap.Format.RGB888)
@@ -44,7 +47,16 @@ object TextureGenerator {
         }
 
         val numChannels = matVisible.channels()
-        val matData = FloatArray((matVisible.total() * numChannels).toInt())
+
+        var dataChannels = 4
+        if (Gdx.graphics.glVersion.type != GLVersion.Type.OpenGL) {
+            Imgproc.cvtColor(matVisible, matVisible, Imgproc.COLOR_RGB2RGBA, 4)
+            dataChannels = if (numChannels == 1) 1 else 4
+        } else {
+            dataChannels = numChannels
+        }
+
+        val matData = FloatArray((matVisible.total() * dataChannels).toInt())
         matVisible.get(0, 0, matData)
 
 

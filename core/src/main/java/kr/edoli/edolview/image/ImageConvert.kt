@@ -117,7 +117,8 @@ object ImageConvert {
     }
 
     fun bytesToMat(bytes: ByteArray): Mat {
-        val mat = Imgcodecs.imdecode(MatOfByte(*bytes), -1)
+        val matBytes = MatOfByte(*bytes)
+        val mat = Imgcodecs.imdecode(matBytes, -1)
 
         when (mat.channels()) {
             3 -> {
