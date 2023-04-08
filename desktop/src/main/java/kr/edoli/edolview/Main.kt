@@ -8,6 +8,7 @@ import io.sentry.Sentry
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
+import kr.edoli.edolview.res.Asset
 import kr.edoli.edolview.ui.App
 import kr.edoli.edolview.util.Platform
 import kr.edoli.edolview.util.PlatformImp
@@ -39,9 +40,7 @@ fun main(args: Array<String>) {
             return transform.scaleX.toFloat()
         }
 
-        override fun contentResolve(uri: String): ByteArray? {
-            TODO("Not yet implemented")
-        }
+        override fun contentResolve(uri: String): ByteArray? = null
     }
 
     try {
@@ -57,7 +56,7 @@ fun main(args: Array<String>) {
         config.setHdpiMode(HdpiMode.Logical)
         config.setWindowListener(object : Lwjgl3WindowAdapter() {
             override fun filesDropped(files: Array<String>) {
-                ImContext.mainPath.update(files[0])
+                ImContext.mainAsset.update(Asset.fromUri(files[0]))
             }
 
             override fun closeRequested(): Boolean {

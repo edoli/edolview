@@ -16,7 +16,7 @@ class FrameControl {
 
         if (remainTime < 0f) {
             remainTime = 1.0f / frameSpeed
-            ImContext.mainFileNavigator.update(1)
+            ImContext.mainAssetNavigator.update(1)
         }
     }
 }

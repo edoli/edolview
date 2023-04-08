@@ -10,5 +10,4 @@ interface PlatformImp {
     fun showErrorMessage(message: String)
     fun getScalingFactor(): Float
     fun contentResolve(uri: String): ByteArray?
-    fun getTouchState(): TouchState
 }

@@ -252,8 +252,12 @@ object UIFactory {
         }.tooltip("${observable.name}\n[negative]Red[] means negative")
     }
 
-    fun <T> createDropdownMenu(name: String, observable: ObservableValue<kotlin.collections.List<T>>, onSelected: (T) -> Unit): DropDownMenu<T> {
-        return DropDownMenu(createTextButton(name).apply { style = textToggleButtonStyle }, listStyle, onSelected).apply {
+    fun <T> createDropdownMenu(name: String,
+                               observable: ObservableValue<kotlin.collections.List<T>>,
+                               textFunc: (T) -> String,
+                               onSelected: (T) -> Unit): DropDownMenu<T> {
+        return DropDownMenu(createTextButton(name).apply { style = textToggleButtonStyle },
+            listStyle, textFunc, onSelected).apply {
             observable.subscribe(this@UIFactory, "Double binding") { newValue ->
                 if (newValue != list.items) {
                     val array = com.badlogic.gdx.utils.Array<T>()
@@ -437,7 +441,6 @@ object UIFactory {
                 ClipboardUtils.putString(value?.let<T, String> { text(it) } ?: "")
             }
         }
-
     }
 
     @ExperimentalUnsignedTypes

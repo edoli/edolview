@@ -20,6 +20,7 @@ import com.badlogic.gdx.backends.android.AndroidApplicationConfiguration
 import com.badlogic.gdx.backends.android.AndroidGraphics
 import com.badlogic.gdx.backends.android.AndroidInput
 import com.badlogic.gdx.math.Vector2
+import kr.edoli.edolview.res.Asset
 import kr.edoli.edolview.ui.App
 import kr.edoli.edolview.util.Platform
 import kr.edoli.edolview.util.PlatformImp
@@ -70,8 +71,6 @@ class AndroidLauncher: AndroidApplication() {
 				}
 				return null
 			}
-
-			override fun getTouchState() = touchState
 		}
 
 		val config = AndroidApplicationConfiguration()
@@ -111,7 +110,7 @@ class AndroidLauncher: AndroidApplication() {
 					val uri = item.uri.toString()
 
 					Gdx.app.postRunnable {
-						ImContext.mainPath.update(uri)
+						ImContext.mainAsset.update(Asset.fromUri(uri))
 						Gdx.graphics.requestRendering()
 					}
 					true

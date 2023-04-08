@@ -13,24 +13,17 @@ import java.io.IOException
 import java.util.*
 
 object MarqueeUtils {
-
-    fun copyImageToClipboard() {
-        val mat = croppedImage()
-        if (mat != null) {
-            ClipboardUtils.putImage(mat)
-        }
-    }
-
     fun saveImage() {
         ImContext.mainImage.get() ?: return
 
         // UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName())
         // val fileChooser = JFileChooser()
         // fileChooser.showSaveDialog(null)
+        val asset = ImContext.mainAsset.get() ?: return
 
         val frame: Frame? = null
         val fileChooser = FileDialog(frame, "Save file", FileDialog.SAVE)
-        fileChooser.directory = File(ImContext.mainPath.get()).absoluteFile.parent
+        fileChooser.directory = File(asset.workingDirectory).absoluteFile.parent
         fileChooser.isVisible = true
 
         val filePath = fileChooser.file

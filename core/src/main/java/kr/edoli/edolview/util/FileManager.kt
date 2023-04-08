@@ -23,7 +23,7 @@ class FileManager {
 
     fun next(interval: Int): File? {
         currentFile?.let { file ->
-            siblingFiles = file.getSiblingFiles(siblingFiles)
+            updateSiblingFiles(file)
             return file.nextFile(interval, siblingFiles) { nextFile -> isImageFile(nextFile) }
         }
         return currentFile
@@ -31,10 +31,21 @@ class FileManager {
 
     fun prev(interval: Int): File? {
         currentFile?.let { file ->
-            siblingFiles = file.getSiblingFiles(siblingFiles)
+            updateSiblingFiles(file)
             return file.prevFile(interval, siblingFiles) { nextFile -> isImageFile(nextFile) }
         }
         return currentFile
+    }
+
+    fun updateSiblingFiles(file: File) {
+        val files = siblingFiles
+
+        // Optimize for folder with many files
+        if (files != null && files.size > 200) {
+            return
+        }
+
+        siblingFiles =  file.getSiblingFiles()
     }
 
     fun isInSameDirectory(file: File): Boolean {
@@ -44,14 +55,6 @@ class FileManager {
     }
 
     fun isImageFile(file: File): Boolean {
-        // Take too much time
-        // try {
-        //     ImageIO.read(File(filePath)) ?: return false
-        // } catch (ex: IOException) {
-        //     return false
-        // }
-        // return true
-
         val name = file.name
         val ext = FilenameUtils.getExtension(name).lowercase()
         return file.exists() && availableExts.contains(ext)

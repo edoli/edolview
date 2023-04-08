@@ -202,21 +202,21 @@ class ImageViewer : WidgetGroup() {
             override fun keyLongDown(keycode: Int) {
                 super.keyLongDown(keycode)
                 if (keycode == Input.Keys.LEFT) {
-                    ImContext.mainFileNavigator.update(-1)
+                    ImContext.mainAssetNavigator.update(-1)
                 }
                 if (keycode == Input.Keys.RIGHT) {
-                    ImContext.mainFileNavigator.update(1)
+                    ImContext.mainAssetNavigator.update(1)
                 }
             }
 
             override fun keyDown(event: InputEvent, keycode: Int): Boolean {
                 super.keyDown(event, keycode)
                 if (keycode == Input.Keys.LEFT) {
-                    ImContext.mainFileNavigator.update(-1)
+                    ImContext.mainAssetNavigator.update(-1)
                     return true
                 }
                 if (keycode == Input.Keys.RIGHT) {
-                    ImContext.mainFileNavigator.update(1)
+                    ImContext.mainAssetNavigator.update(1)
                     return true
                 }
                 if (keycode == Input.Keys.C && UIUtils.ctrl()) {

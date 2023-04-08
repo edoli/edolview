@@ -6,8 +6,10 @@ import com.badlogic.gdx.scenes.scene2d.ui.List
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 
 class DropDownMenu<T>(
-        button: Button, listStyle: List.ListStyle, onSelectItem: ((T) -> Unit)? = null
-) : DropDown(button, List<T>(listStyle)) {
+        button: Button, listStyle: List.ListStyle,
+        textFunc: (T) -> String,
+        onSelectItem: ((T) -> Unit)? = null
+) : DropDown(button, CustomList<T>(listStyle, textFunc)) {
     @Suppress("UNCHECKED_CAST")
     val list: List<T> = dropDown as List<T>
 
@@ -28,6 +30,12 @@ class DropDownMenu<T>(
     override fun showDropDown() {
         if (list.items.size > 0) {
             super.showDropDown()
+        }
+    }
+
+    class CustomList<T>(style: ListStyle, val textFunc: (T) -> String) : List<T>(style) {
+        override fun toString(item: T): String {
+            return textFunc(item)
         }
     }
 }

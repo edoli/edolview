@@ -2,6 +2,7 @@ package kr.edoli.edolview.ui
 
 import com.badlogic.gdx.utils.Align
 import kr.edoli.edolview.ImContext
+import kr.edoli.edolview.res.Asset
 import kr.edoli.edolview.store.ImageStore
 import kr.edoli.edolview.ui.drawable.BorderedDrawable
 import kr.edoli.edolview.ui.res.Colors
@@ -24,8 +25,8 @@ class ToolBar : Panel() {
 
         align(Align.left)
 
-        add(UIFactory.createDropdownMenu("Recent files ▼", ImContext.recentFiles) { path ->
-            ImContext.mainPath.update(path)
+        add(UIFactory.createDropdownMenu("Recent files ▼", ImContext.recentAssets, Asset::name) { asset ->
+            ImContext.mainAsset.update(asset)
         })
 
         add().width(16f)

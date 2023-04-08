@@ -28,6 +28,7 @@ fun File.siblingFile(step: Int, fileList: List<String>? = null, filter: ((file: 
 
     var validFiles = 0
     val stepDirection = step.sign
+
     repeat(fileNames.size) {
         index += stepDirection
         while (index >= fileNames.size) {
@@ -67,13 +68,8 @@ fun File.prevFile(interval: Int = 1, fileList: List<String>? = null, filter: ((f
     return siblingFile(-interval, fileList, filter)
 }
 
-fun File.getSiblingFiles(existFileList: List<String>? = null): List<String> {
+fun File.getSiblingFiles(): List<String> {
     val absFile = this.absoluteFile
-
-    // Optimize for folder with many files
-    if (existFileList != null && existFileList.size > 200) {
-        return existFileList
-    }
 
     val fileList = absFile.parentFile.list() as Array<String>
     fileList.sortWith(FilenameComparator())

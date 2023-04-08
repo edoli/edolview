@@ -131,7 +131,7 @@ class MainScreen : Screen {
 
                 if (keycode == Input.Keys.F5) {
                     // refresh
-                    ImContext.refreshMainPath()
+                    ImContext.refreshAsset()
                 }
 
                 if (keycode == Input.Keys.F11) {

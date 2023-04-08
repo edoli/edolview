@@ -30,7 +30,7 @@ open class MyInputListener : InputListener() {
     }
 
     open fun keyLongDown(keycode: Int) {
-        if (longPressKeycode == keycode) {
+        if (longPressKeycode == keycode && Gdx.input.isKeyPressed(keycode)) {
             Gdx.app.postRunnable {
                 keyLongDown(keycode)
             }

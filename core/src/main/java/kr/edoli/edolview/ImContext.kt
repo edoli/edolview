@@ -4,19 +4,16 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.math.Vector2
 import kr.edoli.edolview.geom.Point2D
 import kr.edoli.edolview.image.*
+import kr.edoli.edolview.res.Asset
+import kr.edoli.edolview.res.ClipboardAsset
+import kr.edoli.edolview.res.FileAsset
 import kr.edoli.edolview.shader.ViewerShaderBuilder
-import kr.edoli.edolview.store.ImageStore
 import kr.edoli.edolview.util.*
 import kr.edoli.edolview.util.Observable
 import org.opencv.core.Mat
 import org.opencv.core.Rect
 import rx.subjects.PublishSubject
-import java.awt.image.BufferedImage
-import java.io.File
-import java.io.FileNotFoundException
-import java.net.URL
 import java.util.*
-import java.util.prefs.Preferences
 import kotlin.math.min
 
 /**
@@ -32,15 +29,11 @@ object ImContext {
     val args = ObservableValue(arrayOf<String>(), "Args")
 
     val mainImage = ObservableValue<Mat?>(null, "Main image")
-    val mainPath = ObservableValue("EdolView", "Main path")
-    val mainFile = ObservableValue<File?>(null, "Main file")
-    val mainFileLastModified = ObservableValue(0L, "Main file last modified")
-    val mainFileName = ObservableValue("", "Main file name")
-    val mainFileDirectory = ObservableValue("", "Main file directory")
+    val mainAsset = ObservableValue<Asset?>(null, "Main asset")
+    val mainTitle = ObservableValue("", "Main file name")
+    val mainAssetNavigator = Observable<Int>("Main file navigation")
 
-    val mainFileNavigator = Observable<Int>("Main file navigation")
-
-    val recentFiles = ObservableValue(emptyList<String>(), "Recently opened files")
+    val recentAssets = ObservableValue(emptyList<Asset>(), "Recently opened files")
 
     val autoRefresh = ObservableValue(false, "Auto refresh")
 
@@ -109,7 +102,6 @@ object ImContext {
     val centerSelection = PublishSubject.create<Boolean>()
     val fitSelection = PublishSubject.create<Boolean>()
 
-    val fileManager = FileManager()
 
     val isValidMarquee: Boolean
         get() {
@@ -127,145 +119,34 @@ object ImContext {
     init {
         loadPreferences()
 
-
-        val urlProtocols = arrayOf("http", "https", "ftp")
-
-        mainPath.subscribe(this, "Update image") { path ->
-            if (path == "clipboard") {
-                // from clipboard
-                val image = ClipboardUtils.getImage() as BufferedImage?
-                if (image != null) {
-                    val spec = ImageSpec(ImageConvert.bufferedToMat(image), 255.0, 8)
-                    spec.normalize()
-                    mainFile.update(null)
-                    mainImageSpec.update(spec)
-                    mainFileName.update("clipboard")
-                    mainFileDirectory.update("")
-                    fileManager.setFile(null)
-                }
-                return@subscribe
-            }
-
-            var assetType = AssetType.File
-            if (":" in path) {
-                val protocol = path.split(":")[0]
-                if (protocol in urlProtocols) {
-                    assetType = AssetType.URL
-                }
-                // ex) 143.23.4.43:3432
-                if (protocol.count { it == '.' } == 3) {
-                    assetType = AssetType.URL
-                }
-                if (protocol == "content") {
-                    assetType = AssetType.Content
-                }
-            }
-            if ("/" in path) {
-                if (path.split("/")[0].count { it == '.' } == 3) {
-                    assetType = AssetType.URL
-                }
-            }
-
-            when (assetType) {
-                AssetType.File -> {
-                    // local file
-                    val file = File(path)
-
-                    if (!fileManager.isImageFile(file)) {
-                        return@subscribe
-                    }
-
-                    if (file.isDirectory) {
-                        fileManager.setFile(file)
-                        mainFileNavigator.update(1)
-                    } else if (file.isFile) {
-                        mainFile.update(file)
-                        mainFileName.update(file.name)
-                        mainFileDirectory.update(file.absoluteFile.parent)
-                        fileManager.setFile(file)
-                        val spec = ImageStore.get(file)
-                        val mat = spec.mat
-                        if (!mat.empty()) {
-                            mainImageSpec.update(spec)
-                        }
-                    } else {
-                        // Not from file. Clear file manager
-                        mainFile.update(null)
-                        mainFileName.update(path)
-                        mainFileDirectory.update("")
-                        fileManager.setFile(null)
-                    }
-                }
-                AssetType.URL -> {
-                    // from url
-                    val url = URL(path)
-                    val bytes = try {
-                        url.readBytes()
-                    } catch (e: FileNotFoundException) {
-                        // url file not found
-                        return@subscribe
-                    }
-                    val mat = ImageConvert.bytesToMat(bytes)
-
-                    if (mat.width() <= 0 || mat.height() <= 0) {
-                        return@subscribe
-                    }
-
-                    val spec = ImageSpec(mat)
-                    spec.normalize()
-                    mainFile.update(null)
-                    mainImageSpec.update(spec)
-                    mainFileName.update(path)
-                    mainFileDirectory.update("")
-                    fileManager.setFile(null)
-                }
-                AssetType.Content -> {
-                    val bytes = Platform.contentResolve(path) ?: return@subscribe
-
-                    val mat = ImageConvert.bytesToMat(bytes)
-
-                    if (mat.width() <= 0 || mat.height() <= 0) {
-                        return@subscribe
-                    }
-
-                    val spec = ImageSpec(mat)
-                    spec.normalize()
-                    mainFile.update(null)
-                    mainImageSpec.update(spec)
-                    mainFileName.update(path)
-                    mainFileDirectory.update("")
-                    fileManager.setFile(null)
-                }
-            }
-        }
-
-        mainFile.subscribe(this, "Update last modified when file updated") { file ->
-            if (file != null) {
-                mainFileLastModified.update(file.lastModified())
+        mainAsset.subscribe(this, "Update asset") { asset ->
+            if (asset == null) {
+                mainImageSpec.update(null)
             } else {
-                mainFileLastModified.update(0)
-            }
-        }
+                val spec = asset.retrieveImageSpec()
+                spec?.normalize()
 
-        mainFile.subscribe(this, "Check is file in same directory") { file ->
-            if (file != null && !fileManager.isInSameDirectory(file)) {
-                fileManager.reset()
-            }
-        }
+                mainImageSpec.update(spec)
+                mainTitle.update(asset.name)
 
-        mainFile.subscribe(this, "Add to recent files") { file ->
-            if (file != null) {
-                val list = recentFiles.get().toMutableList()
-                val path = file.absolutePath
-                if (list.contains(path)) {
-                    list.remove(path)
+                // Add to recent files
+                if (spec != null && asset.shouldAddToRecentAssets) {
+                    val list = recentAssets.get().toMutableList()
+                    val name = asset.name
+
+                    // TODO: resolve when multiple assets have same name
+                    val assetInList = list.firstOrNull { it.name == name }
+                    if (assetInList != null) {
+                        list.remove(assetInList)
+                    }
+                    list.add(asset)
+                    while (list.size > 15) {
+                        list.removeFirst()
+                    }
+                    recentAssets.update(list)
                 }
-                list.add(path)
-                while (list.size > 15) {
-                    list.removeFirst()
-                }
-                recentFiles.update(list)
             }
+            
         }
 
         mainImageSpec.subscribe(this, "Update image spec") { spec ->
@@ -307,11 +188,11 @@ object ImContext {
             }
         }
 
-        mainFileNavigator.subscribe(this, "Image navigation") { shift ->
+        mainAssetNavigator.subscribe(this, "Image navigation") { shift ->
             if (shift == 1) {
-                nextImage()
+                mainAsset.update(mainAsset.get()?.next())
             } else {
-                prevImage()
+                mainAsset.update(mainAsset.get()?.prev())
             }
         }
 
@@ -385,20 +266,6 @@ object ImContext {
         preferences.flush()
     }
 
-    private fun nextImage() {
-        val nextFile = fileManager.next(frameInterval.get())
-        if (nextFile != null) {
-            mainPath.update(nextFile.path)
-        }
-    }
-
-    private fun prevImage() {
-        val prevFile = fileManager.prev(frameInterval.get())
-        if (prevFile != null) {
-            mainPath.update(prevFile.path)
-        }
-    }
-
     fun loadDisplayProfile() {
 
     }
@@ -409,16 +276,16 @@ object ImContext {
 
     fun loadFromClipboard() {
         ClipboardUtils.processClipboard({
-            mainPath.update("clipboard")
+            mainAsset.update(ClipboardAsset())
         }, {
             val file = ClipboardUtils.getFileList()[0]
-            mainPath.update(file.absolutePath)
+            mainAsset.update(Asset.fromUri(file.absolutePath))
         }, {
-            mainPath.update(ClipboardUtils.getString())
+            mainAsset.update(Asset.fromUri(ClipboardUtils.getString()))
         })
     }
 
-    fun refreshMainPath() {
-        mainPath.update(mainPath.get())
+    fun refreshAsset() {
+        mainAsset.update(mainAsset.get())
     }
 }
