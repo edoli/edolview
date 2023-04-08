@@ -38,18 +38,23 @@ object ImageStore {
             return ImageSpec(Mat())
         }
         val bytes = FileUtils.readFileToByteArray(File(path))
-        val mat = ImageConvert.bytesToMat(bytes)
 
-        if (ext.lowercase() == "pfm") {
-            val reader = BufferedReader(FileReader(path))
-            val header = reader.readLine()  // first line
-            val dimension = reader.readLine()  // second line
-            val scale = reader.readLine()  // third line
+        try {
+            val mat = ImageConvert.bytesToMat(bytes)
 
-            mat *= abs(scale.toDouble())
+            if (ext.lowercase() == "pfm") {
+                val reader = BufferedReader(FileReader(path))
+                val header = reader.readLine()  // first line
+                val dimension = reader.readLine()  // second line
+                val scale = reader.readLine()  // third line
+
+                mat *= abs(scale.toDouble())
+            }
+
+            return ImageSpec(mat)
+        } catch (e: Exception) {
+            return ImageSpec(Mat())
         }
-
-        return ImageSpec(mat)
     }
 
     fun clearCache() {
