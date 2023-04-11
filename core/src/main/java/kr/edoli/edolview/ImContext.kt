@@ -7,6 +7,7 @@ import kr.edoli.edolview.image.*
 import kr.edoli.edolview.res.Asset
 import kr.edoli.edolview.res.ClipboardAsset
 import kr.edoli.edolview.res.FileAsset
+import kr.edoli.edolview.res.ListAsset
 import kr.edoli.edolview.shader.ViewerShaderBuilder
 import kr.edoli.edolview.util.*
 import kr.edoli.edolview.util.Observable
@@ -102,6 +103,7 @@ object ImContext {
     val centerSelection = PublishSubject.create<Boolean>()
     val fitSelection = PublishSubject.create<Boolean>()
 
+    val listAsset = ListAsset()
 
     val isValidMarquee: Boolean
         get() {
@@ -196,15 +198,15 @@ object ImContext {
             }
         }
 
-        visibleChannel.subscribe(this, "Visible channel change") { channel ->
-            updateCurrentShader(channel)
+        visibleChannel.subscribeValue(this, "Visible channel change") { channel ->
+            updateCurrentShader(channel ?: 0)
         }
 
-        imageMonoColormap.subscribe(this, "Colormap change") { colormapName ->
+        imageMonoColormap.subscribeValue(this, "Colormap change") { colormapName ->
             updateCurrentShader()
         }
 
-        imageRGBColormap.subscribe(this, "Colormap change") { colormapName ->
+        imageRGBColormap.subscribeValue(this, "Colormap change") { colormapName ->
             updateCurrentShader()
         }
 
@@ -235,11 +237,17 @@ object ImContext {
         }, 0, 10)
     }
 
-    fun updateCurrentShader(channel: Int = visibleChannel.get()) {
+    fun updateCurrentShader(channel: Int = visibleChannel.get() ?: 0) {
         if (channel != 0 || mainImage.get()?.channels() == 1) {
-            viewerShader.update(viewerShaderBuilder.getMono(imageMonoColormap.get()))
+            val monoColormap = imageMonoColormap.get()
+            if (monoColormap != null) {
+                viewerShader.update(viewerShaderBuilder.getMono(monoColormap))
+            }
         } else {
-            viewerShader.update(viewerShaderBuilder.getRGB(imageRGBColormap.get()))
+            val rgbColormap = imageRGBColormap.get()
+            if (rgbColormap != null) {
+                viewerShader.update(viewerShaderBuilder.getRGB(rgbColormap))
+            }
         }
     }
 

@@ -270,9 +270,20 @@ object UIFactory {
         }
     }
 
+    fun <T> createList(observable: ObservableList<T>): List<T> {
+        return List<T>(uiSkin).apply {
+            observable.subscribe(this@UIFactory, "Double binding") { items, newValue ->
+                val array = com.badlogic.gdx.utils.Array<T>()
+                items.forEach { array.add(it) }
+                setItems(array)
+                selected = newValue
+            }
+        }
+    }
+
     fun <T> createSelectBox(observable: ObservableList<T>): SelectBox<T> {
         return SelectBox<T>(uiSkin).apply {
-            observable.subscribe(this@UIFactory, "Double binding") { newValue ->
+            observable.subscribeValue(this@UIFactory, "Double binding") { newValue ->
                 selected = newValue
                 if (observable.items != items) {
                     val array = com.badlogic.gdx.utils.Array<T>()

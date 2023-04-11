@@ -68,7 +68,7 @@ class ImageViewer : WidgetGroup() {
             updateTexture(mat)
         }
 
-        ImContext.visibleChannel.subscribe(this, "Update texture") {
+        ImContext.visibleChannel.subscribeValue(this, "Update texture") {
             updateTexture(ImContext.mainImage.get())
         }
 
@@ -390,11 +390,11 @@ class ImageViewer : WidgetGroup() {
         if (mat == null) return
 
         val visibleChannel = ImContext.visibleChannel.get()
-        if (!TextureGenerator.isChanged(mat, visibleChannel)) return
+        if (!TextureGenerator.isChanged(mat, visibleChannel ?: 0)) return
 
         texture?.dispose()
 
-        texture = TextureGenerator.load(mat, visibleChannel)
+        texture = TextureGenerator.load(mat, visibleChannel ?: 0)
         textureRegion = TextureRegion(texture)
 
         // Statistics
