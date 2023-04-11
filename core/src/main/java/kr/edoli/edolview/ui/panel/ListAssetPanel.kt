@@ -1,6 +1,8 @@
 package kr.edoli.edolview.ui.panel
 
 import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import kr.edoli.edolview.ImContext
 import kr.edoli.edolview.image.minMax
 import kr.edoli.edolview.image.pow
@@ -18,10 +20,12 @@ import java.util.concurrent.LinkedBlockingQueue
 import kotlin.concurrent.thread
 import kotlin.math.sqrt
 
-class ListAssetPanel() : Panel(false) {
+class ListAssetPanel : Panel(false) {
 
     init {
-        add(UIFactory.createList(ImContext.listAsset.assets))
+        add(UIFactory.createList(ImContext.listAsset.assets, Asset::name) {
+            ImContext.mainAsset.update { it }
+        })
 
         ImContext.mainAsset.subscribe(this, "ListAssetPanel") { asset ->
             isVisible = asset is ListAsset

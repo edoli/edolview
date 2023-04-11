@@ -7,6 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.ui.List
+import com.badlogic.gdx.scenes.scene2d.utils.ArraySelection
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
@@ -15,6 +16,7 @@ import kr.edoli.edolview.ImContext
 import kr.edoli.edolview.geom.Point2D
 import kr.edoli.edolview.image.ClipboardUtils
 import kr.edoli.edolview.ui.contextmenu.ContextMenuManager
+import kr.edoli.edolview.ui.custom.CustomList
 import kr.edoli.edolview.ui.custom.CustomSlider
 import kr.edoli.edolview.ui.custom.DropDownMenu
 import kr.edoli.edolview.ui.drawable.BorderedDrawable
@@ -270,14 +272,23 @@ object UIFactory {
         }
     }
 
-    fun <T> createList(observable: ObservableList<T>): List<T> {
-        return List<T>(uiSkin).apply {
+    fun <T> createList(observable: ObservableList<T>,
+                       textFunc: (T) -> String,
+                       onSelected: (T) -> Unit): List<T> {
+        return CustomList(uiSkin, textFunc).apply {
             observable.subscribe(this@UIFactory, "Double binding") { items, newValue ->
                 val array = com.badlogic.gdx.utils.Array<T>()
                 items.forEach { array.add(it) }
                 setItems(array)
                 selected = newValue
             }
+
+            addListener(object : ChangeListener() {
+                override fun changed(event: ChangeEvent?, actor: Actor?) {
+                    observable.update(selectedIndex)
+                    onSelected(selected)
+                }
+            })
         }
     }
 
@@ -297,6 +308,7 @@ object UIFactory {
                     observable.update(selectedIndex)
                 }
             })
+
             addListener(object : InputListener() {
                 override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
                     if (fromActor != event.target) {
@@ -313,12 +325,9 @@ object UIFactory {
                 }
 
                 override fun scrolled(event: InputEvent, x: Float, y: Float, amountX: Float, amountY: Float): Boolean {
-                    var nextIndex = selectedIndex + amountY.toInt()
+                    var nextIndex = (selectedIndex + amountY.toInt()) % items.size
                     if (nextIndex < 0) {
                         nextIndex += items.size
-                    }
-                    if (nextIndex >= items.size) {
-                        nextIndex -= items.size
                     }
                     selectedIndex = nextIndex
                     event.stop()

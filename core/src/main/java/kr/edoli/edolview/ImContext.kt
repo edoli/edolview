@@ -235,6 +235,8 @@ object ImContext {
                 current = newTime
             }
         }, 0, 10)
+
+        mainAsset.update(listAsset)
     }
 
     fun updateCurrentShader(channel: Int = visibleChannel.get() ?: 0) {

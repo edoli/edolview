@@ -38,6 +38,10 @@ class SidePanel : Panel() {
 
         addHorizontalDivider().padTop(4f).padBottom(4f)
 
+        add(CollapsiblePanel("List assets", ListAssetPanel(), true)).fillX()
+
+        addHorizontalDivider().padTop(4f).padBottom(4f)
+
         ImContext.isShowController.subscribe(this, "Layout") {
             isVisible = it
         }

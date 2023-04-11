@@ -32,11 +32,5 @@ class DropDownMenu<T>(
             super.showDropDown()
         }
     }
-
-    class CustomList<T>(style: ListStyle, val textFunc: (T) -> String) : List<T>(style) {
-        override fun toString(item: T): String {
-            return textFunc(item)
-        }
-    }
 }
 
