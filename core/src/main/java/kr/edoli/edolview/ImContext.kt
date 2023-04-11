@@ -6,7 +6,6 @@ import kr.edoli.edolview.geom.Point2D
 import kr.edoli.edolview.image.*
 import kr.edoli.edolview.res.Asset
 import kr.edoli.edolview.res.ClipboardAsset
-import kr.edoli.edolview.res.FileAsset
 import kr.edoli.edolview.res.ListAsset
 import kr.edoli.edolview.shader.ViewerShaderBuilder
 import kr.edoli.edolview.util.*
@@ -77,7 +76,7 @@ object ImContext {
 
     val imageMinMax = ObservableLazyValue(Pair(0.0, 1.0), "Image min max")
 
-    val imageContrast = ObservableValue(1.0f, "Contrast")
+    val imageExposure = ObservableValue(0.0f, "Exposure")
     val imageBrightness = ObservableValue(0.0f, "Brightness")
     val imageGamma = ObservableValue(1.0f, "Gamma")
     val imageMonoColormap = ObservableList(ViewerShaderBuilder.getColormapNames("mono"), name = "Colormap")

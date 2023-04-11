@@ -69,7 +69,7 @@ class DisplayProfilePanel : Panel(false) {
         row()
         add(UIFactory.createSlider(Ionicons.ionMdSunny, -10f, 10f, 0.001f, ImContext.imageBrightness)).expandX().fillX().padLeft(4f)
         row()
-        add(UIFactory.createSlider(Ionicons.ionMdContrast, -10f, 10f, 0.001f, ImContext.imageContrast)).expandX().fillX().padLeft(4f)
+        add(UIFactory.createSlider(Ionicons.ionMdContrast, -10f, 10f, 0.001f, ImContext.imageExposure)).expandX().fillX().padLeft(4f)
         row()
         add(UIFactory.createSlider(Ionicons.ionMdNuclear, 0f, 10f, 0.001f, ImContext.imageGamma)).expandX().fillX().padLeft(4f)
         row()
