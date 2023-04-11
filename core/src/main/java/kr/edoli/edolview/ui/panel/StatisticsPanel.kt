@@ -54,7 +54,7 @@ class StatisticsPanel(imageObservable: ObservableLazyValue<Mat?>) : Panel(false)
                     return@forever
                 }
 
-                val vChannel = ImContext.visibleChannel.get()
+                val vChannel = ImContext.visibleChannel.get() ?: 0
                 val subMat = if (vChannel == 0 ) {
                     mat
                 } else {
@@ -88,11 +88,11 @@ class StatisticsPanel(imageObservable: ObservableLazyValue<Mat?>) : Panel(false)
             imageQueue.put(mat)
         }
 
-        ImContext.visibleChannel.subscribe(this, "Statistic channel change") {
+        ImContext.visibleChannel.subscribeValue(this, "Statistic channel change") {
             if (isGone()) {
-                return@subscribe
+                return@subscribeValue
             }
-            val mat = imageObservable.get() ?: return@subscribe
+            val mat = imageObservable.get() ?: return@subscribeValue
             imageQueue.put(mat)
         }
 

@@ -77,12 +77,12 @@ class DisplayProfilePanel : Panel(false) {
             add(UIFactory.createSelectBox(ImContext.visibleChannel)).padRight(4f)
             add(Stack().apply {
                 add(UIFactory.createSelectBox(ImContext.imageMonoColormap).apply {
-                    ImContext.visibleChannel.subscribe(this@DisplayProfilePanel, "Update display profile") { channel ->
+                    ImContext.visibleChannel.subscribeValue(this@DisplayProfilePanel, "Update display profile") { channel ->
                         isVisible = channel != 0 || ImContext.mainImage.get()?.channels() == 1
                     }
                 })
                 add(UIFactory.createSelectBox(ImContext.imageRGBColormap).apply {
-                    ImContext.visibleChannel.subscribe(this@DisplayProfilePanel, "Update display profile") { channel ->
+                    ImContext.visibleChannel.subscribeValue(this@DisplayProfilePanel, "Update display profile") { channel ->
                         val channels = ImContext.mainImage.get()?.channels()
                         isVisible = channel == 0 && (channels == 3 || channels == 4)
                     }
