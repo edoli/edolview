@@ -15,6 +15,7 @@ class FileInfoPanel : Panel(false) {
     init {
         val fileNameLabel = UIFactory.createLabel(ImContext.mainAsset) { it?.name ?: "" }
         val fileDirLabel = UIFactory.createLabel(ImContext.mainAsset) { it?.workingDirectory ?: "" }
+        fileDirLabel.wrap = true
         val bitPerPixelLabel = NumberLabel("Bits per pixel", skin, Formatters.intFormatter)
         val maxValueLabel = NumberLabel("Max value for type", skin, Formatters.intFormatter)
         val numChannelsLabel = NumberLabel("Number of channels", skin, Formatters.intFormatter)
