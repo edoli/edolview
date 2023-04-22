@@ -23,6 +23,7 @@ import kotlin.math.sqrt
 
 class ListAssetPanel : Panel(false) {
 
+
     init {
         add(UIFactory.createList(ImContext.listAsset.assets, Asset::name) {
             ImContext.mainAsset.update { it }
@@ -32,6 +33,14 @@ class ListAssetPanel : Panel(false) {
 
         ImContext.mainAsset.subscribe(this, "ListAssetPanel") { asset ->
             isVisible = asset is ListAsset
+        }
+
+        onGoneChanged = {
+            if (!it) {
+                ImContext.mainAsset.update(ImContext.listAsset)
+            } else {
+                ImContext.mainAsset.update(null)
+            }
         }
     }
 }

@@ -234,8 +234,6 @@ object ImContext {
                 current = newTime
             }
         }, 0, 10)
-
-        mainAsset.update(listAsset)
     }
 
     fun updateCurrentShader(channel: Int = visibleChannel.get() ?: 0) {
@@ -296,5 +294,19 @@ object ImContext {
 
     fun refreshAsset() {
         mainAsset.update(mainAsset.get())
+    }
+
+    fun addAssetsFromFiles(files: Array<String>) {
+        if (mainAsset.get() == listAsset) {
+            listAsset.assets.update {
+                val newList = it.toMutableList()
+                for (file in files) {
+                    newList.add(Asset.fromUri(file))
+                }
+                newList
+            }
+        } else {
+            mainAsset.update(Asset.fromUri(files[0]))
+        }
     }
 }

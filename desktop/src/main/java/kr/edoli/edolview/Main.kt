@@ -56,14 +56,7 @@ fun main(args: Array<String>) {
         config.setHdpiMode(HdpiMode.Logical)
         config.setWindowListener(object : Lwjgl3WindowAdapter() {
             override fun filesDropped(files: Array<String>) {
-//                ImContext.mainAsset.update(Asset.fromUri(files[0]))
-                ImContext.listAsset.assets.update {
-                    val newList = it.toMutableList()
-                    for (file in files) {
-                        newList.add(Asset.fromUri(file))
-                    }
-                    newList
-                }
+                ImContext.addAssetsFromFiles(files)
             }
 
             override fun closeRequested(): Boolean {
