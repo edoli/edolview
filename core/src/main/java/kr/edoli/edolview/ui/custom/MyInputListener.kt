@@ -15,7 +15,7 @@ open class MyInputListener : InputListener() {
         longPressKeycode = keycode
         currentLongPressSchedule = Timer.schedule(object : Timer.Task() {
             override fun run() {
-                keyLongDown(keycode)
+                keyLongDownHandle(keycode)
             }
         }, 0.4f)
         return super.keyDown(event, keycode)
@@ -29,11 +29,14 @@ open class MyInputListener : InputListener() {
         return super.keyUp(event, keycode)
     }
 
-    open fun keyLongDown(keycode: Int) {
+    open fun keyLongDownHandle(keycode: Int) {
         if (longPressKeycode == keycode && Gdx.input.isKeyPressed(keycode)) {
+            keyLongDown(keycode)
+
             Gdx.app.postRunnable {
-                keyLongDown(keycode)
+                keyLongDownHandle(keycode)
             }
         }
     }
+    open fun keyLongDown(keycode: Int) {}
 }
