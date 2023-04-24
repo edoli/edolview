@@ -11,7 +11,7 @@ uniform sampler2D u_texture;
 
 uniform int width;
 uniform int height;
-uniform float brightness;
+uniform float offset;
 uniform float exposure;
 uniform float gamma;
 uniform float minV;

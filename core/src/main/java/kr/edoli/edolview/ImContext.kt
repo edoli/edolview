@@ -77,7 +77,7 @@ object ImContext {
     val imageMinMax = ObservableLazyValue(Pair(0.0, 1.0), "Image min max")
 
     val imageExposure = ObservableValue(0.0f, "Exposure")
-    val imageBrightness = ObservableValue(0.0f, "Brightness")
+    val imageOffset = ObservableValue(0.0f, "Offset")
     val imageGamma = ObservableValue(1.0f, "Gamma")
     val imageMonoColormap = ObservableList(ViewerShaderBuilder.getColormapNames("mono"), name = "Colormap")
     val imageRGBColormap = ObservableList(ViewerShaderBuilder.getColormapNames("rgb"), name = "Colormap")

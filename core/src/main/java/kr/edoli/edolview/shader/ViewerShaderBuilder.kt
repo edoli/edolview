@@ -35,7 +35,7 @@ class ViewerShaderBuilder {
         }
 
         val fragShader: String = Gdx.files.internal("imageShader.frag").readString()
-        const val default_pixel_expression = "pow(p * pow(2.0, exposure) + brightness, 1.0 / gamma)"
+        const val default_pixel_expression = "pow(p * pow(2.0, exposure) + offset, 1.0 / gamma)"
     }
 
     private val rgbShaderStore = CacheBuilder.newBuilder()

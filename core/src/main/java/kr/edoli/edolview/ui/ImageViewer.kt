@@ -568,7 +568,7 @@ class ImageViewer : WidgetGroup() {
                 //shader.setUniformi("height", region.regionHeight)
 
                 shader.setUniformi("is_inverse", if (ImContext.inverse.get()) 1 else 0)
-                shader.setUniformf("brightness", ImContext.imageBrightness.get())
+                shader.setUniformf("offset", ImContext.imageOffset.get())
                 shader.setUniformf("exposure", ImContext.imageExposure.get())
                 shader.setUniformf("gamma", ImContext.imageGamma.get())
                 if (ImContext.normalize.get()) {
