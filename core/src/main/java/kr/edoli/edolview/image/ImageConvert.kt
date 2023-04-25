@@ -10,6 +10,7 @@ import org.opencv.imgproc.Imgproc
 import java.awt.Transparency
 import java.awt.image.*
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 
 object ImageConvert {
@@ -129,6 +130,26 @@ object ImageConvert {
             }
         }
 
+        return mat
+    }
+
+    fun decodeFlo(bytes: ByteArray): Mat? {
+        val buffer = ByteBuffer.wrap(bytes, 0, 12).order(ByteOrder.LITTLE_ENDIAN)
+        val magic = buffer.getFloat(0)
+
+        if (202021.25f != magic) {
+            return null
+        }
+
+        val width = buffer.getInt(4)
+        val height = buffer.getInt(8)
+
+        val mat = Mat(height, width, CvType.CV_32FC2)
+        val numPixels = 2 * width * height
+        val floatArray = FloatArray(numPixels)
+        ByteBuffer.wrap(bytes, 12, numPixels * 4).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer().get(floatArray)
+
+        mat.put(0, 0, floatArray)
         return mat
     }
 }

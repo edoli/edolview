@@ -37,21 +37,33 @@ object ImageStore {
         if (!File(path).exists()) {
             return ImageSpec(Mat())
         }
-        val bytes = FileUtils.readFileToByteArray(File(path))
+        val file = File(path)
+        val bytes = FileUtils.readFileToByteArray(file)
 
         try {
-            val mat = ImageConvert.bytesToMat(bytes)
+            if (ext.lowercase() == "flo") {
+                val mat = ImageConvert.decodeFlo(bytes)
 
-            if (ext.lowercase() == "pfm") {
-                val reader = BufferedReader(FileReader(path))
-                val header = reader.readLine()  // first line
-                val dimension = reader.readLine()  // second line
-                val scale = reader.readLine()  // third line
+                if (mat == null) {
+                    return ImageSpec(Mat())
+                } else {
+                    return ImageSpec(mat)
+                }
 
-                mat *= abs(scale.toDouble())
+            } else {
+                val mat = ImageConvert.bytesToMat(bytes)
+
+                if (ext.lowercase() == "pfm") {
+                    val reader = BufferedReader(FileReader(path))
+                    val header = reader.readLine()  // first line
+                    val dimension = reader.readLine()  // second line
+                    val scale = reader.readLine()  // third line
+
+                    mat *= abs(scale.toDouble())
+                }
+
+                return ImageSpec(mat)
             }
-
-            return ImageSpec(mat)
         } catch (e: Exception) {
             return ImageSpec(Mat())
         }

@@ -84,7 +84,7 @@ class DisplayProfilePanel : Panel(false) {
                 add(UIFactory.createSelectBox(ImContext.imageRGBColormap).apply {
                     ImContext.visibleChannel.subscribeValue(this@DisplayProfilePanel, "Update display profile") { channel ->
                         val channels = ImContext.mainImage.get()?.channels()
-                        isVisible = channel == 0 && (channels == 3 || channels == 4)
+                        isVisible = channel == 0 && (channels == 2 || channels == 3 || channels == 4)
                     }
                 })
             })

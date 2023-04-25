@@ -46,6 +46,7 @@ object TextureGenerator {
             4 -> matVisible.convertTo(matVisible, CvType.CV_32FC4)
         }
 
+        val numPixels = matVisible.total().toInt()
         val numChannels = matVisible.channels()
 
         var dataChannels = 4
@@ -56,7 +57,7 @@ object TextureGenerator {
             dataChannels = numChannels
         }
 
-        val matData = FloatArray((matVisible.total() * dataChannels).toInt())
+        val matData = FloatArray((numPixels * dataChannels))
         matVisible.get(0, 0, matData)
 
 
@@ -79,9 +80,19 @@ object TextureGenerator {
         val textureData = FloatTextureData(mat.width(), mat.height(), internalFormat, format, GL30.GL_FLOAT, false)
         textureData.prepare()
         if (numChannels == 1) {
-            val buffer = FloatArray(matData.size * 3)
+            val buffer = FloatArray(numPixels * 3)
             var i = 0
             matData.forEach { v -> repeat(3) { buffer[i++] = v } }
+            textureData.buffer.put(buffer)
+        } else if (numChannels == 2) {
+            val buffer = FloatArray(numPixels * 3)
+            var i = 0
+            for (p in 0 until numPixels) {
+                val j = p * 2
+                buffer[i++] = matData[j]
+                buffer[i++] = matData[j + 1]
+                buffer[i++] = 0f
+            }
             textureData.buffer.put(buffer)
         } else {
             textureData.buffer.put(matData)

@@ -5,6 +5,8 @@
     #define LOWP
 #endif
 
+#define PI 3.1415926535897932384626433832795
+
 varying LOWP vec4 v_color;
 varying vec2 v_texCoords;
 uniform sampler2D u_texture;

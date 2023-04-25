@@ -8,7 +8,7 @@ import java.io.File
  */
 class FileManager {
     val availableExts = arrayOf("png", "jpeg", "jpg", "jpe", "jp2", "bmp", "dib", "exr", "tif", "tiff", "hdr", "pic",
-            "webp", "raw", "pfm", "pgm", "ppm", "pbm", "pxm", "pnm", "sr")
+            "webp", "raw", "pfm", "pgm", "ppm", "pbm", "pxm", "pnm", "sr", "flo")
 
     var siblingFiles: List<String>? = null
     private var currentFile: File? = null

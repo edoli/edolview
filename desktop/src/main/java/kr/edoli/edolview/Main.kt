@@ -30,7 +30,7 @@ fun main(args: Array<String>) {
             Thread {
                 val frame = JFrame()
                 frame.isAlwaysOnTop = true
-                JOptionPane.showMessageDialog(frame, JOptionPane.ERROR_MESSAGE)
+                JOptionPane.showMessageDialog(frame, message, "Error", JOptionPane.ERROR_MESSAGE)
             }.start()
         }
 
