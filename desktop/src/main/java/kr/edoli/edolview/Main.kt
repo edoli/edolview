@@ -70,5 +70,6 @@ fun main(args: Array<String>) {
         MyLwjgl3Application(App(initPath), config)
     } catch (e: Exception) {
         Sentry.captureException(e)
+        e.printStackTrace()
     }
 }

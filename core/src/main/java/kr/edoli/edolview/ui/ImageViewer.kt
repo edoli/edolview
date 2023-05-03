@@ -17,10 +17,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import com.badlogic.gdx.utils.BufferUtils
 import kr.edoli.edolview.ImContext
 import kr.edoli.edolview.geom.Point2D
-import kr.edoli.edolview.image.ClipboardUtils
-import kr.edoli.edolview.image.ImageConvert
-import kr.edoli.edolview.image.MarqueeUtils
-import kr.edoli.edolview.image.bound
+import kr.edoli.edolview.image.*
 import kr.edoli.edolview.shader.BackgroundShaderBuilder
 import kr.edoli.edolview.ui.custom.MyInputListener
 import kr.edoli.edolview.ui.res.Colors
@@ -564,15 +561,15 @@ class ImageViewer : WidgetGroup() {
             if (ImContext.enableDisplayProfile.get()) {
                 val shader = ImContext.viewerShader.get()
                 batch.shader = shader
-                //shader.setUniformi("width", region.regionWidth)
-                //shader.setUniformi("height", region.regionHeight)
+                shader.setUniformi("width", region.regionWidth)
+                shader.setUniformi("height", region.regionHeight)
 
                 shader.setUniformi("is_inverse", if (ImContext.inverse.get()) 1 else 0)
                 shader.setUniformf("offset", ImContext.imageOffset.get())
                 shader.setUniformf("exposure", ImContext.imageExposure.get())
                 shader.setUniformf("gamma", ImContext.imageGamma.get())
                 if (ImContext.normalize.get()) {
-                    val minMax = ImContext.imageMinMax.get()
+                    val minMax = ImContext.mainImageSpec.get()!!.minMax
 
                     if (ImContext.inverse.get()) {
                         shader.setUniformf("minV", 1.0f / minMax.second.toFloat())

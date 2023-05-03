@@ -7,11 +7,23 @@ import kotlin.math.abs
 data class ImageSpec(val mat: Mat,
                      val typeMaxValue: Double = abs(mat.typeMax()),
                      val bitsPerPixel: Int = mat.bitsPerPixel()) {
+
     val numChannels = mat.channels()
     val type = mat.type()
     val isInt = (mat.type() % 8 < 5)
-    var isNormalized = false
 
+    private var _minMax: Pair<Double, Double>? = null
+    val minMax: Pair<Double, Double>
+        get() {
+            assert(isNormalized)
+
+            if (_minMax == null) {
+                _minMax = mat.minMax()
+            }
+            return _minMax!!
+        }
+
+    var isNormalized = false
 
     fun normalize(): ImageSpec {
         when (mat.channels()) {

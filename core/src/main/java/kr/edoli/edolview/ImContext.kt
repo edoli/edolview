@@ -74,8 +74,6 @@ object ImContext {
     val displayMin = ObservableValue(0.0f, "Display min")
     val displayMax = ObservableValue(1.0f, "Display max")
 
-    val imageMinMax = ObservableLazyValue(Pair(0.0, 1.0), "Image min max")
-
     val imageExposure = ObservableValue(0.0f, "Exposure")
     val imageOffset = ObservableValue(0.0f, "Offset")
     val imageGamma = ObservableValue(1.0f, "Gamma")
@@ -154,10 +152,6 @@ object ImContext {
             if (spec != null) {
                 if (!spec.isNormalized) {
                     spec.normalize()
-                }
-
-                imageMinMax.update {
-                    spec.mat.minMax()
                 }
 
                 mainImage.update(spec.mat)

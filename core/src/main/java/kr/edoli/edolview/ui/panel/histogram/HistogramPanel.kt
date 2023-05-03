@@ -34,7 +34,7 @@ class HistogramPanel : Panel(false) {
         val spec = ImContext.mainImageSpec.get() ?: return
         val mat = spec.mat
 
-        val minMax = ImContext.imageMinMax.get()
+        val minMax = spec.minMax
         val minValue = minMax.first
         val maxValue = minMax.second
 

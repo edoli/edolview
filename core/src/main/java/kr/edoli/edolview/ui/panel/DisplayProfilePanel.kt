@@ -46,7 +46,8 @@ class DisplayProfilePanel : Panel(false) {
                 minMaxSwap.touchable = if (normalized) Touchable.disabled else Touchable.enabled
 
                 if (normalized) {
-                    val imageMinMax = ImContext.imageMinMax.get()
+                    val imageMinMax = ImContext.mainImageSpec.get()!!.minMax
+
                     numberFieldMin.text = imageMinMax.first.toString()
                     numberFieldMax.text = imageMinMax.second.toString()
                 } else {
@@ -58,9 +59,6 @@ class DisplayProfilePanel : Panel(false) {
                 update()
             }
             ImContext.inverse.subscribe(this@DisplayProfilePanel, "Update display profile") {
-                update()
-            }
-            ImContext.imageMinMax.subscribe(this@DisplayProfilePanel, "Update display image min max", false) {
                 update()
             }
         }
