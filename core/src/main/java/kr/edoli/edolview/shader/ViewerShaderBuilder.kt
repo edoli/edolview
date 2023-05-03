@@ -39,17 +39,17 @@ class ViewerShaderBuilder {
     }
 
     private val rgbShaderStore = CacheBuilder.newBuilder()
-            .removalListener<String, ShaderProgram> { it.value?.dispose() }
-            .build(object : CacheLoader<String, ShaderProgram>() {
-                override fun load(shaderName: String): ShaderProgram {
+            .removalListener<String, ExtendedShaderProgram> { it.value?.dispose() }
+            .build(object : CacheLoader<String, ExtendedShaderProgram>() {
+                override fun load(shaderName: String): ExtendedShaderProgram {
                     return build(shaderName, false)
                 }
             })
 
     private val monoShaderStore = CacheBuilder.newBuilder()
-            .removalListener<String, ShaderProgram> { it.value?.dispose() }
-            .build(object : CacheLoader<String, ShaderProgram>() {
-                override fun load(shaderName: String): ShaderProgram {
+            .removalListener<String, ExtendedShaderProgram> { it.value?.dispose() }
+            .build(object : CacheLoader<String, ExtendedShaderProgram>() {
+                override fun load(shaderName: String): ExtendedShaderProgram {
                     return build(shaderName, true)
                 }
             })
@@ -88,7 +88,7 @@ class ViewerShaderBuilder {
         monoShaderStore.cleanUp()
     }
 
-    private fun build(colormapName: String, isMono: Boolean): ShaderProgram {
+    private fun build(colormapName: String, isMono: Boolean): ExtendedShaderProgram {
         val colormapShaderCode = if (isMono)
             Gdx.files.internal("colormap/mono/${colormapName}.glsl").readString() else
             Gdx.files.internal("colormap/rgb/${colormapName}.glsl").readString()
@@ -101,7 +101,7 @@ class ViewerShaderBuilder {
                 .replace("%extra_code%", extraCode.replace("%pixel_expression%", ""))
                 .replace("%pixel_expression%", pixelExpression)
 
-        return ShaderProgram(vertexShader, shaderCode).also {
+        return ExtendedShaderProgram(vertexShader, shaderCode, colormapShaderCode).also {
             if (!it.isCompiled) {
                 Platform.showErrorMessage("Error compiling shader[${colormapName}]: " + it.log)
             }

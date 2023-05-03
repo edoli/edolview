@@ -1,3 +1,5 @@
+// ABS_MAX
+
 // int RY = 15;
 // int YG = 6;
 // int GC = 4;
@@ -45,7 +47,6 @@ vec3 flow_colormap(vec3 t) {
     }
 
     vec3 color = vec3(r, g, b);
-
     color = 1. - flow_norm * (1. - color);
 
     return color;

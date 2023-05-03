@@ -569,7 +569,13 @@ class ImageViewer : WidgetGroup() {
                 shader.setUniformf("exposure", ImContext.imageExposure.get())
                 shader.setUniformf("gamma", ImContext.imageGamma.get())
                 if (ImContext.normalize.get()) {
-                    val minMax = ImContext.mainImageSpec.get()!!.minMax
+
+                    var minMax = ImContext.mainImageSpec.get()!!.minMax
+
+                    if (shader.absMax) {
+                        val absMax = max(minMax.first.absoluteValue, minMax.second.absoluteValue)
+                        minMax = Pair(0.0, absMax)
+                    }
 
                     if (ImContext.inverse.get()) {
                         shader.setUniformf("minV", 1.0f / minMax.second.toFloat())
