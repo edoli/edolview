@@ -29,15 +29,13 @@ class ShaderEditor private constructor(): JFrame() {
 
     init {
         val container = contentPane
-        val extraCodeTextField = JTextField(shaderBuilder.extraCode)
-        val pixelExpressionTextField = JTextField(shaderBuilder.pixelExpression)
+        val customShaderTextField = JTextField(shaderBuilder.customShader)
         val logLabel = JTextArea()
         logLabel.isEditable = false
 
         val updateShader = {
-            val lastPixelExpression = shaderBuilder.pixelExpression
-            shaderBuilder.extraCode = extraCodeTextField.text
-            shaderBuilder.pixelExpression = pixelExpressionTextField.text
+            val lastCustomSahder = shaderBuilder.customShader
+            shaderBuilder.customShader = customShaderTextField.text
 
             Gdx.app.postRunnable {
                 try {
@@ -46,7 +44,7 @@ class ShaderEditor private constructor(): JFrame() {
                     logLabel.text = ""
                 } catch (ex: Exception) {
                     logLabel.text = ex.stackTraceToString()
-                    shaderBuilder.pixelExpression = lastPixelExpression
+                    shaderBuilder.customShader = lastCustomSahder
                 }
             }
         }
@@ -60,9 +58,8 @@ class ShaderEditor private constructor(): JFrame() {
         c.gridy = 0
         c.fill = GridBagConstraints.BOTH
         c.weighty = 1.0
-
-        container.add(extraCodeTextField, c)
-        extraCodeTextField.addKeyListener(object : KeyListener {
+        container.add(customShaderTextField, c)
+        customShaderTextField.addKeyListener(object : KeyListener {
             override fun keyTyped(e: KeyEvent?) {
             }
 
@@ -74,30 +71,9 @@ class ShaderEditor private constructor(): JFrame() {
                     updateShader()
                 }
             }
-
         })
 
-        c.gridx = 0
         c.gridy = 1
-        c.fill = GridBagConstraints.HORIZONTAL
-        c.weighty = 0.0
-        container.add(pixelExpressionTextField, c)
-        pixelExpressionTextField.addKeyListener(object : KeyListener {
-            override fun keyTyped(e: KeyEvent?) {
-            }
-
-            override fun keyPressed(e: KeyEvent?) {
-            }
-
-            override fun keyReleased(e: KeyEvent) {
-                if (e.keyCode == KeyEvent.VK_ENTER) {
-                    updateShader()
-                }
-            }
-
-        })
-
-        c.gridy = 2
         c.fill = GridBagConstraints.HORIZONTAL
         c.weighty = 0.0
         container.add(JButton("Update shader").apply {
@@ -107,7 +83,7 @@ class ShaderEditor private constructor(): JFrame() {
             alignmentX = CENTER_ALIGNMENT
         }, c)
 
-        c.gridy = 3
+        c.gridy = 2
         container.add(logLabel, c)
 
         pack()

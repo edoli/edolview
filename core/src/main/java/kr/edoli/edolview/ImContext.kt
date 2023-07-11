@@ -71,6 +71,10 @@ object ImContext {
     val normalize = ObservableValue(false, "Normalize")
     val inverse = ObservableValue(false, "Inverse")
 
+    val invertR = ObservableValue(false, "InvertR")
+    val invertG = ObservableValue(false, "InvertG")
+    val invertB = ObservableValue(false, "InvertB")
+
     val displayMin = ObservableValue(0.0f, "Display min")
     val displayMax = ObservableValue(1.0f, "Display max")
 
@@ -231,7 +235,9 @@ object ImContext {
     }
 
     fun updateCurrentShader(channel: Int = visibleChannel.get() ?: 0) {
-        if (channel != 0 || mainImage.get()?.channels() == 1) {
+        if (viewerShaderBuilder.customShader != "") {
+            viewerShader.update(viewerShaderBuilder.getCustom())
+        } else if (channel != 0 || mainImage.get()?.channels() == 1) {
             val monoColormap = imageMonoColormap.get()
             if (monoColormap != null) {
                 viewerShader.update(viewerShaderBuilder.getMono(monoColormap))

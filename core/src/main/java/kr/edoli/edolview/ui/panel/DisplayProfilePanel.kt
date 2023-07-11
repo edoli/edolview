@@ -61,6 +61,15 @@ class DisplayProfilePanel : Panel(false) {
             ImContext.inverse.subscribe(this@DisplayProfilePanel, "Update display profile") {
                 update()
             }
+            ImContext.invertR.subscribe(this@DisplayProfilePanel, "Update display profile") {
+                update()
+            }
+            ImContext.invertG.subscribe(this@DisplayProfilePanel, "Update display profile") {
+                update()
+            }
+            ImContext.invertB.subscribe(this@DisplayProfilePanel, "Update display profile") {
+                update()
+            }
         }
 
         add(minMaxTable).expandX().fillX()
@@ -86,6 +95,12 @@ class DisplayProfilePanel : Panel(false) {
                     }
                 })
             })
+        })
+        row()
+        add(Table().apply {
+            add(UIFactory.createToggleTextButton("Red", ImContext.invertR))
+            add(UIFactory.createToggleTextButton("Green", ImContext.invertG))
+            add(UIFactory.createToggleTextButton("Blue", ImContext.invertB))
         })
     }
 

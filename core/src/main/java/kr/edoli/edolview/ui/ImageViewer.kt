@@ -564,6 +564,10 @@ class ImageViewer : WidgetGroup() {
                 shader.setUniformi("width", region.regionWidth)
                 shader.setUniformi("height", region.regionHeight)
 
+                shader.setUniformf("r_scale", if (ImContext.invertR.get()) -1.0f else 1.0f)
+                shader.setUniformf("g_scale", if (ImContext.invertG.get()) -1.0f else 1.0f)
+                shader.setUniformf("b_scale", if (ImContext.invertB.get()) -1.0f else 1.0f)
+
                 shader.setUniformi("is_inverse", if (ImContext.inverse.get()) 1 else 0)
                 shader.setUniformf("offset", ImContext.imageOffset.get())
                 shader.setUniformf("exposure", ImContext.imageExposure.get())

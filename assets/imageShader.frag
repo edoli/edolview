@@ -19,6 +19,9 @@ uniform float gamma;
 uniform float minV;
 uniform float maxV;
 uniform int is_inverse;
+uniform float r_scale;
+uniform float g_scale;
+uniform float b_scale;
 
 mat3 rgb2xyz_mat = mat3(
 0.4124564, 0.3575761, 0.1804375,
@@ -109,10 +112,12 @@ void main()
     float p;
     float alpha = tex.a;
 
+    tex.r *= r_scale;
+    tex.g *= g_scale;
+    tex.b *= b_scale;
+
     float image_x = v_texCoords.x * float(width);
     float image_y = v_texCoords.y * float(height);
-
-
 
     if (is_inverse == 1) {
         float invMinV = 1.0 / minV;
@@ -122,6 +127,5 @@ void main()
         tex = (tex - minV) / (maxV - minV);
     }
 
-    %extra_code%
     %color_process%
 }

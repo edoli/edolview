@@ -10,12 +10,15 @@ class ExtendedShaderProgram(vertexShader: String, fragmentShader: String, colorm
 
         init {
             val escapeIndex = colormapShader.indexOf('\n')
-            val firstLine = colormapShader.subSequence(2, escapeIndex).toString()
 
-            val flags = firstLine.trim().replace(" ", "").split(',')
+            if (escapeIndex != -1) {
+                val firstLine = colormapShader.subSequence(2, escapeIndex).toString()
 
-            if ("ABS_MAX" in flags) {
-                absMax = true
+                val flags = firstLine.trim().replace(" ", "").split(',')
+
+                if ("ABS_MAX" in flags) {
+                    absMax = true
+                }
             }
         }
 }

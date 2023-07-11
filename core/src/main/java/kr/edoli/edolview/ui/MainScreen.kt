@@ -97,7 +97,7 @@ class MainScreen : Screen {
         stage.addActor(layoutTable)
 
         stage.addActor(Window("File info", uiSkin).apply {
-            add(FileInfoPanel())
+            add(FileInfoPanel()).expand().fill()
             addListener {
                 y = stage.height - height - 32f
                 return@addListener false

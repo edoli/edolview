@@ -35,7 +35,7 @@ class ViewerShaderBuilder {
         }
 
         val fragShader: String = Gdx.files.internal("imageShader.frag").readString()
-        const val default_pixel_expression = "pow(p * pow(2.0, exposure) + offset, 1.0 / gamma)"
+        const val default_pixel_expression = ""
     }
 
     private val rgbShaderStore = CacheBuilder.newBuilder()
@@ -54,27 +54,22 @@ class ViewerShaderBuilder {
                 }
             })
 
-    var extraCode = ""
-    var pixelExpression = default_pixel_expression
+    var customShader = ""
 
     // colormap before pixel processing for RGB images
     private val colorProcessRGBColormap = """
     vec3 t = %colormap_name%_colormap(tex.rgb);
     vec3 v;
-    p = t.r;
-    v.r = %pixel_expression%;
-    p = t.g;
-    v.g = %pixel_expression%;
-    p = t.b;
-    v.b = %pixel_expression%;
+    v.r = pow(t.r * pow(2.0, exposure) + offset, 1.0 / gamma);
+    v.g = pow(t.g * pow(2.0, exposure) + offset, 1.0 / gamma);
+    v.b = pow(t.b * pow(2.0, exposure) + offset, 1.0 / gamma);
     gl_FragColor = v_color * vec4(v, 1.0);
     gl_FragColor.a = alpha;
     """
 
     // colormap after pixel processing for Mono images
     private val colorProcessMonoColorMap = """
-    p = tex.r;
-    float v = %pixel_expression%;
+    float v = pow(tex.r * pow(2.0, exposure) + offset, 1.0 / gamma);
     v = clamp(v, 0.0, 1.0);
     vec3 color = %colormap_name%_colormap(v);
     gl_FragColor = vec4(color.r, color.g, color.b, alpha);
@@ -83,23 +78,26 @@ class ViewerShaderBuilder {
     fun getRGB(colormapName: String) = rgbShaderStore.get(colormapName)
     fun getMono(colormapName: String) = monoShaderStore.get(colormapName)
 
+    fun getCustom() = build("", false)
     fun clearCache() {
         rgbShaderStore.cleanUp()
         monoShaderStore.cleanUp()
     }
 
     private fun build(colormapName: String, isMono: Boolean): ExtendedShaderProgram {
-        val colormapShaderCode = if (isMono)
+        val colormapShaderCode = if (colormapName == "") "" else if (isMono)
             Gdx.files.internal("colormap/mono/${colormapName}.glsl").readString() else
             Gdx.files.internal("colormap/rgb/${colormapName}.glsl").readString()
 
-        val shaderCode = fragShader
-                .replace("%color_process%", if (isMono)
+        val shaderCode = if (customShader != "")
+            fragShader
+                .replace("%color_process%", customShader)
+                .replace("%colormap_function%", "") else
+            fragShader.replace("%color_process%",
+                if (isMono)
                     colorProcessMonoColorMap.replace("%colormap_name%", colormapName) else
                     colorProcessRGBColormap.replace("%colormap_name%", colormapName))
                 .replace("%colormap_function%", colormapShaderCode)
-                .replace("%extra_code%", extraCode.replace("%pixel_expression%", ""))
-                .replace("%pixel_expression%", pixelExpression)
 
         return ExtendedShaderProgram(vertexShader, shaderCode, colormapShaderCode).also {
             if (!it.isCompiled) {
