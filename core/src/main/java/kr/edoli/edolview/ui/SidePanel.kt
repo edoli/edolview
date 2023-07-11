@@ -7,6 +7,9 @@ import kr.edoli.edolview.ui.panel.*
 import kr.edoli.edolview.ui.panel.histogram.HistogramPanel
 
 class SidePanel : Panel() {
+
+    private var numPanel = 0
+
     init {
         (background as BorderedDrawable).apply {
             isBorder = false
@@ -14,36 +17,26 @@ class SidePanel : Panel() {
 
         align(Align.top)
 
-        add(CollapsiblePanel("View controller", DisplayProfilePanel(), false)).fillX()
-
-        addHorizontalDivider().padTop(4f).padBottom(4f)
-
-        add(CollapsiblePanel("Image Navigator", NavigationPanel(), true)).fillX()
-
-        addHorizontalDivider().padTop(4f).padBottom(4f)
-
-//        add(CollapsiblePanel("Image statistics", StatisticsPanel(ImContext.mainImage), true)).fillX()
-
-//        addHorizontalDivider().padTop(4f).padBottom(4f)
-
-         add(CollapsiblePanel("Selection statistics", StatisticsPanel(ImContext.marqueeImage), true)).fillX()
-
-         addHorizontalDivider().padTop(4f).padBottom(4f)
-
-        add(CollapsiblePanel("Histogram", HistogramPanel(), true)).fillX()
-
-        addHorizontalDivider().padTop(4f).padBottom(4f)
-
-        add(CollapsiblePanel("Plot", PlotPanel(), true)).fillX()
-
-        addHorizontalDivider().padTop(4f).padBottom(4f)
-
-        add(CollapsiblePanel("List assets", ListAssetPanel(), true)).fillX()
-
-        addHorizontalDivider().padTop(4f).padBottom(4f)
+        addPanel("View controller", DisplayProfilePanel(), false)
+        addPanel("Image Navigator", NavigationPanel(), true)
+        addPanel("Selection statistics", StatisticsPanel(ImContext.marqueeImage), true)
+        addPanel("Histogram", HistogramPanel(), true)
+        addPanel("Plot", PlotPanel(), true)
+//        addPanel("List assets", ListAssetPanel(), true)
 
         ImContext.isShowController.subscribe(this, "Layout") {
             isVisible = it
         }
+    }
+
+    fun addPanel(name: String, panel: Panel, initCollapsible: Boolean) {
+        if (numPanel == 0) {
+            add(CollapsiblePanel(name, panel, initCollapsible)).fillX()
+        } else {
+            addHorizontalDivider().padTop(4f).padBottom(4f)
+            add(CollapsiblePanel(name, panel, initCollapsible)).fillX()
+        }
+
+        numPanel += 1
     }
 }
