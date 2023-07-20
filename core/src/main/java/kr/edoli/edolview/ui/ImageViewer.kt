@@ -14,6 +14,7 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
+import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.BufferUtils
 import kr.edoli.edolview.ImContext
 import kr.edoli.edolview.geom.Point2D
@@ -21,6 +22,7 @@ import kr.edoli.edolview.image.*
 import kr.edoli.edolview.shader.BackgroundShaderBuilder
 import kr.edoli.edolview.ui.custom.MyInputListener
 import kr.edoli.edolview.ui.res.Colors
+import kr.edoli.edolview.ui.res.Font
 import kr.edoli.edolview.util.*
 import org.opencv.core.Mat
 import org.opencv.core.Point
@@ -513,13 +515,52 @@ class ImageViewer : WidgetGroup() {
 
         drawImage(batch, imageX, imageY, imageScale)
 
+        // prepare draw additional UI
+        shapeRenderer.projectionMatrix = batch.projectionMatrix
+        shapeRenderer.transformMatrix = batch.transformMatrix
+
+        // draw pixel values
+        if (ImContext.isShowPixelValue.get() && imageScale > 64f) {
+            ImContext.mainImage.get()?.let {  image ->
+                batch.begin()
+                val startVec = localToImageCoordinates(Vector2(0f, height))
+                val endVec = localToImageCoordinates(Vector2(width, 0f))
+                val startX = max(startVec.x.floor().toInt(), 0)
+                val startY = max(startVec.y.floor().toInt(), 0)
+                val endX = min(endVec.x.ceil().toInt(), image.width())
+                val endY = min(endVec.y.ceil().toInt(), image.height())
+
+                val pixelWidth = imageScale
+                val tmp = Vector2()
+
+                val font = Font.smallFont
+                val preColor = font.color
+                val fontColors = arrayOf(Color.RED, Color.GREEN, Color.BLUE, Color.GRAY)
+                val fontHeight = font.lineHeight
+
+                for (i in startX until endX) {
+                    for (j in startY until endY) {
+                        val pixelPos = imageToLocalCoordinates(tmp.set(i.toFloat(), j.toFloat() + 0.5f))
+                        val color = image.get(j, i)
+                        val numColor = color.size
+                        val baseY = pixelPos.y + numColor * fontHeight * 0.5f
+                        for (c in color.indices) {
+                            val value = color[c]
+                            font.color = fontColors[min(c, 3)]
+                            font.draw(batch, value.format(4), pixelPos.x, baseY - fontHeight * c, pixelWidth, Align.center, false)
+                        }
+                    }
+                }
+                font.color = preColor
+                batch.end()
+            }
+        }
+
         // draw marquee box
         val marqueeBox = ImContext.marqueeBox.get()
         val vecA = imageToLocalCoordinates(Vector2(marqueeBox.x.toFloat(), marqueeBox.y.toFloat()))
         val vecB = imageToLocalCoordinates(Vector2((marqueeBox.x + marqueeBox.width).toFloat(), (marqueeBox.y + marqueeBox.height).toFloat()))
 
-        shapeRenderer.projectionMatrix = batch.projectionMatrix
-        shapeRenderer.transformMatrix = batch.transformMatrix
         shapeRenderer.color = Color.WHITE
         Gdx.gl.glEnable(GL30.GL_BLEND)
         Gdx.gl.glBlendFunc(GL30.GL_ONE_MINUS_DST_COLOR, GL30.GL_ZERO)

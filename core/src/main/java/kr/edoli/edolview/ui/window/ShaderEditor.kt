@@ -2,12 +2,14 @@ package kr.edoli.edolview.ui.window
 
 import com.badlogic.gdx.Gdx
 import kr.edoli.edolview.ImContext
+import java.awt.Dimension
 import java.awt.GridBagConstraints
 import java.awt.GridBagLayout
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
 import javax.swing.JButton
 import javax.swing.JFrame
+import javax.swing.JLabel
 import javax.swing.JTextArea
 import javax.swing.JTextField
 
@@ -56,6 +58,12 @@ class ShaderEditor private constructor(): JFrame() {
 
         c.gridx = 0
         c.gridy = 0
+        c.fill = GridBagConstraints.HORIZONTAL
+        c.weighty = 0.0
+        container.add(JLabel("input: vec4 tex, output: vec4 gl_FragColor"), c)
+
+        c.gridx = 0
+        c.gridy = 1
         c.fill = GridBagConstraints.BOTH
         c.weighty = 1.0
         container.add(customShaderTextField, c)
@@ -73,7 +81,7 @@ class ShaderEditor private constructor(): JFrame() {
             }
         })
 
-        c.gridy = 1
+        c.gridy = 2
         c.fill = GridBagConstraints.HORIZONTAL
         c.weighty = 0.0
         container.add(JButton("Update shader").apply {
@@ -83,10 +91,12 @@ class ShaderEditor private constructor(): JFrame() {
             alignmentX = CENTER_ALIGNMENT
         }, c)
 
-        c.gridy = 2
+        c.gridy = 3
         container.add(logLabel, c)
 
         pack()
+        title = "Shader editor"
+        size = Dimension(320, 240)
         isVisible = true
     }
 }

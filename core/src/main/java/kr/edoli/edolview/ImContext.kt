@@ -97,6 +97,7 @@ object ImContext {
     val isShowController = ObservableValue(true, "Show controller")
     val isShowFileInfo = ObservableValue(false, "Show file info")
     val isShowStatusBar = ObservableValue(true, "Show status bar")
+    val isShowPixelValue = ObservableValue(false, "Show pixel value")
 
     val centerCursor = PublishSubject.create<Boolean>()
     val centerImage = PublishSubject.create<Boolean>()

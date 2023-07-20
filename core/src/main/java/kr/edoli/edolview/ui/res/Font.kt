@@ -32,4 +32,5 @@ object Font {
 
     val ioniconsFont = fontGenerator("ionicons.ttf", 22)
     val defaultFont = fontGenerator("font.ttf", 16)
+    val smallFont = fontGenerator("font.ttf", 12)
 }

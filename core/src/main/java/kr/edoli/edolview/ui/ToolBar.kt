@@ -37,6 +37,7 @@ class ToolBar : Panel() {
 
         add(UIFactory.createToggleIconButton(Ionicons.ionMdSync, ImContext.autoRefresh)).width(iconWidth)
         add(UIFactory.createToggleIconButton(Ionicons.ionMdCalendar, ImContext.isShowBackground)).width(iconWidth)
+        add(UIFactory.createToggleIconButton(Ionicons.ionMdApps, ImContext.isShowPixelValue)).width(iconWidth)
 
         add(UIFactory.createIconButton(Ionicons.ionMdClipboard) {
             ImContext.loadFromClipboard()
