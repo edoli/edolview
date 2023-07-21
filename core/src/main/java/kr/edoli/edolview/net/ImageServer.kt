@@ -7,7 +7,6 @@ import com.badlogic.gdx.utils.GdxRuntimeException
 import kr.edoli.edolview.ImContext
 import kr.edoli.edolview.asset.SocketAsset
 import java.io.BufferedInputStream
-import java.net.BindException
 import java.nio.ByteBuffer
 import java.nio.charset.StandardCharsets
 import kotlin.concurrent.thread
@@ -51,21 +50,14 @@ class ImageHandler(socket: Socket) {
     private val reader = BufferedInputStream(socket.inputStream)
 
     fun start() {
-        val sizeBytes = ByteArray(4)
+        val nameSize = readInt()
+        val extraSize = readInt()
+        val bufferSize = readInt()
 
-        reader.read(sizeBytes, 0, 4)
-        val nameSize = ByteBuffer.wrap(sizeBytes).getInt()
-        println(nameSize)
+        val name = readString(nameSize)
+        val extraStr = readString(extraSize)  // TODO: parse extra
 
-        reader.read(sizeBytes, 0, 4)
-        val bufferSize = ByteBuffer.wrap(sizeBytes).getInt()
-        println(bufferSize)
-
-        val nameBytes = ByteArray(nameSize)
-        reader.read(nameBytes, 0, nameSize)
-
-        val name = String(nameBytes, StandardCharsets.UTF_8)
-
+        // Read image buffer
         val bufferBytes = ByteArray(bufferSize)
 
         var remain = bufferSize
@@ -81,5 +73,17 @@ class ImageHandler(socket: Socket) {
         Gdx.app.postRunnable {
             ImContext.mainAsset.update(SocketAsset(name, bufferBytes))
         }
+    }
+
+    private fun readInt(): Int {
+        val sizeBytes = ByteArray(4)
+        reader.read(sizeBytes, 0, 4)
+        return ByteBuffer.wrap(sizeBytes).getInt()
+    }
+
+    private fun readString(size: Int): String {
+        val strBytes = ByteArray(size)
+        reader.read(strBytes, 0, size)
+        return String(strBytes, StandardCharsets.UTF_8)
     }
 }
