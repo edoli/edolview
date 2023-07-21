@@ -16,7 +16,7 @@ class ImageServer(host: String, port: Int) {
     companion object {
         fun create() {
             thread {
-                createServer(14158)
+                createServer(21734)
             }
         }
 
