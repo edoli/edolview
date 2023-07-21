@@ -6,7 +6,8 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.utils.Timer
 import kr.edoli.edolview.ImContext
 import kr.edoli.edolview.PeriodicTask
-import kr.edoli.edolview.res.Asset
+import kr.edoli.edolview.asset.Asset
+import kr.edoli.edolview.net.ImageServer
 import org.opencv.core.Core
 
 class App(private val initPath: String?) : Game() {
@@ -27,5 +28,7 @@ class App(private val initPath: String?) : Game() {
         setScreen(MainScreen())
 
         Timer.schedule(PeriodicTask, 1.0f, 0.2f)
+
+        ImageServer.create()
     }
 }

@@ -3,7 +3,7 @@ package kr.edoli.edolview.ui.panel
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.utils.Align
 import kr.edoli.edolview.ImContext
-import kr.edoli.edolview.res.FileAsset
+import kr.edoli.edolview.asset.FileAsset
 import kr.edoli.edolview.ui.Panel
 import kr.edoli.edolview.ui.UIFactory
 import kr.edoli.edolview.ui.custom.Formatters

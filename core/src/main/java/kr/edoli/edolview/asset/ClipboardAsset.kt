@@ -1,10 +1,13 @@
-package kr.edoli.edolview.res
+package kr.edoli.edolview.asset
 
 import kr.edoli.edolview.image.ClipboardUtils
 import kr.edoli.edolview.image.ImageConvert
 import kr.edoli.edolview.image.ImageSpec
 import java.awt.image.BufferedImage
 
+/**
+ * For paste from clipboard
+ */
 class ClipboardAsset : Asset() {
 
     override val name = "clipboard"

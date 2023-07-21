@@ -2,8 +2,8 @@ package kr.edoli.edolview.ui.panel
 
 import com.badlogic.gdx.utils.Align
 import kr.edoli.edolview.ImContext
-import kr.edoli.edolview.res.Asset
-import kr.edoli.edolview.res.ListAsset
+import kr.edoli.edolview.asset.Asset
+import kr.edoli.edolview.asset.ListAsset
 import kr.edoli.edolview.ui.Panel
 import kr.edoli.edolview.ui.UIFactory
 

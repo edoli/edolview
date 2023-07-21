@@ -4,9 +4,9 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.math.Vector2
 import kr.edoli.edolview.geom.Point2D
 import kr.edoli.edolview.image.*
-import kr.edoli.edolview.res.Asset
-import kr.edoli.edolview.res.ClipboardAsset
-import kr.edoli.edolview.res.ListAsset
+import kr.edoli.edolview.asset.Asset
+import kr.edoli.edolview.asset.ClipboardAsset
+import kr.edoli.edolview.asset.ListAsset
 import kr.edoli.edolview.shader.ViewerShaderBuilder
 import kr.edoli.edolview.util.*
 import kr.edoli.edolview.util.Observable
@@ -98,6 +98,10 @@ object ImContext {
     val isShowFileInfo = ObservableValue(false, "Show file info")
     val isShowStatusBar = ObservableValue(true, "Show status bar")
     val isShowPixelValue = ObservableValue(false, "Show pixel value")
+
+    val isServerActive = ObservableValue(true, "Activate socket server")
+
+    val imageServerAddress = ObservableValue("", "Image server address")
 
     val centerCursor = PublishSubject.create<Boolean>()
     val centerImage = PublishSubject.create<Boolean>()

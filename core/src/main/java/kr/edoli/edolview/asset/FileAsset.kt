@@ -1,4 +1,4 @@
-package kr.edoli.edolview.res
+package kr.edoli.edolview.asset
 
 import kr.edoli.edolview.ImContext
 import kr.edoli.edolview.image.ImageSpec
@@ -6,6 +6,9 @@ import kr.edoli.edolview.store.ImageStore
 import kr.edoli.edolview.util.FileManager
 import java.io.File
 
+/**
+ * File content
+ */
 class FileAsset(val path: String) : Asset() {
     companion object {
         val fileManager = FileManager()

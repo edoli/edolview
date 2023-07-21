@@ -2,7 +2,7 @@ package kr.edoli.edolview.ui
 
 import com.badlogic.gdx.utils.Align
 import kr.edoli.edolview.ImContext
-import kr.edoli.edolview.res.Asset
+import kr.edoli.edolview.asset.Asset
 import kr.edoli.edolview.store.ImageStore
 import kr.edoli.edolview.ui.drawable.BorderedDrawable
 import kr.edoli.edolview.ui.res.Colors
@@ -59,6 +59,9 @@ class ToolBar : Panel() {
         add(UIFactory.createIconButton(Ionicons.ionMdPaper) {
             ShaderEditor.show()
         }.tooltip("Edit shader script")).width(iconWidth)
+        add(UIFactory.createToggleIconButton(Ionicons.ionMdGitNetwork, ImContext.isServerActive)).width(iconWidth)
+
+        add(UIFactory.createLabel(ImContext.imageServerAddress))
 
         add().expandX()
         add(UIFactory.createToggleIconButton(Ionicons.ionMdOptions, ImContext.isShowController)).width(iconWidth)
