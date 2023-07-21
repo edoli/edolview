@@ -1,41 +1,31 @@
-JDK version used for compiling should be same as bundled jre version.
+# EdolView - Image Viewer for Visualization and Analysis
 
-# Ubuntu compile guide
+Image viewer for graphics and vision researchers.
 
-## Dependencies
+* Pixel value analysis: easy to check each pixel value or mean of pixles in area.
+* Colormap visualization: colormapping for better visualization
+* Flexible visualization configuraion: single channel visualization for multi-channel images, user setting for min max normalization, custom shader.
 
-* Java (Recommend [Azul Java](https://www.azul.com/downloads/?package=jdk))
-* [OpenCV](https://opencv.org/releases/)
-* apt install
-```
-sudo apt update
-sudo apt install -y cmake build-essential ant
-```
+<img width="641" alt="Screenshot 2023-07-21 175315" src="https://github.com/edoli/edolview/assets/2304569/6dbee8ff-14d8-4fda-bdf1-a5dbc760d7de">
+<img width="641" alt="Screenshot 2023-07-21 183216" src="https://github.com/edoli/edolview/assets/2304569/9e781e30-2392-430f-97df-eba17205fe96">
 
-## Compile OpenCV
+## Installation
+Download in [Releases](https://github.com/edoli/edolview/releases).
 
-Set environment variables
+## How to use
+Usage guide of EdolView can be found on [Wiki](https://github.com/edoli/edolview/wiki).
 
-```
-export JAVA_HOME={java_path}
-export ANT_DIR=/usr
-```
+## Supported OS
+Currently, EdolView supports **Windows** and **Linux**. I plan to support **macOS** in future.
 
-Go to opencv directory
-```
-mkdir build
-cd build
-cmake -DBUILD_LIST=core,imgproc,imgcodecs,java,java_binding_generator ..
-make -j8
-sudo make install
-```
+## Supported formats
+EdolView internally uses OpenCV for image loading, so image formats supported by OpenCV should be work on EdolView.
+* EXR (*.exr)
+* HDR (*.hdr)
+* Flow (*.flo)
+* PFM (*.pfm)
+* PGM (*.pgm), PPM (*.ppm)
+* JPG (*.jpg, *.jpeg), PNG (*.png), TIFF (*.tif, *.tiff), BMP (*.bmp)
 
-## Compile code
-```
-export JAVA_HOME={java_path}
-
-./gradlew installDist
-```
-
-# Test data
-https://github.com/edoli/edolview/tree/data
+## License
+EdolView is available under the MIT license.
