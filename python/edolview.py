@@ -4,9 +4,10 @@ import json
 from struct import pack
 import importlib.util
 import numpy as np
+import zlib
 
 class EdolView:
-    def __init__(self, host='127.0.0.1', port=21734):
+    def __init__(self, host='127.0.0.1', port=21735):
         self.host = host
         self.port = port
 
@@ -40,18 +41,29 @@ class EdolView:
             
         if image.shape[-1] > 4:
             raise Exception('image dimension not valid shape: ' + str(initial_shape))
-        
+
         dtype = image.dtype
         if np.issubdtype(dtype, np.integer):
             retval, buf = cv2.imencode('.png', image[:, :, ::-1])
+            buf_bytes = buf.tobytes()
+
+            extra['compression'] = 'png'
         else:
-            retval, buf = cv2.imencode('.exr', image[:, :, ::-1])
+            if not image.data.c_contiguous:
+                image = image.copy()
+
+            buf_bytes = zlib.compress(image.data)
+
+            extra['compression'] = 'zlib'
+
+        extra['nbytes'] = image.nbytes
+        extra['shape'] = image.shape
+        extra['dtype'] = image.dtype.name
 
         extra_str = json.dumps(extra)
 
         name_bytes = name.encode('utf-8')
         extra_bytes = extra_str.encode('utf-8')
-        buf_bytes = buf.tobytes()
 
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((self.host, self.port))

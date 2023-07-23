@@ -4,11 +4,18 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Net
 import com.badlogic.gdx.net.Socket
 import com.badlogic.gdx.utils.GdxRuntimeException
+import com.badlogic.gdx.utils.Json
 import kr.edoli.edolview.ImContext
 import kr.edoli.edolview.asset.SocketAsset
+import kr.edoli.edolview.image.ImageConvert
+import kr.edoli.edolview.util.CustomByteArrayOutputStream
+import org.opencv.core.CvType
+import org.opencv.core.Mat
 import java.io.BufferedInputStream
 import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
+import java.util.zip.Inflater
 import kotlin.concurrent.thread
 
 class ImageServer(host: String, port: Int) {
@@ -44,6 +51,12 @@ class ImageServer(host: String, port: Int) {
     }
 }
 
+class Extra {
+    var shape: IntArray = intArrayOf()
+    var dtype: String = ""
+    var compression: String = ""
+    var nbytes: Int = 0
+}
 
 class ImageHandler(socket: Socket) {
 
@@ -55,7 +68,12 @@ class ImageHandler(socket: Socket) {
         val bufferSize = readInt()
 
         val name = readString(nameSize)
-        val extraStr = readString(extraSize)  // TODO: parse extra
+        val extraStr = readString(extraSize)
+
+        val extra = Json().fromJson(Extra::class.java, extraStr) ?: return
+        val shape = extra.shape
+        val dtype = extra.dtype
+        val numChannel = shape[2]
 
         // Read image buffer
         val bufferBytes = ByteArray(bufferSize)
@@ -70,8 +88,52 @@ class ImageHandler(socket: Socket) {
             currentPosition += recvSize
         }
 
-        Gdx.app.postRunnable {
-            ImContext.mainAsset.update(SocketAsset(name, bufferBytes))
+        val mat = when (extra.compression) {
+            "zlib" -> {
+                val inflater = Inflater()
+                val outputStream = CustomByteArrayOutputStream(extra.nbytes)
+
+                val buffer = ByteArray(4096)
+
+                inflater.setInput(bufferBytes)
+
+                while (!inflater.finished()) {
+                    val count = inflater.inflate(buffer)
+                    outputStream.write(buffer, 0, count)
+
+                }
+
+                outputStream.close()
+
+                val byteBuffer = ByteBuffer.allocateDirect(extra.nbytes)
+                byteBuffer.order(ByteOrder.nativeOrder())
+                byteBuffer.put(outputStream.getBuf())
+
+                when (dtype) {
+                    "float64" -> Mat(shape[0], shape[1], CvType.CV_64FC(numChannel), byteBuffer)
+                    "float32" -> Mat(shape[0], shape[1], CvType.CV_32FC(numChannel), byteBuffer)
+                    "float16" -> Mat(shape[0], shape[1], CvType.CV_16FC(numChannel), byteBuffer)
+                    "uint16" -> Mat(shape[0], shape[1], CvType.CV_16UC(numChannel), byteBuffer)
+                    "uint8" -> Mat(shape[0], shape[1], CvType.CV_8UC(numChannel), byteBuffer)
+                    "int16" -> Mat(shape[0], shape[1], CvType.CV_16SC(numChannel), byteBuffer)
+                    "int8" -> Mat(shape[0], shape[1], CvType.CV_8SC(numChannel), byteBuffer)
+                    else -> null
+                }
+
+            }
+            "png" -> {
+                ImageConvert.bytesToMat(bufferBytes)
+            }
+            else -> {
+                null
+            }
+        }
+
+        if (mat != null) {
+            Gdx.app.postRunnable {
+                val socketAsset = SocketAsset(name, mat)
+                ImContext.mainAsset.update(socketAsset)
+            }
         }
     }
 
