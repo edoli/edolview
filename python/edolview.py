@@ -1,17 +1,18 @@
 import socket
-import cv2
 import json
 from struct import pack
 import importlib.util
 import numpy as np
 import zlib
 
+
 class EdolView:
-    def __init__(self, host='127.0.0.1', port=21735):
+    def __init__(self, host='127.0.0.1', port=21734):
         self.host = host
         self.port = port
 
     def send_image(self, name:str, image, extra={}):
+        # convert torch to numpy array
         if type(image) != np.ndarray:
             torch_spec = importlib.util.find_spec('torch')
 
@@ -32,7 +33,9 @@ class EdolView:
             raise Exception('image should be np.ndarray')
         
         initial_shape = image.shape
+        dtype = image.dtype
         
+        # Try to convert (B, C, H, W) or (C, H, W) to (H, W, C)
         if len(image.shape) == 4:
             image = image[0, ...]
 
@@ -42,8 +45,12 @@ class EdolView:
         if image.shape[-1] > 4:
             raise Exception('image dimension not valid shape: ' + str(initial_shape))
 
-        dtype = image.dtype
-        if np.issubdtype(dtype, np.integer):
+        # Convert to PNG if cv2 is  installed and image is integer. Otherwise use zlib compress
+        cv2_spec = importlib.util.find_spec('cv2')
+            
+        if np.issubdtype(dtype, np.integer) and cv2_spec is not None:
+            import cv2
+
             retval, buf = cv2.imencode('.png', image[:, :, ::-1])
             buf_bytes = buf.tobytes()
 
@@ -62,6 +69,7 @@ class EdolView:
 
         extra_str = json.dumps(extra)
 
+        # Encode string and send to socket
         name_bytes = name.encode('utf-8')
         extra_bytes = extra_str.encode('utf-8')
 

@@ -100,13 +100,11 @@ class ImageHandler(socket: Socket) {
                 while (!inflater.finished()) {
                     val count = inflater.inflate(buffer)
                     outputStream.write(buffer, 0, count)
-
                 }
 
                 outputStream.close()
 
                 val byteBuffer = ByteBuffer.allocateDirect(extra.nbytes)
-                byteBuffer.order(ByteOrder.nativeOrder())
                 byteBuffer.put(outputStream.getBuf())
 
                 when (dtype) {
@@ -119,9 +117,11 @@ class ImageHandler(socket: Socket) {
                     "int8" -> Mat(shape[0], shape[1], CvType.CV_8SC(numChannel), byteBuffer)
                     else -> null
                 }
-
             }
             "png" -> {
+                ImageConvert.bytesToMat(bufferBytes)
+            }
+            "exr" -> {
                 ImageConvert.bytesToMat(bufferBytes)
             }
             else -> {
