@@ -22,11 +22,7 @@ object ImageConvert {
         val channels = mat.channels()
         val arraySize = (mat.total() * channels).toInt()
 
-        when (channels) {
-            1 -> mat.convertTo(tmpMat, CvType.CV_8UC1, 255.0)
-            3 -> mat.convertTo(tmpMat, CvType.CV_8UC3, 255.0)
-            4 -> mat.convertTo(tmpMat, CvType.CV_8UC4, 255.0)
-        }
+        mat.convertTo(tmpMat, CvType.CV_8U, 255.0)
 
         val rawData = ByteArray(arraySize)
         tmpMat.get(0, 0, rawData)

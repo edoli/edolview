@@ -52,7 +52,7 @@ object MarqueeUtils {
                         else -> 1.0
                     }
                     val numChannels = mat.channels()
-                    mat.convertTo(mat, CvType.CV_32FC3, factor)
+                    mat.convertTo(mat, CvType.CV_32F, factor)
                     when (numChannels) {
                         3 -> {
                             Imgproc.cvtColor(mat, mat, Imgproc.COLOR_RGB2BGR)

@@ -3,17 +3,17 @@ package kr.edoli.edolview.net
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Net
 import com.badlogic.gdx.net.Socket
+import com.badlogic.gdx.utils.BufferUtils
 import com.badlogic.gdx.utils.GdxRuntimeException
 import com.badlogic.gdx.utils.Json
 import kr.edoli.edolview.ImContext
 import kr.edoli.edolview.asset.SocketAsset
 import kr.edoli.edolview.image.ImageConvert
 import kr.edoli.edolview.util.CustomByteArrayOutputStream
-import org.opencv.core.CvType
+import kr.edoli.edolview.util.toCvType
 import org.opencv.core.Mat
 import java.io.BufferedInputStream
 import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import java.nio.charset.StandardCharsets
 import java.util.zip.Inflater
 import kotlin.concurrent.thread
@@ -104,19 +104,11 @@ class ImageHandler(socket: Socket) {
 
                 outputStream.close()
 
-                val byteBuffer = ByteBuffer.allocateDirect(extra.nbytes)
+                val byteBuffer = BufferUtils.newByteBuffer(extra.nbytes)
                 byteBuffer.put(outputStream.getBuf())
 
-                when (dtype) {
-                    "float64" -> Mat(shape[0], shape[1], CvType.CV_64FC(numChannel), byteBuffer)
-                    "float32" -> Mat(shape[0], shape[1], CvType.CV_32FC(numChannel), byteBuffer)
-                    "float16" -> Mat(shape[0], shape[1], CvType.CV_16FC(numChannel), byteBuffer)
-                    "uint16" -> Mat(shape[0], shape[1], CvType.CV_16UC(numChannel), byteBuffer)
-                    "uint8" -> Mat(shape[0], shape[1], CvType.CV_8UC(numChannel), byteBuffer)
-                    "int16" -> Mat(shape[0], shape[1], CvType.CV_16SC(numChannel), byteBuffer)
-                    "int8" -> Mat(shape[0], shape[1], CvType.CV_8SC(numChannel), byteBuffer)
-                    else -> null
-                }
+                val cvType = dtype.toCvType(numChannel)
+                Mat(shape[0], shape[1], cvType, byteBuffer)
             }
             "png" -> {
                 ImageConvert.bytesToMat(bufferBytes)

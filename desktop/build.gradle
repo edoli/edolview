@@ -45,7 +45,7 @@ application {
 run {
     workingDir = project.assetsDir
     args = ["-d"]
-    jvmArgs = []
+    jvmArgs = ["--add-opens", "java.base/java.nio=ALL-UNNAMED"]
 }
 
 distTar.enabled = false
@@ -91,7 +91,10 @@ ${String.join(',\n', new File("${rootPath}/build/install/desktop/lib").list().co
   ],
   "mainClass": "${project.mainClassName}",
   "vmArgs": [
-    "-Xmx4G"
+    "-Xmx4G",
+    "--add-opens=java.base/java.nio=ALL-UNNAMED",
+    "--add-opens",
+    "java.base/java.nio=ALL-UNNAMED"
   ]
 }
     """

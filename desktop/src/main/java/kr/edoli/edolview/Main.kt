@@ -71,5 +71,7 @@ fun main(args: Array<String>) {
     } catch (e: Exception) {
         Sentry.captureException(e)
         e.printStackTrace()
+
+        exitProcess(1)
     }
 }
