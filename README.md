@@ -24,8 +24,8 @@ EdolView internally uses OpenCV for image loading, so image formats supported by
 * HDR (*.hdr)
 * Flow (*.flo)
 * PFM (*.pfm)
-* PGM (*.pgm), PPM (*.ppm)
-* JPG (*.jpg, *.jpeg), PNG (*.png), TIFF (*.tif, *.tiff), BMP (*.bmp)
+* PGM (\*.pgm), PPM (\*.ppm)
+* JPG (\*.jpg, \*.jpeg), PNG (\*.png), TIFF (\*.tif, \*.tiff), BMP (\*.bmp)
 
 ## License
 EdolView is available under the MIT license.
