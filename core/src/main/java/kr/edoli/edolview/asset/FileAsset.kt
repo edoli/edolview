@@ -37,7 +37,7 @@ class FileAsset(val path: String) : Asset() {
     override val workingDirectory: String
         get() = currentFileDirectory ?: ""
 
-    override fun retrieveImageSpec(): ImageSpec? {
+    override fun load(): ImageSpec? {
 
         val file = File(path)
 

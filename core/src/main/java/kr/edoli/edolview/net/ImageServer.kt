@@ -71,9 +71,6 @@ class ImageHandler(socket: Socket) {
         val extraStr = readString(extraSize)
 
         val extra = Json().fromJson(Extra::class.java, extraStr) ?: return
-        val shape = extra.shape
-        val dtype = extra.dtype
-        val numChannel = shape[2]
 
         // Read image buffer
         val bufferBytes = ByteArray(bufferSize)
@@ -90,6 +87,10 @@ class ImageHandler(socket: Socket) {
 
         val mat = when (extra.compression) {
             "zlib" -> {
+                val shape = extra.shape
+                val dtype = extra.dtype
+                val numChannel = shape[2]
+
                 val inflater = Inflater()
                 val outputStream = CustomByteArrayOutputStream(extra.nbytes)
 
@@ -114,6 +115,9 @@ class ImageHandler(socket: Socket) {
                 ImageConvert.bytesToMat(bufferBytes)
             }
             "exr" -> {
+                ImageConvert.bytesToMat(bufferBytes)
+            }
+            "cv" -> {
                 ImageConvert.bytesToMat(bufferBytes)
             }
             else -> {

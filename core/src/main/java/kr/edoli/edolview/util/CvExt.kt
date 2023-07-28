@@ -36,6 +36,8 @@ fun String.toCvType(numChannels: Int): Int {
         "int32" -> CvType.CV_32SC(numChannels)
         "int16" -> CvType.CV_16SC(numChannels)
         "int8" -> CvType.CV_8SC(numChannels)
+
+        "bool" -> CvType.CV_8UC(numChannels)
         else -> -1
     }
 }

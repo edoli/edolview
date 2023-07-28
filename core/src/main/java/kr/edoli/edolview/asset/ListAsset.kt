@@ -20,7 +20,7 @@ class ListAsset : Asset() {
     override val shouldAddToRecentAssets = false
 
 
-    override fun retrieveImageSpec(): ImageSpec? {
+    override fun load(): ImageSpec? {
         return assets.get()?.retrieveImageSpec()
     }
 

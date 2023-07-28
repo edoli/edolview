@@ -1,6 +1,7 @@
 package kr.edoli.edolview.asset
 
 import kr.edoli.edolview.image.ImageSpec
+import java.awt.Image
 
 abstract class Asset {
     companion object {
@@ -35,7 +36,18 @@ abstract class Asset {
 
     open val workingDirectory: String = ""
 
-    abstract fun retrieveImageSpec(): ImageSpec?
+    private var imageSpec: ImageSpec? = null
+
+    fun retrieveImageSpec(): ImageSpec? {
+        if (imageSpec?.isEmpty != false) {
+            imageSpec = load()
+        }
+        return imageSpec
+    }
+
+    abstract fun load(): ImageSpec?
+
+//    abstract fun isLoaded(): Boolean
     abstract fun next(): Asset?
     abstract fun prev(): Asset?
     abstract fun checkRefresh(): Boolean

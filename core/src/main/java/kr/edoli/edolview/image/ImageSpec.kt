@@ -12,6 +12,9 @@ data class ImageSpec(val mat: Mat,
     val type = mat.type()
     val isInt = (mat.type() % 8 < 5)
 
+    val isEmpty
+        get() = mat.empty()
+
     private var _minMax: Pair<Double, Double>? = null
     val minMax: Pair<Double, Double>
         get() {
@@ -41,4 +44,5 @@ data class ImageSpec(val mat: Mat,
 
         return this
     }
+
 }

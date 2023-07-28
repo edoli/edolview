@@ -11,7 +11,6 @@ import org.opencv.core.Mat
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
-import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
 /**
@@ -23,7 +22,6 @@ object ImageStore {
 
     private val imageStoreMap = CacheBuilder.newBuilder()
             .maximumWeight(MAX_MEMORY)
-            .expireAfterAccess(5, TimeUnit.MINUTES)
             .weigher { _: ImageDesc, v1: ImageSpec -> (v1.mat.total() * v1.mat.channels()).toInt() }
             .removalListener<ImageDesc, ImageSpec> { it.value?.mat?.release() }
             .build(object : CacheLoader<ImageDesc, ImageSpec>() {
