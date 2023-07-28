@@ -63,3 +63,15 @@ build/
 ## OS Specific
 .DS_Store
 opencv-sdk/
+
+## VSCode extension
+.DS_Store
+npm-debug.log
+Thumbs.db
+*/node_modules/
+*/out/
+*/.vs/
+tsconfig.lsif.json
+*.lsif
+*.db
+*.vsix
