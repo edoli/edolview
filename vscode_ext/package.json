@@ -1,0 +1,96 @@
+{
+  "name": "edolview",
+  "displayName": "edolview",
+  "description": "vscode extension for edolview",
+  "version": "0.0.1",
+  "repository": "https://github.com/edoli/edolview",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onDebug"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "edolview.image.file",
+        "title": "Send Image to EdolView"
+      },
+      {
+        "command": "edolview.image.python",
+        "title": "Send Image to EdolView"
+      },
+      {
+        "command": "edolview.image.cpp",
+        "title": "Send Image to EdolView"
+      }
+    ],
+    "configuration": {
+      "title": "Edolview",
+      "properties": {
+        "edolview.host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "Host name of Edolview"
+        },
+        "edolview.port": {
+          "type": "number",
+          "default": 21734,
+          "description": "Port number of Edolview"
+        }
+      }
+    },
+    "menus": {
+      "explorer/context": [
+        {
+          "command": "edolview.image.file",
+          "group": "EdolView"
+        }
+      ],
+      "editor/title/context": [
+        {
+          "command": "edolview.image.file",
+          "group": "EdolView"
+        }
+      ],
+      "debug/variables/context": [
+        {
+          "when": "resourceLangId == python",
+          "command": "edolview.image.python",
+          "group": "EdolView"
+        },
+        {
+          "when": "resourceLangId == cpp",
+          "command": "edolview.image.cpp",
+          "group": "EdolView"
+        }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "node ./esbuild.js",
+    "watch": "node ./esbuild.js --watch",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/axios": "^0.14.0",
+    "@types/glob": "^8.1.0",
+    "@types/node": "20.2.5",
+    "@types/vscode": "^1.80.0",
+    "@types/vscode-webview": "^1.57.1",
+    "@typescript-eslint/eslint-plugin": "^5.59.8",
+    "@typescript-eslint/parser": "^5.59.8",
+    "esbuild": "^0.16.17",
+    "eslint": "^8.41.0",
+    "glob": "^8.1.0",
+    "mocha": "^10.2.0",
+    "typescript": "^5.1.3"
+  }
+}
