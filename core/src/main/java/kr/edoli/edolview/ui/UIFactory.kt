@@ -7,7 +7,6 @@ import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.ui.*
 import com.badlogic.gdx.scenes.scene2d.ui.List
-import com.badlogic.gdx.scenes.scene2d.utils.ArraySelection
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
@@ -89,8 +88,10 @@ object UIFactory {
         selection = ColorDrawable(Colors.accent).apply { pad(2f, 6f, 2f, 6f) }
     }
 
-    fun <T> createField(observable: ObservableValue<T>, strToValue: (String) -> T, valueToString: (T) -> String,
-                        checkValid: (String) -> Boolean): TextField {
+    fun <T> createField(
+        observable: ObservableValue<T>, strToValue: (String) -> T, valueToString: (T) -> String,
+        checkValid: (String) -> Boolean
+    ): TextField {
         val textField = object : TextField("", uiSkin) {
             override fun getPrefWidth(): Float {
                 return 0f
@@ -188,8 +189,8 @@ object UIFactory {
         }
     }
 
-    fun createSlider(icon: String, min: Float, max: Float, stepSize: Float, observable: ObservableValue<Float>): Table {
-        return Table().apply {
+    fun createSlider(icon: String, min: Float, max: Float, stepSize: Float, observable: ObservableValue<Float>) =
+        Table().apply {
             add(Label(icon, iconLabelStyle)).padRight(8f)
             add(CustomSlider(min, max, stepSize, false, uiSkin).apply {
                 val slider = this@apply
@@ -200,14 +201,22 @@ object UIFactory {
                 }
 
                 addListener(object : InputListener() {
-                    override fun scrolled(event: InputEvent, x: Float, y: Float, amountX: Float, amountY: Float): Boolean {
+                    override fun scrolled(
+                        event: InputEvent,
+                        x: Float,
+                        y: Float,
+                        amountX: Float,
+                        amountY: Float
+                    ): Boolean {
                         when {
                             UIUtils.ctrl() -> {
                                 slider.value = slider.value - stepSize * amountY
                             }
+
                             UIUtils.shift() -> {
                                 slider.value = slider.value - stepSize * amountY * 10
                             }
+
                             else -> {
                                 slider.value = slider.value - stepSize * amountY * 100
                             }
@@ -252,14 +261,16 @@ object UIFactory {
                 }
             }).width(40f)
         }.tooltip("${observable.name}\n[negative]Red[] means negative")
-    }
 
-    fun <T> createDropdownMenu(name: String,
-                               observable: ObservableValue<kotlin.collections.List<T>>,
-                               textFunc: (T) -> String,
-                               onSelected: (T) -> Unit): DropDownMenu<T> {
-        return DropDownMenu(createTextButton(name).apply { style = textToggleButtonStyle },
-            listStyle, textFunc, onSelected).apply {
+    fun <T> createDropdownMenu(
+        name: String,
+        observable: ObservableValue<kotlin.collections.List<T>>,
+        textFunc: (T) -> String,
+        onSelected: (T) -> Unit
+    ) = DropDownMenu(
+            createTextButton(name).apply { style = textToggleButtonStyle },
+            listStyle, textFunc, onSelected
+        ).apply {
             observable.subscribe(this@UIFactory, "Double binding") { newValue ->
                 if (newValue != list.items) {
                     val array = com.badlogic.gdx.utils.Array<T>()
@@ -270,12 +281,12 @@ object UIFactory {
                 }
             }
         }
-    }
 
-    fun <T> createList(observable: ObservableList<T>,
-                       textFunc: (T) -> String,
-                       onSelected: (T) -> Unit): List<T> {
-        return CustomList(uiSkin, textFunc).apply {
+    fun <T> createList(
+        observable: ObservableList<T>,
+        textFunc: (T) -> String,
+        onSelected: (T) -> Unit
+    ) = CustomList(uiSkin, textFunc).apply {
             observable.subscribe(this@UIFactory, "Double binding") { items, newValue ->
                 val array = com.badlogic.gdx.utils.Array<T>()
                 items.forEach { array.add(it) }
@@ -290,10 +301,9 @@ object UIFactory {
                 }
             })
         }
-    }
 
-    fun <T> createSelectBox(observable: ObservableList<T>): SelectBox<T> {
-        return SelectBox<T>(uiSkin).apply {
+    fun <T> createSelectBox(observable: ObservableList<T>): SelectBox<T> =
+        SelectBox<T>(uiSkin).apply {
             observable.subscribeValue(this@UIFactory, "Double binding") { newValue ->
                 selected = newValue
                 if (observable.items != items) {
@@ -342,12 +352,11 @@ object UIFactory {
                 ClipboardUtils.putString(observable.get().toString())
             }
         }
-    }
 
     fun createIcon(text: String) =
-            Label(text, uiSkin).apply {
-                style = iconLabelStyle
-            }
+        Label(text, uiSkin).apply {
+            style = iconLabelStyle
+        }
 
     fun createToggleIconButton(text: String, observable: ObservableValue<Boolean>) =
             createToggleTextButton(text, observable).apply {
@@ -355,8 +364,8 @@ object UIFactory {
                 align(Align.center)
             }
 
-    fun createToggleTextButton(text: String, observable: ObservableValue<Boolean>): TextButton {
-        return TextButton(text, textToggleButtonStyle).apply {
+    fun createToggleTextButton(text: String, observable: ObservableValue<Boolean>) =
+        TextButton(text, textToggleButtonStyle).apply {
             observable.subscribe(this@UIFactory, "Double binding") { newValue -> isChecked = newValue }
             addListener(object : ChangeListener() {
                 override fun changed(event: ChangeEvent?, actor: Actor?) {
@@ -368,16 +377,15 @@ object UIFactory {
                 ClipboardUtils.putString(observable.get().toString())
             }
         }
-    }
 
     fun createIconButton(text: String, action: ((button: Button) -> Unit)? = null) =
-            createTextButton(text, action).apply {
-                style = iconButtonStyle
-                align(Align.center)
-            }
+        createTextButton(text, action).apply {
+            style = iconButtonStyle
+            align(Align.center)
+        }
 
-    fun createTextButton(text: String, action: ((button: Button) -> Unit)? = null): TextButton {
-        return TextButton(text, textButtonStyle).apply {
+    fun createTextButton(text: String, action: ((button: Button) -> Unit)? = null) =
+        TextButton(text, textButtonStyle).apply {
             if (action != null) {
                 addListener(object : ClickListener() {
                     override fun clicked(event: InputEvent?, x: Float, y: Float) {
@@ -386,10 +394,9 @@ object UIFactory {
                 })
             }
         }
-    }
 
-    fun createColorRect(observable: ObservableValue<DoubleArray>): ColorRect {
-        return ColorRect().apply {
+    fun createColorRect(observable: ObservableValue<DoubleArray>) =
+        ColorRect().apply {
             observable.subscribe(this@UIFactory, "Double binding") { newValue -> color = newValue.toColor() }
         }.tooltip(observable.name).contextMenu {
             addMenu("Copy hex") {
@@ -404,10 +411,9 @@ object UIFactory {
                 ClipboardUtils.putString("(${color.r}, ${color.g}, ${color.b}, ${color.a})")
             }
         }
-    }
 
-    fun createColorLabel(observable: ObservableValue<DoubleArray>): Label {
-        return createLabel(observable) { newValue ->
+    fun createColorLabel(observable: ObservableValue<DoubleArray>) =
+        createLabel(observable) { newValue ->
             val imageSpec = ImContext.mainImageSpec.get()
             if (imageSpec != null) {
                 "(${newValue.toColorStr(imageSpec)})"
@@ -426,16 +432,14 @@ object UIFactory {
                 }
             }
         }
-    }
 
-    fun createRectLabel(observable: ObservableValue<Rect>): Label {
-        return createLabel(observable) { newValue -> "(${newValue.x}, ${newValue.y}, ${newValue.width}, ${newValue.height})" }
-    }
+    fun createRectLabel(observable: ObservableValue<Rect>) =
+        createLabel(observable) { newValue -> "(${newValue.x}, ${newValue.y}, ${newValue.width}, ${newValue.height})" }
 
-    fun createPointLabel(observable: ObservableValue<Point2D>): Label {
-        return createLabel(observable) { newValue -> "(${newValue.x.toInt()}, ${newValue.y.toInt()})" }
-    }
+    fun createPointLabel(observable: ObservableValue<Point2D>) =
+        createLabel(observable) { newValue -> "(${newValue.x.toInt()}, ${newValue.y.toInt()})" }
 
+    @OptIn(ExperimentalUnsignedTypes::class)
     fun <T> createLabel(observable: ObservableValue<T>, tooltipText: String? = observable.name, text: (value: T) -> String = { it.toString() })
             : Label {
         var lastValue: T? = null
