@@ -45,7 +45,21 @@ class ImageServer(host: String, port: Int) {
             val socket = server.accept(null)
 
             if (socket != null && ImContext.isServerActive.get()) {
-                thread { ImageHandler(socket).start() }
+                if (ImContext.isServerReceiving.get()) {
+                    return
+                }
+
+                ImContext.isServerReceiving.update(true)
+                thread {
+                    try {
+                        ImageHandler(socket).start()
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                    Gdx.app.postRunnable {
+                        ImContext.isServerReceiving.update(false)
+                    }
+                }
             }
         }
     }

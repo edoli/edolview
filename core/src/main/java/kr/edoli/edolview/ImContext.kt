@@ -109,6 +109,8 @@ object ImContext {
     val centerSelection = PublishSubject.create<Boolean>()
     val fitSelection = PublishSubject.create<Boolean>()
 
+    val isServerReceiving = ObservableValue(false, "Is server receiving")
+
     val listAsset = ListAsset()
 
     val isValidMarquee: Boolean

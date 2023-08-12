@@ -45,7 +45,7 @@ class ToolBar : Panel() {
 
         add(UIFactory.createToggleIconButton(Ionicons.ionMdInformationCircleOutline, ImContext.isShowFileInfo)).width(iconWidth)
 
-        add().width(32f)
+        add().width(16f)
 
         add(UIFactory.createIconButton(Ionicons.ionMdExpand) {
             ImContext.fitSelection.onNext(true)
@@ -54,14 +54,23 @@ class ToolBar : Panel() {
             ImContext.centerSelection.onNext(true)
         }.tooltip("Center selection view")).width(iconWidth)
 
-        add().width(32f)
+        add().width(16f)
         add(UIFactory.createToggleIconButton(Ionicons.ionMdAdd, ImContext.isShowCrosshair)).width(iconWidth)
         add(UIFactory.createIconButton(Ionicons.ionMdPaper) {
             ShaderEditor.show()
         }.tooltip("Edit shader script")).width(iconWidth)
-        add(UIFactory.createToggleIconButton(Ionicons.ionMdGitNetwork, ImContext.isServerActive)).width(iconWidth)
 
+        // Network
+        add().width(16f)
         add(UIFactory.createLabel(ImContext.imageServerAddress))
+        add().width(4f)
+        add(UIFactory.createIcon(Ionicons.ionMdDownload).apply {
+            align(Align.center)
+            ImContext.isServerReceiving.subscribe(this, "Loading icon") {
+                this.color = if (it) Colors.accent else Colors.inactive
+            }
+        }.tooltip("Is receiving")).width(iconWidth)
+        
 
         add().expandX()
         add(UIFactory.createToggleIconButton(Ionicons.ionMdOptions, ImContext.isShowController)).width(iconWidth)
