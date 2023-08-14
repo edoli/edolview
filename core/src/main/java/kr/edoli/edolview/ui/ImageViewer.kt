@@ -68,6 +68,7 @@ class ImageViewer : WidgetGroup() {
         }
 
         ImContext.visibleChannel.subscribeValue(this, "Update texture") {
+            // TODO: Call only once when both mainImage and visibleChannel changed
             updateTexture(ImContext.mainImage.get())
         }
 

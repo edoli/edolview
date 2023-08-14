@@ -7,7 +7,7 @@ import rx.subjects.Subject
  * Created by daniel on 16. 10. 2.
  */
 class ObservableList<T>(
-        private var list: List<T>,
+        private var list: List<T> = ArrayList(),
         private val initialIndex: Int = 0,
         val name: String = "") {
 
@@ -68,9 +68,7 @@ class ObservableList<T>(
     fun update(newList: List<T>, newInitIndex: Int = -1) {
         list = newList
 
-        if (newInitIndex != -1) {
-            currentIndex = newInitIndex
-        }
+        currentIndex = newInitIndex
 
         update()
     }
@@ -83,9 +81,13 @@ class ObservableList<T>(
 
     private fun update() {
         if (list.isEmpty()) {
-            currentIndex = 0
+            currentIndex = -1
         } else if (currentIndex > list.size) {
-            currentIndex %= list.size
+            currentIndex = list.size - 1
+        }
+
+        if (list.isNotEmpty() && currentIndex == -1) {
+            currentIndex = 0
         }
 
         val startTime = System.nanoTime()

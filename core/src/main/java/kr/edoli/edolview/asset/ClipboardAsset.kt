@@ -21,7 +21,7 @@ class ClipboardAsset : Asset() {
         counter += 1
     }
 
-    override fun load(): ImageSpec? {
+    override fun loadImageSpec(): ImageSpec? {
         val image = ClipboardUtils.getImage() as BufferedImage?
         if (image != null) {
             return ImageSpec(ImageConvert.bufferedToMat(image), 255.0, 8)

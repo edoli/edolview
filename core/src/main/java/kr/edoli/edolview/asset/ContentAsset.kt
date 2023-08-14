@@ -12,7 +12,7 @@ class ContentAsset(private val uri: String) : Asset() {
     override val name = uri
     override val shouldAddToRecentAssets = true
 
-    override fun load(): ImageSpec? {
+    override fun loadImageSpec(): ImageSpec? {
         val bytes = Platform.contentResolve(uri) ?: return null
 
         val mat = ImageConvert.bytesToMat(bytes)

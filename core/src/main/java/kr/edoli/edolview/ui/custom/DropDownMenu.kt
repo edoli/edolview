@@ -9,7 +9,7 @@ class DropDownMenu<T>(
         button: Button, listStyle: List.ListStyle,
         textFunc: (T) -> String,
         onSelectItem: ((T) -> Unit)? = null
-) : DropDown(button, CustomList<T>(listStyle, textFunc)) {
+) : DropDown(button, CustomList(listStyle, textFunc)) {
     @Suppress("UNCHECKED_CAST")
     val list: List<T> = dropDown as List<T>
 

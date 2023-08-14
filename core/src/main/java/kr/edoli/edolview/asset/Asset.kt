@@ -40,14 +40,17 @@ abstract class Asset {
 
     fun retrieveImageSpec(): ImageSpec? {
         if (imageSpec?.isEmpty != false) {
-            imageSpec = load()
+            imageSpec = loadImageSpec()
         }
         return imageSpec
     }
 
-    abstract fun load(): ImageSpec?
+    fun isLoaded(): Boolean {
+        return imageSpec?.isEmpty == true
+    }
 
-//    abstract fun isLoaded(): Boolean
+    protected abstract fun loadImageSpec(): ImageSpec?
+
     abstract fun next(): Asset?
     abstract fun prev(): Asset?
     abstract fun checkRefresh(): Boolean

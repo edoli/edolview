@@ -13,7 +13,7 @@ class UrlAsset(private val url: String) : Asset() {
     override val name = url
     override val shouldAddToRecentAssets = true
 
-    override fun load(): ImageSpec? {
+    override fun loadImageSpec(): ImageSpec? {
         val urlObj = URL(url)
         val bytes = try {
             urlObj.readBytes()

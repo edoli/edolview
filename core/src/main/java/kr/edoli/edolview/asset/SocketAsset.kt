@@ -11,7 +11,7 @@ class SocketAsset(imageName: String, private val mat: Mat) : Asset() {
     override val name = "$imageName (Remote)"
     override val shouldAddToRecentAssets = true
 
-    override fun load(): ImageSpec? {
+    override fun loadImageSpec(): ImageSpec? {
         try {
             return ImageSpec(mat)
         } catch (e: Exception) {

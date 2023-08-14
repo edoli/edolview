@@ -264,14 +264,14 @@ object UIFactory {
 
     fun <T> createDropdownMenu(
         name: String,
-        observable: ObservableValue<kotlin.collections.List<T>>,
+        observable: ObservableList<T>,
         textFunc: (T) -> String,
         onSelected: (T) -> Unit
     ) = DropDownMenu(
             createTextButton(name).apply { style = textToggleButtonStyle },
             listStyle, textFunc, onSelected
         ).apply {
-            observable.subscribe(this@UIFactory, "Double binding") { newValue ->
+            observable.subscribe(this@UIFactory, "Double binding") { newValue, _ ->
                 if (newValue != list.items) {
                     val array = com.badlogic.gdx.utils.Array<T>()
                     newValue.forEach { array.add(it) }
@@ -291,7 +291,7 @@ object UIFactory {
                 val array = com.badlogic.gdx.utils.Array<T>()
                 items.forEach { array.add(it) }
                 setItems(array)
-                selected = newValue
+//                selected = newValue
             }
 
             addListener(object : ChangeListener() {

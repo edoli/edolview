@@ -33,7 +33,7 @@ object ImContext {
     val mainTitle = ObservableValue("", "Main file name")
     val mainAssetNavigator = Observable<Int>("Main file navigation")
 
-    val recentAssets = ObservableValue(emptyList<Asset>(), "Recently opened files")
+    val recentAssets = ObservableList<Asset>(name="Recently opened files")
 
     val autoRefresh = ObservableValue(false, "Auto refresh")
 
@@ -141,19 +141,26 @@ object ImContext {
 
                 // Add to recent files
                 if (spec != null && asset.shouldAddToRecentAssets) {
-                    val list = recentAssets.get().toMutableList()
                     val name = asset.name
 
+                    val list = recentAssets.items
+
                     // TODO: resolve when multiple assets have same name
-                    val assetInList = list.firstOrNull { it.name == name }
-                    if (assetInList != null) {
-                        list.remove(assetInList)
+                    val isExist = list.contains(asset)
+
+                    if (!isExist) {
+                        val assetInList = list.firstOrNull { it.name == name }
+
+                        val newList = list.toMutableList()
+                        if (assetInList != null) {
+                            newList.remove(assetInList)
+                        }
+                        newList.add(asset)
+
+                        recentAssets.update(newList, newList.indexOf(asset))
+                    } else {
+                        recentAssets.update(list, list.indexOf(asset))
                     }
-                    list.add(asset)
-                    while (list.size > 15) {
-                        list.removeFirst()
-                    }
-                    recentAssets.update(list)
                 }
             }
             

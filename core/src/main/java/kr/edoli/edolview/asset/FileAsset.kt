@@ -37,34 +37,22 @@ class FileAsset(val path: String) : Asset() {
     override val workingDirectory: String
         get() = currentFileDirectory ?: ""
 
-    override fun load(): ImageSpec? {
+    override fun loadImageSpec(): ImageSpec? {
 
         val file = File(path)
 
-        if (!fileManager.isImageFile(file)) {
+        if (file.isDirectory || !fileManager.isImageFile(file)) {
             return null
         }
 
-        if (file.isDirectory) {
-            fileManager.setFile(file)
-
-        } else if (file.isFile) {
-            currentFile = file
-            currentFileDirectory = file.absoluteFile.parent
-            fileManager.setFile(file)
-            val spec = ImageStore.get(file)
-            val mat = spec.mat
-            if (!mat.empty()) {
-                return spec
-            }
+        currentFile = file
+        currentFileDirectory = file.absoluteFile.parent
+        fileManager.setFile(file)
+        val spec = ImageStore.get(file)
+        val mat = spec.mat
+        if (!mat.empty()) {
+            return spec
         }
-//        else {
-//            // Not from file. Clear file manager
-//            mainFile.update(null)
-//            mainFileName.update(path)
-//            mainFileDirectory.update("")
-//            ImContext.fileManager.setFile(null)
-//        }
 
         return null
     }

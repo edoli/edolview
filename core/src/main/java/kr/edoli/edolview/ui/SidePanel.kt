@@ -22,7 +22,7 @@ class SidePanel : Panel() {
         addPanel("Selection statistics", StatisticsPanel(ImContext.marqueeImage), true)
         addPanel("Histogram", HistogramPanel(), true)
         addPanel("Plot", PlotPanel(), true)
-//        addPanel("List assets", ListAssetPanel(), true)
+        addPanel("List assets", ListAssetPanel(ImContext.recentAssets), true)
 
         ImContext.isShowController.subscribe(this, "Layout") {
             isVisible = it
