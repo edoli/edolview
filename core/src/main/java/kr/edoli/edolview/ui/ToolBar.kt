@@ -25,16 +25,6 @@ class ToolBar : Panel() {
 
         align(Align.left)
 
-        add(UIFactory.createDropdownMenu("Recent files ▼", ImContext.recentAssets, Asset::name) { asset ->
-            ImContext.mainAsset.update(asset)
-        })
-
-        add().width(16f)
-
-        add(UIFactory.createIconButton(Ionicons.ionMdTrash) {
-            ImageStore.clearCache()
-        }.tooltip("Clear cache")).width(iconWidth)
-
         add(UIFactory.createToggleIconButton(Ionicons.ionMdSync, ImContext.autoRefresh)).width(iconWidth)
         add(UIFactory.createToggleIconButton(Ionicons.ionMdCalendar, ImContext.isShowBackground)).width(iconWidth)
         add(UIFactory.createToggleIconButton(Ionicons.ionMdApps, ImContext.isShowPixelValue)).width(iconWidth)
