@@ -42,8 +42,8 @@ class CustomList<T>(style: ListStyle, val textFunc: (T) -> String) : List<T>(sty
 
                 strIndex -= 1
             }
-            val start = (strIndex + 2).clamp(0, string.length - 1)
-            val newStr = "..." + string.subSequence(start, string.length)
+            val start = (strIndex + 1).clamp(0, string.length - 1)
+            val newStr = if (start < 3) string else "..." + string.subSequence(start, string.length)
             return font.draw(batch, newStr, x, y, 0, newStr.length, width, alignment, false, null)
         } else {
             return font.draw(batch, string, x, y, 0, string.length, width, alignment, false, "...")

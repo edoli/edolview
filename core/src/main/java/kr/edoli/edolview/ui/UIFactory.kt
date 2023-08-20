@@ -291,12 +291,16 @@ object UIFactory {
                 val array = com.badlogic.gdx.utils.Array<T>()
                 items.forEach { array.add(it) }
                 setItems(array)
-//                selected = newValue
+                if (selected != newValue) {
+                    selected = newValue
+                }
             }
 
             addListener(object : ChangeListener() {
                 override fun changed(event: ChangeEvent?, actor: Actor?) {
-                    observable.update(selectedIndex)
+                    if (observable.currentIndex != selectedIndex) {
+                        observable.update(selectedIndex)
+                    }
                     onSelected(selected)
                 }
             })
