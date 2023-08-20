@@ -45,30 +45,32 @@ class DisplayProfilePanel : Panel(false) {
                 minMaxSwap.isDisabled = normalized
                 minMaxSwap.touchable = if (normalized) Touchable.disabled else Touchable.enabled
 
-                if (normalized) {
-                    val imageMinMax = ImContext.mainImageSpec.get()!!.minMax
+                val mainImageSpec = ImContext.mainImageSpec.get()
+                if (mainImageSpec != null) {
+                    if (normalized) {
+                        val imageMinMax = mainImageSpec.minMax
 
-                    numberFieldMin.text = imageMinMax.first.toString()
-                    numberFieldMax.text = imageMinMax.second.toString()
-                } else {
-                    numberFieldMin.text = ImContext.displayMin.get().toString()
-                    numberFieldMax.text = ImContext.displayMax.get().toString()
+                        numberFieldMin.text = imageMinMax.first.toString()
+                        numberFieldMax.text = imageMinMax.second.toString()
+                    } else {
+                        numberFieldMin.text = ImContext.displayMin.get().toString()
+                        numberFieldMax.text = ImContext.displayMax.get().toString()
+                    }
                 }
             }
-            ImContext.normalize.subscribe(this@DisplayProfilePanel, "Update display profile") {
-                update()
-            }
-            ImContext.inverse.subscribe(this@DisplayProfilePanel, "Update display profile") {
-                update()
-            }
-            ImContext.invertR.subscribe(this@DisplayProfilePanel, "Update display profile") {
-                update()
-            }
-            ImContext.invertG.subscribe(this@DisplayProfilePanel, "Update display profile") {
-                update()
-            }
-            ImContext.invertB.subscribe(this@DisplayProfilePanel, "Update display profile") {
-                update()
+
+            val subscribeVariables = arrayOf(
+                ImContext.mainImageSpec,
+                ImContext.normalize,
+                ImContext.inverse,
+                ImContext.invertR,
+                ImContext.invertG,
+                ImContext.invertB)
+
+            subscribeVariables.forEach { variable ->
+                variable.subscribe(this@DisplayProfilePanel, "Update display profile") {
+                    update()
+                }
             }
         }
 
