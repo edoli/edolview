@@ -9,6 +9,7 @@ object Colors {
 
     val background = Color.valueOf("474747")
     val backgroundDark = Color.valueOf("363636")
+    val backgroundContextMenu = Color.valueOf("272727")
     val backgroundOver = Color.valueOf("676767")
     val backgroundDown = Color.valueOf("272727")
     val backgroundBorder = Color.valueOf("333333")
