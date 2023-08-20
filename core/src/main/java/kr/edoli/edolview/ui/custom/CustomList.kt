@@ -4,14 +4,56 @@ import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.BitmapFont.BitmapFontData
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
+import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.scenes.scene2d.Actor
+import com.badlogic.gdx.scenes.scene2d.InputEvent
+import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.ui.List
 import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.utils.Align
+import kr.edoli.edolview.image.ClipboardUtils
+import kr.edoli.edolview.ui.UIFactory
+import kr.edoli.edolview.ui.contextmenu.ContextMenu
+import kr.edoli.edolview.ui.contextmenu.ContextMenuPanel
 import kr.edoli.edolview.util.clamp
+import javax.naming.Context
+import kotlin.math.max
+import kotlin.math.min
 
 class CustomList<T>(style: ListStyle, val textFunc: (T) -> String) : List<T>(style) {
 
     constructor(skin: Skin, textFunc: (T) -> String) : this(skin[ListStyle::class.java], textFunc)
+
+    init {
+        addListener(object : InputListener() {
+            var pressedIndex = -1
+
+            val contextMenu = ContextMenu(UIFactory.contextMenuManager) {
+                addMenu("Copy") {
+                    if (pressedIndex != -1) {
+                        val item = items[pressedIndex]
+                        ClipboardUtils.putString(toString(item))
+                    }
+                }
+            }
+
+            override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+                if (pointer != 0 || button != 1) return true
+                if (items.size == 0) return true
+                val index = getItemIndexAt(y)
+                if (index == -1) return true
+                pressedIndex = index
+                return true
+            }
+
+            override fun touchUp(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int) {
+                if (pointer != 0 || button != 1) return
+                if (pressedIndex != -1) {
+                    contextMenu.clicked(event, x, y)
+                }
+            }
+        })
+    }
     override fun toString(item: T): String {
         return textFunc(item)
     }
