@@ -1,10 +1,7 @@
 package kr.edoli.edolview.image
 
 import com.badlogic.gdx.graphics.Pixmap
-import org.opencv.core.Core
-import org.opencv.core.CvType
-import org.opencv.core.Mat
-import org.opencv.core.MatOfByte
+import org.opencv.core.*
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
 import java.awt.Transparency
@@ -78,8 +75,16 @@ object ImageConvert {
             4 -> {
                 val matChannels = mat.split()
                 when (bufferedImageType) {
+                    in arrayOf(1) -> {
+                        matChannels[0].setTo(Scalar(255.0))
+                        Core.merge(listOf(matChannels[1], matChannels[2], matChannels[3], matChannels[0]), mat)
+                    }
                     in arrayOf(2, 3) -> {
                         Core.merge(listOf(matChannels[1], matChannels[2], matChannels[3], matChannels[0]), mat)
+                    }
+                    in arrayOf(4) -> {
+                        matChannels[0].setTo(Scalar(255.0))
+                        Core.merge(listOf(matChannels[3], matChannels[2], matChannels[1], matChannels[0]), mat)
                     }
                     in arrayOf(6, 7) -> {
                         Core.merge(listOf(matChannels[3], matChannels[2], matChannels[1], matChannels[0]), mat)
@@ -89,7 +94,7 @@ object ImageConvert {
             3 -> {
                 val matChannels = mat.split()
                 when (bufferedImageType) {
-                    in arrayOf(4, 5) -> {
+                    in arrayOf(5) -> {
                         Core.merge(listOf(matChannels[2], matChannels[1], matChannels[0]), mat)
                     }
                 }
