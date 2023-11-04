@@ -76,15 +76,13 @@ object ImageConvert {
                 val matChannels = mat.split()
                 when (bufferedImageType) {
                     in arrayOf(1) -> {
-                        matChannels[0].setTo(Scalar(255.0))
-                        Core.merge(listOf(matChannels[1], matChannels[2], matChannels[3], matChannels[0]), mat)
+                        Core.merge(listOf(matChannels[1], matChannels[2], matChannels[3]), mat)
                     }
                     in arrayOf(2, 3) -> {
                         Core.merge(listOf(matChannels[1], matChannels[2], matChannels[3], matChannels[0]), mat)
                     }
                     in arrayOf(4) -> {
-                        matChannels[0].setTo(Scalar(255.0))
-                        Core.merge(listOf(matChannels[3], matChannels[2], matChannels[1], matChannels[0]), mat)
+                        Core.merge(listOf(matChannels[3], matChannels[2], matChannels[1]), mat)
                     }
                     in arrayOf(6, 7) -> {
                         Core.merge(listOf(matChannels[3], matChannels[2], matChannels[1], matChannels[0]), mat)
