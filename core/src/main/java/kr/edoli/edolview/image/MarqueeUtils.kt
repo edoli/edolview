@@ -78,22 +78,9 @@ object MarqueeUtils {
         val selectBox = ImContext.marqueeBox.get()
         val selectBoxActive = ImContext.marqueeBoxActive.get()
 
-        if (mainImage != null) {
-            return if (selectBoxActive) {
-                val meanVal = Core.mean(mainImage[selectBox])
-                if (mainImage.channels() == 3 || mainImage.channels() == 4) {
-                    meanVal.`val`
-                } else {
-                    meanVal.`val`.sliceArray(0..0)
-                }
-            } else {
-                val meanVal = Core.mean(mainImage)
-                if (mainImage.channels() == 3 || mainImage.channels() == 4) {
-                    meanVal.`val`
-                } else {
-                    meanVal.`val`.sliceArray(0..0)
-                }
-            }
+        if (mainImage != null && selectBoxActive) {
+            val meanVal = Core.mean(mainImage[selectBox])  // Always return size 4 double array
+            return meanVal.`val`.sliceArray(0 until mainImage.channels())
         }
         return doubleArrayOf(0.0)
     }
