@@ -35,7 +35,7 @@ compileJava {
 project.ext.mainClassName = "kr.edoli.edolview.MainKt"
 project.ext.appname = appName
 project.ext.assetsDir = new File("../assets")
-project.ext.version = '1.1'
+project.ext.version = '1.4.3'
 
 application {
     mainClassName = project.mainClassName

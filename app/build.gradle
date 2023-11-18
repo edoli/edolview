@@ -1,6 +1,6 @@
 buildscript {
     ext {
-        appName = "EdolView"
+        appName = "edolView"
         kotlin_version = '1.7.10'
         openjfx_version = '0.0.8'
         gdx_version = '1.11.0'

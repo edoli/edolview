@@ -3,6 +3,9 @@ package kr.edoli.edolview.ui.res
 import com.badlogic.gdx.graphics.Color
 import kotlin.reflect.full.declaredMemberProperties
 
+fun Color.awtColor(): java.awt.Color {
+    return java.awt.Color(r, g, b, a)
+}
 
 object Colors {
     val transpent = Color.valueOf("00000000")

@@ -25,6 +25,7 @@ object ImContext {
     }
 
     private val preferences = Gdx.app.getPreferences("EdolView")
+    val prefShaders = Gdx.app.getPreferences("Shaders")
 
     val args = ObservableValue(arrayOf<String>(), "Args")
 
@@ -273,14 +274,14 @@ object ImContext {
         }
     }
 
-    fun loadPreferences() {
+    private fun loadPreferences() {
         // preferences.sync()
         isShowCrosshair.update(preferences.getBoolean("isShowCrossHair", false))
         isShowController.update(preferences.getBoolean("isShowConroller", false))
         isShowFileInfo.update(preferences.getBoolean("isShowInfo", false))
     }
 
-    fun savePreferences() {
+    private fun savePreferences() {
         preferences.putBoolean("isShowCrossHair", isShowCrosshair.get())
         preferences.putBoolean("isShowConroller", isShowController.get())
         preferences.putBoolean("isShowInfo", isShowFileInfo.get())

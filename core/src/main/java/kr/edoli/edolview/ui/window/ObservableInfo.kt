@@ -3,12 +3,11 @@ package kr.edoli.edolview.ui.window
 import kr.edoli.edolview.util.ObservableContext
 import java.awt.event.KeyEvent
 import java.awt.event.KeyListener
-import javax.swing.JFrame
 import javax.swing.JScrollPane
 import javax.swing.JTable
 import kotlin.concurrent.fixedRateTimer
 
-class ObservableInfo private constructor() : JFrame() {
+class ObservableInfo private constructor() : BaseWindow() {
     companion object {
         var infoPanel: ObservableInfo? = null
 
