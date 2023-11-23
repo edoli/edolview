@@ -598,6 +598,10 @@ class ImageViewer : WidgetGroup() {
     }
 
     fun drawImage(batch: Batch, localX: Float, localY: Float, localScale: Float) {
+        if (ImContext.mainImageSpec.get() == null) {
+            return
+        }
+
         batch.begin()
         textureRegion?.let { region ->
             if (ImContext.enableDisplayProfile.get()) {
