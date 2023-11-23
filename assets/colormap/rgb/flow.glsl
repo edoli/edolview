@@ -20,7 +20,7 @@ vec3 flow_colormap(vec3 t) {
 
     float flow_norm = sqrt(fx * fx + fy * fy);
     float angle = atan(-fy, -fx) / PI;
-    float fk = (angle + 1.) / 2. * 55;
+    float fk = (angle + 1.) / 2. * 55.;
 
     float r = 0.;
     float g = 0.;
