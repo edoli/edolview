@@ -15,7 +15,7 @@ class ContentAsset(private val uri: String) : Asset() {
     override fun loadImageSpec(): ImageSpec? {
         val bytes = Platform.contentResolve(uri) ?: return null
 
-        val mat = ImageConvert.bytesToMat(bytes)
+        val mat = ImageConvert.decodeBytes(bytes)
 
         if (mat.width() <= 0 || mat.height() <= 0) {
             return null

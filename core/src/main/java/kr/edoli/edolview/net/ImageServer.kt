@@ -126,13 +126,13 @@ class ImageHandler(socket: Socket) {
                 Mat(shape[0], shape[1], cvType, byteBuffer)
             }
             "png" -> {
-                ImageConvert.bytesToMat(bufferBytes)
+                ImageConvert.decodeBytes(bufferBytes)
             }
             "exr" -> {
-                ImageConvert.bytesToMat(bufferBytes)
+                ImageConvert.decodeBytes(bufferBytes)
             }
             "cv" -> {
-                ImageConvert.bytesToMat(bufferBytes)
+                ImageConvert.decodeBytes(bufferBytes)
             }
             else -> {
                 null

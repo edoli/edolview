@@ -1,13 +1,15 @@
 package kr.edoli.edolview.image
 
 import com.badlogic.gdx.graphics.Pixmap
-import org.opencv.core.*
+import org.opencv.core.Core
+import org.opencv.core.CvType
+import org.opencv.core.Mat
+import org.opencv.core.MatOfByte
 import org.opencv.imgcodecs.Imgcodecs
 import org.opencv.imgproc.Imgproc
 import java.awt.Transparency
 import java.awt.image.*
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
+import java.nio.*
 
 
 object ImageConvert {
@@ -27,48 +29,99 @@ object ImageConvert {
         return byteArrayToBuffered(rawData, width, height, channels)
     }
 
+    fun bufferedToByteBuffer(bufferedImage: BufferedImage): ByteBuffer {
+        val byteBuffer: ByteBuffer
+        val dataBuffer = bufferedImage.raster.dataBuffer
+
+        when (dataBuffer.dataType) {
+            DataBuffer.TYPE_BYTE -> {
+                val pixelData = (dataBuffer as DataBufferByte).data
+                byteBuffer = ByteBuffer.allocateDirect(pixelData.size)
+                byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
+                byteBuffer.put(pixelData)
+            }
+            DataBuffer.TYPE_USHORT -> {
+                val pixelData = (dataBuffer as DataBufferUShort).data
+                byteBuffer = ByteBuffer.allocateDirect(pixelData.size * 2)
+                byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
+                byteBuffer.asShortBuffer().put(ShortBuffer.wrap(pixelData))
+            }
+            DataBuffer.TYPE_SHORT -> {
+                val pixelData = (dataBuffer as DataBufferShort).data
+                byteBuffer = ByteBuffer.allocateDirect(pixelData.size * 2)
+                byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
+                byteBuffer.asShortBuffer().put(ShortBuffer.wrap(pixelData))
+            }
+            DataBuffer.TYPE_INT -> {
+                val pixelData = (dataBuffer as DataBufferInt).data
+                byteBuffer = ByteBuffer.allocateDirect(pixelData.size * 4)
+                byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
+                byteBuffer.asIntBuffer().put(IntBuffer.wrap(pixelData))
+            }
+            DataBuffer.TYPE_FLOAT -> {
+                val pixelData = (dataBuffer as DataBufferFloat).data
+                byteBuffer = ByteBuffer.allocateDirect(pixelData.size * 4)
+                byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
+                byteBuffer.asFloatBuffer().put(FloatBuffer.wrap(pixelData))
+            }
+            DataBuffer.TYPE_DOUBLE -> {
+                val pixelData = (dataBuffer as DataBufferDouble).data
+                byteBuffer = ByteBuffer.allocateDirect(pixelData.size * 8)
+                byteBuffer.order(ByteOrder.LITTLE_ENDIAN)
+                byteBuffer.asDoubleBuffer().put(DoubleBuffer.wrap(pixelData))
+            }
+            else -> {
+                throw IllegalArgumentException("Not implemented for data buffer type: " + dataBuffer::javaClass)
+            }
+
+        }
+
+        return byteBuffer
+    }
+
     fun bufferedToMat(bufferedImage: BufferedImage): Mat {
         val width = bufferedImage.width
         val height = bufferedImage.height
+        val channels = bufferedImage.colorModel.numComponents
 
-        val dataBuffer = bufferedImage.data.dataBuffer
-
+        val dataType = bufferedImage.data.dataBuffer.dataType
+        val rawData = bufferedToByteBuffer(bufferedImage)
         val mat: Mat
-        when (dataBuffer.dataType) {
-            DataBuffer.TYPE_INT -> {
-                val dataBufferTyped = bufferedImage.data.dataBuffer as DataBufferInt
-                val intData = dataBufferTyped.data
-                val byteBuffer = ByteBuffer.allocate(intData.size * 4)
-                val intBuffer = byteBuffer.asIntBuffer()
-                intBuffer.put(intData)
-                val rawData = byteBuffer.array()
-                val type = CvType.CV_8UC4
-                mat = Mat(height, width, type)
-                mat.put(0, 0, rawData)
-            }
+
+        when (dataType) {
             DataBuffer.TYPE_BYTE -> {
-                val dataBufferTyped = bufferedImage.data.dataBuffer as DataBufferByte
-                val byteData = dataBufferTyped.data
-                val channels = byteData.size / (width * height)
-                val byteBuffer = ByteBuffer.allocate(byteData.size * channels)
-                byteBuffer.put(byteData)
-                val rawData = byteBuffer.array()
-                val type = if (channels == 4) CvType.CV_8UC4 else CvType.CV_8UC3
-                mat = Mat(height, width, type)
-                mat.put(0, 0, rawData)
+                val type = CvType.makeType(0, channels)
+                mat = Mat(height, width, type, rawData)
+            }
+            DataBuffer.TYPE_USHORT -> {
+                val type = CvType.makeType(7, channels)
+                mat = Mat(height, width, type, rawData)
+            }
+            DataBuffer.TYPE_SHORT -> {
+                val type = CvType.makeType(3, channels)
+                mat = Mat(height, width, type, rawData)
+            }
+            DataBuffer.TYPE_INT -> {
+                val type = CvType.CV_8UC4
+                mat = Mat(height, width, type, rawData)
+            }
+            DataBuffer.TYPE_FLOAT -> {
+                val type = CvType.makeType(5, channels)
+                mat = Mat(height, width, type, rawData)
+            }
+            DataBuffer.TYPE_DOUBLE -> {
+                val type = CvType.makeType(6, channels)
+                mat = Mat(height, width, type, rawData)
             }
             else -> {
-                val dataBufferTyped = bufferedImage.data.dataBuffer as DataBufferByte
-                val rawData = dataBufferTyped.data
-                val channels = rawData.size / (width * height)
-                val type = if (channels == 4) CvType.CV_8UC4 else CvType.CV_8UC3
-                mat = Mat(height, width, type)
-                mat.put(0, 0, rawData)
+                val type = CvType.makeType(0, channels)
+                mat = Mat(height, width, type, rawData)
             }
         }
 
         return arrangeChannels(mat, bufferedImage.type)
     }
+
 
     private fun arrangeChannels(mat: Mat, bufferedImageType: Int): Mat {
         when (mat.channels()) {
@@ -123,7 +176,7 @@ object ImageConvert {
         }
     }
 
-    fun bytesToMat(bytes: ByteArray): Mat {
+    fun decodeBytes(bytes: ByteArray): Mat {
         val matBytes = MatOfByte(*bytes)
         val mat = Imgcodecs.imdecode(matBytes, -1)
 

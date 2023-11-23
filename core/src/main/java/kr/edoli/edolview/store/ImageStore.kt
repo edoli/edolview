@@ -9,8 +9,10 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FilenameUtils
 import org.opencv.core.Mat
 import java.io.BufferedReader
+import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileReader
+import javax.imageio.ImageIO
 import kotlin.math.abs
 
 /**
@@ -42,14 +44,14 @@ object ImageStore {
             if (ext.lowercase() == "flo") {
                 val mat = ImageConvert.decodeFlo(bytes)
 
-                if (mat == null) {
-                    return ImageSpec(Mat())
+                return if (mat == null) {
+                    ImageSpec(Mat())
                 } else {
-                    return ImageSpec(mat)
+                    ImageSpec(mat)
                 }
 
             } else {
-                val mat = ImageConvert.bytesToMat(bytes)
+                val mat = bytesToMat(bytes)
 
                 if (ext.lowercase() == "pfm") {
                     val reader = BufferedReader(FileReader(path))
@@ -65,6 +67,25 @@ object ImageStore {
         } catch (e: Exception) {
             return ImageSpec(Mat())
         }
+    }
+
+    fun bytesToMat(bytes: ByteArray): Mat {
+        if (checkMagicNumber(bytes, byteArrayOf(0x49, 0x49, 0x2A, 0x00))) {
+            // TIFF
+            val img = ImageIO.read(ByteArrayInputStream(bytes))
+            return ImageConvert.bufferedToMat(img)
+        } else {
+            return ImageConvert.decodeBytes(bytes)
+        }
+    }
+
+    fun checkMagicNumber(bytes: ByteArray, magicNumber: ByteArray): Boolean {
+        for (i in magicNumber.indices) {
+            if (bytes[i] != magicNumber[i]) {
+                return false
+            }
+        }
+        return true
     }
 
     fun clearCache() {

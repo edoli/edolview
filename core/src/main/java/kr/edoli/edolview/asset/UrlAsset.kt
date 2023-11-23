@@ -21,7 +21,7 @@ class UrlAsset(private val url: String) : Asset() {
             // url file not found
             return null
         }
-        val mat = ImageConvert.bytesToMat(bytes)
+        val mat = ImageConvert.decodeBytes(bytes)
 
         if (mat.width() <= 0 || mat.height() <= 0) {
             return null
