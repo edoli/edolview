@@ -336,7 +336,7 @@ fun Mat.bitsPerPixel(): Int {
 }
 
 val Mat.nbytes: Int
-    get() = (this.cols() * this.cols() * this.elemSize()).toInt()
+    get() = (this.rows() * this.cols() * this.elemSize()).toInt()
 
 inline fun <T> Mat.toArray(generateArray: (arraySize: Int) -> T): T {
     val channels = this.channels()
