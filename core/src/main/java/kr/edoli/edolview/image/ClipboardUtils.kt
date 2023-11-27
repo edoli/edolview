@@ -36,16 +36,16 @@ class ImageSelection(private val image: java.awt.Image) : Transferable {
 object ClipboardUtils {
 
     fun putImage(mat: Mat) {
-        val buffered = try {
-            ImageConvert.matToBuffered(mat)
+        val bufferedImage = try {
+            ImageConvert.matToBufferedImage(mat)
         } catch (ex: Exception) {
             Thread {
                 JOptionPane.showMessageDialog(null, ex.message, "Image conversion error", JOptionPane.ERROR_MESSAGE)
             }.start()
             null
         }
-        if (buffered != null) {
-            putImage(buffered)
+        if (bufferedImage != null) {
+            putImage(bufferedImage)
         }
     }
 

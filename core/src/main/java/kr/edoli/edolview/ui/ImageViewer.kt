@@ -234,9 +234,9 @@ class ImageViewer : WidgetGroup() {
                                     val colStart = (matWidth * (box.y + i) + box.x) * 4
                                     byteArray.copyInto(croppedByteArray, i * croppedRowSize, colStart, colStart + croppedRowSize)
                                 }
-                                ClipboardUtils.putImage(ImageConvert.byteArrayToBuffered(croppedByteArray, box.width, box.height, 4))
+                                ClipboardUtils.putImage(ImageConvert.byteArrayToBufferedImage(croppedByteArray, box.width, box.height, 4))
                             } else {
-                                ClipboardUtils.putImage(ImageConvert.byteArrayToBuffered(byteArray, mat.width(), mat.height(), 4))
+                                ClipboardUtils.putImage(ImageConvert.byteArrayToBufferedImage(byteArray, mat.width(), mat.height(), 4))
                             }
                         }
                     }
@@ -274,7 +274,7 @@ class ImageViewer : WidgetGroup() {
                 bufferCallbacks.add { byteArray ->
                     val mat = ImContext.mainImage.get()
                     if (mat != null) {
-                        ClipboardUtils.putImage(ImageConvert.byteArrayToBuffered(byteArray, mat.width(), mat.height(), 4))
+                        ClipboardUtils.putImage(ImageConvert.byteArrayToBufferedImage(byteArray, mat.width(), mat.height(), 4))
                     }
                 }
             }
@@ -343,7 +343,7 @@ class ImageViewer : WidgetGroup() {
                                 val colStart = (matWidth * (box.y + i) + box.x) * 4
                                 byteArray.copyInto(croppedByteArray, i * croppedRowSize, colStart, colStart + croppedRowSize)
                             }
-                            ClipboardUtils.putImage(ImageConvert.byteArrayToBuffered(croppedByteArray, box.width, box.height, 4))
+                            ClipboardUtils.putImage(ImageConvert.byteArrayToBufferedImage(croppedByteArray, box.width, box.height, 4))
                         }
                     }
                 }

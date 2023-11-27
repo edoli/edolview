@@ -15,21 +15,25 @@ import java.nio.*
 object ImageConvert {
     val tmpMat = Mat()
 
-    fun matToBuffered(mat: Mat): BufferedImage {
+    fun matToBufferedImage(mat: Mat): BufferedImage {
         val width = mat.cols()
         val height = mat.rows()
         val channels = mat.channels()
         val arraySize = (mat.total() * channels).toInt()
 
-        mat.convertTo(tmpMat, CvType.CV_8U, 255.0)
-
         val rawData = ByteArray(arraySize)
+
+        if (!CvType.isInteger(mat.type())) {
+            mat.convertTo(tmpMat, CvType.CV_8U, 255.0)
+        } else {
+            mat.convertTo(tmpMat, CvType.CV_8U)
+        }
         tmpMat.get(0, 0, rawData)
 
-        return byteArrayToBuffered(rawData, width, height, channels)
+        return byteArrayToBufferedImage(rawData, width, height, channels)
     }
 
-    fun bufferedToByteBuffer(bufferedImage: BufferedImage): ByteBuffer {
+    fun bufferedImagetoByteBuffer(bufferedImage: BufferedImage): ByteBuffer {
         val byteBuffer: ByteBuffer
         val dataBuffer = bufferedImage.raster.dataBuffer
 
@@ -79,13 +83,13 @@ object ImageConvert {
         return byteBuffer
     }
 
-    fun bufferedToMat(bufferedImage: BufferedImage): Mat {
+    fun bufferedImageToMat(bufferedImage: BufferedImage): Mat {
         val width = bufferedImage.width
         val height = bufferedImage.height
         val channels = bufferedImage.colorModel.numComponents
 
         val dataType = bufferedImage.data.dataBuffer.dataType
-        val rawData = bufferedToByteBuffer(bufferedImage)
+        val rawData = bufferedImagetoByteBuffer(bufferedImage)
         val mat: Mat
 
         when (dataType) {
@@ -159,10 +163,10 @@ object ImageConvert {
         val width = pixmap.width
         val height = pixmap.height
         val rawData = pixmap.pixels.array()
-        return byteArrayToBuffered(rawData, width, height, channels)
+        return byteArrayToBufferedImage(rawData, width, height, channels)
     }
 
-    fun byteArrayToBuffered(byteArray: ByteArray, width: Int, height: Int, channels: Int): BufferedImage {
+    fun byteArrayToBufferedImage(byteArray: ByteArray, width: Int, height: Int, channels: Int): BufferedImage {
         val buffer = DataBufferByte(byteArray, byteArray.size)
 
         return if (channels == 4) {
