@@ -285,7 +285,7 @@ object UIFactory {
     fun <T> createList(
         observable: ObservableList<T>,
         textFunc: (T) -> String,
-        onSelected: (T) -> Unit
+        onSelected: (T?) -> Unit
     ) = CustomList(uiSkin, textFunc).apply {
             observable.subscribe(this@UIFactory, "Double binding") { items, newValue ->
                 val array = com.badlogic.gdx.utils.Array<T>()

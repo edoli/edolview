@@ -22,6 +22,8 @@ import kotlin.math.min
 
 class CustomList<T>(style: ListStyle, val textFunc: (T) -> String) : List<T>(style) {
 
+    var onRemoveItemIndex: ((index: Int) -> Unit)? = null
+
     constructor(skin: Skin, textFunc: (T) -> String) : this(skin[ListStyle::class.java], textFunc)
 
     init {
@@ -29,10 +31,19 @@ class CustomList<T>(style: ListStyle, val textFunc: (T) -> String) : List<T>(sty
             var pressedIndex = -1
 
             val contextMenu = ContextMenu(UIFactory.contextMenuManager) {
-                addMenu("Copy") {
-                    if (pressedIndex != -1) {
-                        val item = items[pressedIndex]
+                val pIndex = pressedIndex
+
+                if (pressedIndex != -1) {
+                    val item = items[pIndex]
+
+                    addMenu("Copy") {
                         ClipboardUtils.putString(toString(item))
+                    }
+
+                    onRemoveItemIndex?.let {
+                        addMenu("Delete") {
+                            it(pIndex)
+                        }
                     }
                 }
             }

@@ -100,7 +100,5 @@ open class DropDown(
             dropDown.addAction(Actions.removeActor())
         }
     }
-
-
 }
 
