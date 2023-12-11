@@ -250,9 +250,14 @@ object ImContext {
     }
 
     fun updateCurrentShader(channel: Int = visibleChannel.get() ?: 0) {
+        val isMono = channel != 0 || mainImage.get()?.channels() == 1
+
         if (viewerShaderBuilder.customShader != "") {
-            viewerShader.update(viewerShaderBuilder.getCustom())
-        } else if (channel != 0 || mainImage.get()?.channels() == 1) {
+            val colormap = if (isMono) imageMonoColormap.get() else imageRGBColormap.get()
+            if (colormap != null) {
+                viewerShader.update(viewerShaderBuilder.getCustom(colormap, isMono))
+            }
+        } else if (isMono) {
             val monoColormap = imageMonoColormap.get()
             if (monoColormap != null) {
                 viewerShader.update(viewerShaderBuilder.getMono(monoColormap))

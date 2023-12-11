@@ -1,3 +1,4 @@
+#version 120
 #ifdef GL_ES
     #define LOWP lowp
     precision mediump float;
@@ -128,4 +129,6 @@ void main()
     }
 
     %color_process%
+
+    %final_shader%
 }

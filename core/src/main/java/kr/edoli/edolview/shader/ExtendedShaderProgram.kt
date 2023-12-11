@@ -5,20 +5,20 @@ import com.badlogic.gdx.graphics.glutils.ShaderProgram
 class ExtendedShaderProgram(vertexShader: String, fragmentShader: String, colormapShader: String) :
     ShaderProgram(vertexShader, fragmentShader) {
 
-        var absMax = false
-            private set
+    var absMax = false
+        private set
 
-        init {
-            val escapeIndex = colormapShader.indexOf('\n')
+    init {
+        val escapeIndex = colormapShader.indexOf('\n')
 
-            if (escapeIndex != -1) {
-                val firstLine = colormapShader.subSequence(2, escapeIndex).toString()
+        if (escapeIndex != -1 && colormapShader.subSequence(0, 2) == "//") {
+            val firstLine = colormapShader.subSequence(2, escapeIndex).toString()
 
-                val flags = firstLine.trim().replace(" ", "").split(',')
+            val flags = firstLine.trim().replace(" ", "").split(',')
 
-                if ("ABS_MAX" in flags) {
-                    absMax = true
-                }
+            if ("ABS_MAX" in flags) {
+                absMax = true
             }
         }
+    }
 }
