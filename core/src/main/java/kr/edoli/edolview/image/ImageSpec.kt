@@ -6,7 +6,8 @@ import kotlin.math.abs
 
 data class ImageSpec(val mat: Mat,
                      val typeMaxValue: Double = abs(mat.typeMax()),
-                     val bitsPerPixel: Int = mat.bitsPerPixel()) {
+                     val bitsPerPixel: Int = mat.bitsPerPixel(),
+                     val lastModified: Long = 0L) {
 
     val numChannels = mat.channels()
     val type = mat.type()

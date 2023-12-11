@@ -49,6 +49,10 @@ abstract class Asset {
         return imageSpec?.isEmpty == true
     }
 
+    open fun dispose() {
+        imageSpec?.mat?.release()
+    }
+
     protected abstract fun loadImageSpec(): ImageSpec?
 
     abstract fun next(): Asset?

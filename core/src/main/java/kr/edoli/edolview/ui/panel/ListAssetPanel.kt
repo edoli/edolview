@@ -19,7 +19,8 @@ class ListAssetPanel(observableList: ObservableList<Asset>) : Panel(false) {
             onRemoveItemIndex = { index ->
                 val list = observableList.items
                 val newList = list.toMutableList()
-                newList.removeAt(index)
+                val removedAsset = newList.removeAt(index)
+                removedAsset.dispose()
                 observableList.update(newList, min(newList.size - 1, index))
             }
         }).minWidth(0f).expandX().fillX()

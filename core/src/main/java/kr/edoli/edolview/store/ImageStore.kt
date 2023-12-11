@@ -9,10 +9,8 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.io.FilenameUtils
 import org.opencv.core.Mat
 import java.io.BufferedReader
-import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileReader
-import javax.imageio.ImageIO
 import kotlin.math.abs
 
 /**
@@ -24,34 +22,30 @@ object ImageStore {
 
     private val imageStoreMap = CacheBuilder.newBuilder()
             .maximumWeight(MAX_MEMORY)
-            .weigher { _: ImageDesc, v1: ImageSpec -> (v1.mat.total() * v1.mat.channels()).toInt() }
-            .removalListener<ImageDesc, ImageSpec> { it.value?.mat?.release() }
-            .build(object : CacheLoader<ImageDesc, ImageSpec>() {
-                override fun load(key: ImageDesc): ImageSpec {
-                    return loadFromPath(key.path)
+            .weigher { _: String, v1: ImageSpec -> (v1.mat.total() * v1.mat.channels()).toInt() }
+            .removalListener<String, ImageSpec> { it.value?.mat?.release() }
+            .build(object : CacheLoader<String, ImageSpec>() {
+                override fun load(key: String): ImageSpec {
+                    return loadFromPath(key)
                 }
             })
 
     private fun loadFromPath(path: String): ImageSpec {
         val ext = FilenameUtils.getExtension(path)
-        if (!File(path).exists()) {
+        val file = File(path)
+        if (!file.exists()) {
             return ImageSpec(Mat())
         }
-        val file = File(path)
         val bytes = FileUtils.readFileToByteArray(file)
+
+        val lastModified = file.lastModified()
+        var mat: Mat
 
         try {
             if (ext.lowercase() == "flo") {
-                val mat = ImageConvert.decodeFlo(bytes)
-
-                return if (mat == null) {
-                    ImageSpec(Mat())
-                } else {
-                    ImageSpec(mat)
-                }
-
+                mat = ImageConvert.decodeFlo(bytes) ?: Mat()
             } else {
-                val mat = bytesToMat(bytes)
+                mat = bytesToMat(bytes)
 
                 if (ext.lowercase() == "pfm") {
                     val reader = BufferedReader(FileReader(path))
@@ -61,22 +55,23 @@ object ImageStore {
 
                     mat *= abs(scale.toDouble())
                 }
-
-                return ImageSpec(mat)
             }
-        } catch (e: Exception) {
-            return ImageSpec(Mat())
+        } catch (_: Exception) {
+            // Ignore error and pass empty mat
+            mat = Mat()
         }
+
+        return ImageSpec(mat, lastModified=lastModified)
     }
 
     fun bytesToMat(bytes: ByteArray): Mat {
-        if (checkMagicNumber(bytes, byteArrayOf(0x49, 0x49, 0x2A, 0x00))) {
-            // TIFF
-            val img = ImageIO.read(ByteArrayInputStream(bytes))
-            return ImageConvert.bufferedToMat(img)
-        } else {
-            return ImageConvert.decodeBytes(bytes)
-        }
+//        if (checkMagicNumber(bytes, byteArrayOf(0x49, 0x49, 0x2A, 0x00))) {
+//            // TIFF
+//            val img = ImageIO.read(ByteArrayInputStream(bytes))
+//            return ImageConvert.bufferedToMat(img)
+//        } else {
+        return ImageConvert.decodeBytes(bytes)
+//        }
     }
 
     fun checkMagicNumber(bytes: ByteArray, magicNumber: ByteArray): Boolean {
@@ -99,7 +94,13 @@ object ImageStore {
 
     fun get(path: String, lastModified: Long): ImageSpec {
         val processedName = process(path)
-        return imageStoreMap[ImageDesc(processedName, lastModified)]
+        var imageSpec = imageStoreMap[processedName]
+
+        if (imageSpec.lastModified != lastModified || imageSpec.isEmpty) {
+            imageStoreMap.invalidate(processedName)
+            imageSpec = imageStoreMap[processedName]
+        }
+        return imageSpec
     }
 
     private fun process(name: String): String {
@@ -109,6 +110,4 @@ object ImageStore {
         }
         return pName
     }
-
-    data class ImageDesc(val path: String, val lastModified: Long)
 }
