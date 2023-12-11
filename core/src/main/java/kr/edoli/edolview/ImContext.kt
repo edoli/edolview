@@ -311,17 +311,13 @@ object ImContext {
         mainAsset.update(mainAsset.get())
     }
 
-    fun addAssetsFromFiles(files: Array<String>) {
-        if (mainAsset.get() == listAsset) {
-            listAsset.assets.update {
-                val newList = it.toMutableList()
-                for (file in files) {
-                    newList.add(Asset.fromUri(file))
-                }
-                newList
+    fun addAssetsFromFiles(files: Array<String>, index: Int = 0) {
+        if (files.size > index) {
+            mainAsset.update(Asset.fromUri(files[index]))
+
+            Gdx.app.postRunnable {
+                addAssetsFromFiles(files, index + 1)
             }
-        } else {
-            mainAsset.update(Asset.fromUri(files[0]))
         }
     }
 }
