@@ -99,6 +99,10 @@ class ImageHandler(socket: Socket) {
             currentPosition += recvSize
         }
 
+        if (extra.nbytes == 0) {
+            return
+        }
+
         val mat = when (extra.compression) {
             "zlib" -> {
                 val shape = extra.shape
