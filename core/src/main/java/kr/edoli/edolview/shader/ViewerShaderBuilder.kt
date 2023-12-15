@@ -59,15 +59,15 @@ class ViewerShaderBuilder {
     // colormap before pixel processing for RGB images
     private val colorProcessRGBColormap = """
     vec3 v;
-    v.r = pow(tex.r * pow(2.0, exposure) + offset, 1.0 / gamma);
-    v.g = pow(tex.g * pow(2.0, exposure) + offset, 1.0 / gamma);
-    v.b = pow(tex.b * pow(2.0, exposure) + offset, 1.0 / gamma);
+    v.r = color_proc(tex.r);
+    v.g = color_proc(tex.g);
+    v.b = color_proc(tex.b);
     vec3 cm = %colormap_name%_colormap(v);
     """
 
     // colormap after pixel processing for Mono images
     private val colorProcessMonoColorMap = """
-    float v = pow(tex.r * pow(2.0, exposure) + offset, 1.0 / gamma);
+    float v = color_proc(tex.r);
     v = clamp(v, 0.0, 1.0);
     vec3 cm = %colormap_name%_colormap(v);
     """
