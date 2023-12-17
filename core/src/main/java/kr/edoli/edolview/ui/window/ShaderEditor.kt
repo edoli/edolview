@@ -2,6 +2,8 @@ package kr.edoli.edolview.ui.window
 
 import com.badlogic.gdx.Gdx
 import kr.edoli.edolview.ImContext
+import kr.edoli.edolview.ui.res.Colors
+import kr.edoli.edolview.ui.res.awtColor
 import java.awt.Dimension
 import java.awt.Font
 import java.awt.GridBagConstraints
@@ -58,9 +60,13 @@ class ShaderEditor private constructor(): BaseWindow() {
             }
         }
 
-        container.add(JLabel("Input: vec4 tex, Output: vec4 gl_FragColor").apply {
+        container.add(JTextPane().apply {
+            contentType = "text/html"
+            text = "<html><body style=\"font-family: ${font.family};\">Input: <b>vec4 tex</b>, <b>vec3 cm</b> <br>Output: <b>vec4 gl_FragColor</b></body></html>"
             border = EmptyBorder(8, 8, 8, 8)
-            font = font.deriveFont(font.style or Font.BOLD)
+            background = Colors.normal.awtColor()
+            isEditable = false
+            font = Font("sans-serif", Font.PLAIN, 14)
         }, GridBagConstraints().apply {
             grid(0, 0)
             fill = GridBagConstraints.HORIZONTAL
