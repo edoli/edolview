@@ -62,11 +62,10 @@ class ShaderEditor private constructor(): BaseWindow() {
 
         container.add(JTextPane().apply {
             contentType = "text/html"
-            text = "<html><body style=\"font-family: ${font.family};\">Input: <b>vec4 tex</b>, <b>vec3 cm</b> <br>Output: <b>vec4 gl_FragColor</b></body></html>"
+            text = "<html><body style=\"font-family: ${font.family}; font-size: 10px;\">Input: <b>vec4 tex</b>, <b>vec3 cm</b> <br>Output: <b>vec4 gl_FragColor</b></body></html>"
             border = EmptyBorder(8, 8, 8, 8)
             background = Colors.normal.awtColor()
             isEditable = false
-            font = Font("sans-serif", Font.PLAIN, 14)
         }, GridBagConstraints().apply {
             grid(0, 0)
             fill = GridBagConstraints.HORIZONTAL
