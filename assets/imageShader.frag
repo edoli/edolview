@@ -105,6 +105,12 @@ vec3 rgb2lab(vec3 rgb) {
     return xyz2lab(rgb2xyz(rgb));
 }
 
+float color_proc(float v)
+{
+    float tmp = v * pow(2.0, exposure) + offset;
+    return sign(tmp) * pow(abs(tmp), 1.0 / gamma);
+}
+
 %colormap_function%
 
 void main()
