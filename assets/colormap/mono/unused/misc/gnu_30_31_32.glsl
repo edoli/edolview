@@ -111,6 +111,6 @@ float colormap_f1(int formula, float x) {
     }
 }
 
-vec3 gnu_33_13_10_colormap(float x) {
+vec3 gnu_30_31_32_colormap(float x) {
     return vec3(colormap_f1(30, x), colormap_f1(31, x), colormap_f1(32, x));
 }
