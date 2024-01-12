@@ -16,7 +16,7 @@ echo Install opencv dependencies
 cp lib/libopencv_core.so.4.5 /usr/local/lib
 cp lib/libopencv_imgproc.so.4.5 /usr/local/lib
 cp lib/libopencv_imgcodecs.so.4.5 /usr/local/lib
-cp lib/libopencv_java450.so /usr/lib64
+cp lib/libopencv_java4.so /usr/lib64
 
 
 echo Install application
