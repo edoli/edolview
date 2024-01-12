@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 buildscript {
     ext {
         appName = "EdolView"
@@ -21,16 +23,16 @@ dependencies {
     implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdx_version:natives-desktop"
 }
 
-compileKotlin {
+tasks.withType(KotlinCompile).configureEach {
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_16.toString()
+    }
+}
+
+java {
     sourceCompatibility = JavaVersion.VERSION_16
     targetCompatibility = JavaVersion.VERSION_16
 }
-
-compileJava {
-    sourceCompatibility = JavaVersion.VERSION_16
-    targetCompatibility = JavaVersion.VERSION_16
-}
-
 
 project.ext.mainClassName = "kr.edoli.edolview.MainKt"
 project.ext.appname = appName
