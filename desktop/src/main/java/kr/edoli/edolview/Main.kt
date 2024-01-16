@@ -8,7 +8,6 @@ import io.sentry.Sentry
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
 import kotlinx.cli.default
-import kr.edoli.edolview.asset.Asset
 import kr.edoli.edolview.ui.App
 import kr.edoli.edolview.util.Platform
 import kr.edoli.edolview.util.PlatformImp
