@@ -66,6 +66,7 @@ fun main(args: Array<String>) {
         config.setTitle("Edolview")
         config.setWindowedMode(1280, 720)
         config.setWindowIcon("icon.png")
+        config.disableAudio(true)
 
         MyLwjgl3Application(App(initPath), config)
     } catch (e: Exception) {
