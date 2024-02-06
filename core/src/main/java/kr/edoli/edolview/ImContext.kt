@@ -2,11 +2,11 @@ package kr.edoli.edolview
 
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.math.Vector2
-import kr.edoli.edolview.geom.Point2D
-import kr.edoli.edolview.image.*
 import kr.edoli.edolview.asset.Asset
 import kr.edoli.edolview.asset.ClipboardAsset
 import kr.edoli.edolview.asset.ListAsset
+import kr.edoli.edolview.geom.Point2D
+import kr.edoli.edolview.image.*
 import kr.edoli.edolview.shader.ViewerShaderBuilder
 import kr.edoli.edolview.util.*
 import kr.edoli.edolview.util.Observable
@@ -105,6 +105,12 @@ object ImContext {
     val isServerActive = ObservableValue(true, "Activate socket server")
 
     val imageServerAddress = ObservableValue("", "Image server address")
+
+    // Image statistics
+    val statMin = ObservableValue(0.0, "Min value of image")
+    val statMax = ObservableValue(0.0, "Max value of image")
+    val statMean = ObservableValue(0.0, "Mean value of image")
+    val statStd = ObservableValue(0.0, "Standard deviation value of image")
 
     val centerCursor = PublishSubject.create<Boolean>()
     val centerImage = PublishSubject.create<Boolean>()

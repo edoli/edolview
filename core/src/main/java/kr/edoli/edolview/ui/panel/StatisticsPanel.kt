@@ -7,7 +7,7 @@ import kr.edoli.edolview.image.pow
 import kr.edoli.edolview.image.split
 import kr.edoli.edolview.image.sum
 import kr.edoli.edolview.ui.Panel
-import kr.edoli.edolview.ui.custom.NumberLabel
+import kr.edoli.edolview.ui.UIFactory.createNumberLabel
 import kr.edoli.edolview.util.ObservableLazyValue
 import kr.edoli.edolview.util.forever
 import org.opencv.core.Mat
@@ -16,12 +16,12 @@ import kotlin.concurrent.thread
 import kotlin.math.sqrt
 
 class StatisticsPanel(imageObservable: ObservableLazyValue<Mat?>) : Panel(false) {
-    val imageQueue = LinkedBlockingQueue<Mat>()
+    private val imageQueue = LinkedBlockingQueue<Mat>()
 
-    val minLabel = NumberLabel("Min value of image", skin)
-    val maxLabel = NumberLabel("Max value of image", skin)
-    val meanLabel = NumberLabel("Mean value of image", skin)
-    val stdLabel = NumberLabel("Standard deviation value of image", skin)
+    private val minLabel = createNumberLabel(ImContext.statMin)
+    private val maxLabel = createNumberLabel(ImContext.statMax)
+    private val meanLabel = createNumberLabel(ImContext.statMean)
+    private val stdLabel = createNumberLabel(ImContext.statStd)
 
     init {
         add("Min").expandX()
@@ -48,17 +48,18 @@ class StatisticsPanel(imageObservable: ObservableLazyValue<Mat?>) : Panel(false)
                 val spec = ImContext.mainImageSpec.get() ?: return@forever
 
                 val channels = mat.channels()
-                val num = (mat.total() * channels).toInt()
-
-                if (num <= channels) {
-                    return@forever
-                }
 
                 val vChannel = ImContext.visibleChannel.get() ?: 0
-                val subMat = if (vChannel == 0 ) {
+                val subMat = if (vChannel == 0) {
                     mat
                 } else {
                     mat.split()[vChannel - 1]
+                }
+
+                val num = (mat.total() * if (vChannel == 0) channels else 1).toInt()
+
+                if (num <= 1) {
+                    return@forever
                 }
 
                 val minMax = subMat.minMax()
@@ -72,10 +73,10 @@ class StatisticsPanel(imageObservable: ObservableLazyValue<Mat?>) : Panel(false)
                 val standardDeviation = sqrt(variance)
 
                 Gdx.app.postRunnable {
-                    minLabel.value = minValue * spec.typeMaxValue
-                    maxLabel.value = maxValue * spec.typeMaxValue
-                    meanLabel.value = mean * spec.typeMaxValue
-                    stdLabel.value = standardDeviation * spec.typeMaxValue
+                    ImContext.statMin.update(minValue * spec.typeMaxValue)
+                    ImContext.statMax.update(maxValue * spec.typeMaxValue)
+                    ImContext.statMean.update(mean * spec.typeMaxValue)
+                    ImContext.statStd.update(standardDeviation * spec.typeMaxValue)
                 }
             }
         }

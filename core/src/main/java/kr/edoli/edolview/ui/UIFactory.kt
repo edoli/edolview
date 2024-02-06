@@ -443,14 +443,17 @@ object UIFactory {
     fun createPointLabel(observable: ObservableValue<Point2D>) =
         createLabel(observable) { newValue -> "(${newValue.x.toInt()}, ${newValue.y.toInt()})" }
 
+    fun createNumberLabel(observable: ObservableValue<Double>) =
+        createLabel(observable, textFormat = { it.format(2) })
+
     @OptIn(ExperimentalUnsignedTypes::class)
-    fun <T> createLabel(observable: ObservableValue<T>, tooltipText: String? = observable.name, text: (value: T) -> String = { it.toString() })
+    fun <T> createLabel(observable: ObservableValue<T>, tooltipText: String? = observable.name, textFormat: (value: T) -> String = { it.toString() })
             : Label {
         var lastValue: T? = null
         return Label("", uiSkin).apply {
             observable.subscribe(this@UIFactory, "Double binding") { newValue ->
                 lastValue = newValue
-                setText(text(newValue))
+                setText(textFormat(newValue))
             }
         }.tooltip(tooltipText).contextMenu {
             if (lastValue !is String) {
@@ -466,7 +469,7 @@ object UIFactory {
             }
             addMenu("Copy text") {
                 val value = lastValue
-                ClipboardUtils.putString(value?.let<T, String> { text(it) } ?: "")
+                ClipboardUtils.putString(value?.let<T, String> { textFormat(it) } ?: "")
             }
         }.presentation()
     }
