@@ -93,6 +93,8 @@ object ImContext {
     // UIgetScalingFactor
     val uiScale = ObservableValue(Platform.getScalingFactor(), "UI scaling factor")
 
+    val presentationMode = ObservableValue(false, "Presentation mode")
+
     val isShowBackground = ObservableValue(false, "Show background")
     val isShowCrosshair = ObservableValue(true, "Show crosshair")
     val isShowController = ObservableValue(true, "Show controller")

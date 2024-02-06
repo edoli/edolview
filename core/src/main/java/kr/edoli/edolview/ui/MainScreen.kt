@@ -3,9 +3,13 @@ package kr.edoli.edolview.ui
 import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.Screen
+import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Cursor
 import com.badlogic.gdx.graphics.GL30
+import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer
+import com.badlogic.gdx.math.Vector2
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
@@ -22,10 +26,11 @@ import kr.edoli.edolview.ui.res.Ionicons
 import kr.edoli.edolview.ui.res.uiSkin
 import kr.edoli.edolview.ui.window.ObservableInfo
 import kr.edoli.edolview.util.FullScreenManager
+import kotlin.math.max
 
 class MainScreen : Screen {
     val stage = Stage(ScreenViewport(), PolygonSpriteBatch())
-    var lastUIScale = 0f
+    private var lastUIScale = 0f
 
     init {
         val imageViewer = ImageViewer()
@@ -113,6 +118,47 @@ class MainScreen : Screen {
 
         })
 
+        val posA = Vector2()
+        val posB = Vector2()
+
+        val shapeRenderer = ShapeRenderer()
+        val thickness = 4.0f
+
+        stage.addActor(object : Actor() {
+            fun drawRect(actor: Actor, color: Color) {
+                posA.set(0.0f, 0.0f)
+                posB.set(actor.width, actor.height)
+
+                actor.localToStageCoordinates(posA)
+                actor.localToStageCoordinates(posB)
+
+                shapeRenderer.color = color
+                shapeRenderer.rectLine(posA.x, posA.y, posA.x, posB.y, thickness)
+                shapeRenderer.rectLine(posA.x, posA.y, posB.x, posA.y, thickness)
+                shapeRenderer.rectLine(posB.x, posA.y, posB.x, posB.y, thickness)
+                shapeRenderer.rectLine(posA.x, posB.y, posB.x, posB.y, thickness)
+            }
+
+            override fun draw(batch: Batch, parentAlpha: Float) {
+                super.draw(batch, parentAlpha)
+
+                if (ImContext.presentationMode.get()) {
+                    batch.end()
+
+                    shapeRenderer.begin(ShapeRenderer.ShapeType.Filled)
+                    shapeRenderer.transformMatrix = batch.transformMatrix
+                    shapeRenderer.projectionMatrix = batch.projectionMatrix
+
+                    stage.keyboardFocus?.let { drawRect(it, Color.RED) }
+                    presentationFocus?.let { drawRect(it, Color.GREEN) }
+
+                    shapeRenderer.end()
+
+                    batch.begin()
+                }
+            }
+        })
+
         imageViewer.zIndex = 0
         middleTable.zIndex = 0
 
@@ -121,6 +167,7 @@ class MainScreen : Screen {
             val fullScreenManager = FullScreenManager()
 
             override fun keyDown(event: InputEvent, keycode: Int): Boolean {
+                // Debug keys
                 if (keycode == Input.Keys.F4) {
                     stage.isDebugAll = !stage.isDebugAll
                 }
@@ -132,6 +179,19 @@ class MainScreen : Screen {
                 if (keycode == Input.Keys.F5) {
                     // refresh
                     ImContext.refreshAsset()
+                }
+
+                // UI Scaling
+                if (keycode == Input.Keys.LEFT_BRACKET && UIUtils.ctrl()) {
+                    ImContext.uiScale.update { max(it - 0.25f, 0.5f) }
+                }
+
+                if (keycode == Input.Keys.RIGHT_BRACKET && UIUtils.ctrl()) {
+                    ImContext.uiScale.update { it + 0.25f }
+                }
+
+                if (keycode == Input.Keys.P && UIUtils.ctrl()) {
+                    ImContext.presentationMode.update { !it }
                 }
 
                 if (keycode == Input.Keys.F11) {

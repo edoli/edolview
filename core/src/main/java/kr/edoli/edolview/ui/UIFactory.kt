@@ -136,7 +136,7 @@ object UIFactory {
             addMenu("Copy text") {
                 ClipboardUtils.putString(textField.text)
             }
-        }
+        }.presentation()
     }
 
     fun createIntField(observable: ObservableValue<Int>) = createField(observable, {
@@ -210,15 +210,15 @@ object UIFactory {
                     ): Boolean {
                         when {
                             UIUtils.ctrl() -> {
-                                slider.value = slider.value - stepSize * amountY
+                                slider.value -= stepSize * amountY
                             }
 
                             UIUtils.shift() -> {
-                                slider.value = slider.value - stepSize * amountY * 10
+                                slider.value -= stepSize * amountY * 10
                             }
 
                             else -> {
-                                slider.value = slider.value - stepSize * amountY * 100
+                                slider.value -= stepSize * amountY * 100
                             }
                         }
                         return true
@@ -414,7 +414,7 @@ object UIFactory {
                 val color = observable.get().toColor()
                 ClipboardUtils.putString("(${color.r}, ${color.g}, ${color.b}, ${color.a})")
             }
-        }
+        }.presentation()
 
     fun createColorLabel(observable: ObservableValue<DoubleArray>) =
         createLabel(observable) { newValue ->
@@ -468,7 +468,7 @@ object UIFactory {
                 val value = lastValue
                 ClipboardUtils.putString(value?.let<T, String> { text(it) } ?: "")
             }
-        }
+        }.presentation()
     }
 
     @ExperimentalUnsignedTypes
