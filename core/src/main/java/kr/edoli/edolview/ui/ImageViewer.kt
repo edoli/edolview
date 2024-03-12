@@ -10,6 +10,7 @@ import com.badlogic.gdx.graphics.glutils.FrameBuffer
 import com.badlogic.gdx.graphics.glutils.ShaderProgram
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
 import com.badlogic.gdx.math.Vector2
+import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.WidgetGroup
@@ -18,7 +19,10 @@ import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.BufferUtils
 import kr.edoli.edolview.ImContext
 import kr.edoli.edolview.geom.Point2D
-import kr.edoli.edolview.image.*
+import kr.edoli.edolview.image.ClipboardUtils
+import kr.edoli.edolview.image.ImageConvert
+import kr.edoli.edolview.image.MarqueeUtils
+import kr.edoli.edolview.image.bound
 import kr.edoli.edolview.shader.BackgroundShaderBuilder
 import kr.edoli.edolview.ui.custom.MyInputListener
 import kr.edoli.edolview.ui.res.Colors
@@ -53,6 +57,9 @@ class ImageViewer : WidgetGroup() {
     val bufferCallbacks = ArrayList<(ByteArray) -> Unit>()
 
     val defaultShader = SpriteBatch.createDefaultShader()
+
+    val rgbTooltip = RGBTooltip()
+
 
     enum class DragMode {
         marquee, move
@@ -185,10 +192,28 @@ class ImageViewer : WidgetGroup() {
                         }
                     }
                 }
+                rgbTooltip.setPosition(x, y)
+            }
+
+            override fun enter(event: InputEvent?, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
+                if (!rgbTooltip.hasParent()) {
+                    stage.addActor(rgbTooltip)
+                }
+                rgbTooltip.toFront()
+                rgbTooltip.isVisible = true
+                super.enter(event, x, y, pointer, fromActor)
+            }
+
+            override fun exit(event: InputEvent?, x: Float, y: Float, pointer: Int, toActor: Actor?) {
+                if (toActor != this@ImageViewer) {
+                    rgbTooltip.isVisible = false
+                }
+                super.exit(event, x, y, pointer, toActor)
             }
 
             override fun mouseMoved(event: InputEvent, x: Float, y: Float): Boolean {
                 stage.scrollFocus = this@ImageViewer
+                rgbTooltip.setPosition(x + 16f, y)
                 localToImageCoordinates(imageCoord.set(x, y))
                 ImContext.cursorPosition.update(Point2D(imageCoord.x.toDouble(), imageCoord.y.toDouble()))
                 return false
