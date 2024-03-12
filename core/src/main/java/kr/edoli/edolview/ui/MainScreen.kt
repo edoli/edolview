@@ -1,7 +1,6 @@
 package kr.edoli.edolview.ui
 
 import com.badlogic.gdx.Gdx
-import com.badlogic.gdx.Input
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Cursor
@@ -17,9 +16,9 @@ import com.badlogic.gdx.scenes.scene2d.Stage
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import com.badlogic.gdx.scenes.scene2d.ui.Window
-import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import kr.edoli.edolview.ImContext
+import kr.edoli.edolview.config.KeyboardShortcuts
 import kr.edoli.edolview.ui.custom.SplitPane
 import kr.edoli.edolview.ui.panel.FileInfoPanel
 import kr.edoli.edolview.ui.res.Ionicons
@@ -168,37 +167,37 @@ class MainScreen : Screen {
 
             override fun keyDown(event: InputEvent, keycode: Int): Boolean {
                 // Debug keys
-                if (keycode == Input.Keys.F4) {
-                    stage.isDebugAll = !stage.isDebugAll
-                }
-
-                if (keycode == Input.Keys.F3) {
+                if (KeyboardShortcuts.SHOW_OBSERVABLE_INFO.check(keycode)) {
                     ObservableInfo.show()
                 }
 
-                if (keycode == Input.Keys.F5) {
+                if (KeyboardShortcuts.SHOW_DEBUG_UI.check(keycode)) {
+                    stage.isDebugAll = !stage.isDebugAll
+                }
+
+                if (KeyboardShortcuts.REFRESH_ASSET.check(keycode)) {
                     // refresh
                     ImContext.refreshAsset()
                 }
 
                 // UI Scaling
-                if (keycode == Input.Keys.LEFT_BRACKET && UIUtils.ctrl()) {
+                if (KeyboardShortcuts.UI_SCALE_DOWN.check(keycode)) {
                     ImContext.uiScale.update { max(it - 0.25f, 0.5f) }
                 }
 
-                if (keycode == Input.Keys.RIGHT_BRACKET && UIUtils.ctrl()) {
+                if (KeyboardShortcuts.UI_SCALE_UP.check(keycode)) {
                     ImContext.uiScale.update { it + 0.25f }
                 }
 
-                if (keycode == Input.Keys.P && UIUtils.ctrl()) {
+                if (KeyboardShortcuts.PRESENTATION_MODE.check(keycode)) {
                     ImContext.presentationMode.update { !it }
                 }
 
-                if (keycode == Input.Keys.F11) {
+                if (KeyboardShortcuts.FULLSCREEN_TOGGLE.check(keycode)) {
                     fullScreenManager.toggle()
                 }
 
-                if (keycode == Input.Keys.D && UIUtils.ctrl()) {
+                if (KeyboardShortcuts.LOAD_FROM_CLIPBOARD.check(keycode)) {
                     ImContext.loadFromClipboard()
                 }
                 return super.keyDown(event, keycode)
