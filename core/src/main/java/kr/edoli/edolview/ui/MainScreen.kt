@@ -189,8 +189,12 @@ class MainScreen : Screen {
                     ImContext.uiScale.update { it + 0.25f }
                 }
 
-                if (KeyboardShortcuts.PRESENTATION_MODE.check(keycode)) {
+                if (KeyboardShortcuts.PRESENTATION_MODE_TOGGLE.check(keycode)) {
                     ImContext.presentationMode.update { !it }
+                }
+
+                if (KeyboardShortcuts.RGB_TOOLTIP_TOGGLE.check(keycode)) {
+                    ImContext.isShowRGBTooltip.update { !it }
                 }
 
                 if (KeyboardShortcuts.FULLSCREEN_TOGGLE.check(keycode)) {

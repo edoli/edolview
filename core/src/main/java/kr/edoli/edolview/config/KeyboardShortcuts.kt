@@ -7,6 +7,19 @@ import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 
 object KeyboardShortcuts {
 
+    // UI
+    var UI_SCALE_DOWN = Shortcut(LEFT_BRACKET, ctrl = true)
+    var UI_SCALE_UP = Shortcut(RIGHT_BRACKET, ctrl = true)
+    var PRESENTATION_MODE_TOGGLE = Shortcut(P, ctrl = true)
+    var RGB_TOOLTIP_TOGGLE = Shortcut(E, ctrl = true)
+    var FULLSCREEN_TOGGLE = Shortcut(F11)
+    var LOAD_FROM_CLIPBOARD = Shortcut(D, ctrl = true)
+
+    // DEBUG
+    var SHOW_OBSERVABLE_INFO = Shortcut(F3)
+    var SHOW_DEBUG_UI = Shortcut(F4)
+    var REFRESH_ASSET = Shortcut(F5)
+
     class Shortcut(vararg val keys: Int,
                    val ctrl: Boolean = false,
                    val shift: Boolean = false,
@@ -35,16 +48,4 @@ object KeyboardShortcuts {
             return false
         }
     }
-
-    // UI
-    var UI_SCALE_DOWN = Shortcut(LEFT_BRACKET, ctrl = true)
-    var UI_SCALE_UP = Shortcut(RIGHT_BRACKET, ctrl = true)
-    var PRESENTATION_MODE = Shortcut(P, ctrl = true)
-    var FULLSCREEN_TOGGLE = Shortcut(F11)
-    var LOAD_FROM_CLIPBOARD = Shortcut(D, ctrl = true)
-
-    // DEBUG
-    var SHOW_OBSERVABLE_INFO = Shortcut(F3)
-    var SHOW_DEBUG_UI = Shortcut(F4)
-    var REFRESH_ASSET = Shortcut(F5)
 }
