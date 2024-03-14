@@ -45,6 +45,7 @@ class ToolBar : Panel() {
         }.tooltip("Center selection view")).width(iconWidth)
 
         add().width(16f)
+        add(UIFactory.createToggleIconButton(Ionicons.ionMdColorPalette, ImContext.isShowRGBTooltip)).width(iconWidth)
         add(UIFactory.createToggleIconButton(Ionicons.ionMdAdd, ImContext.isShowCrosshair)).width(iconWidth)
         add(UIFactory.createIconButton(Ionicons.ionMdPaper) {
             ShaderEditor.show()

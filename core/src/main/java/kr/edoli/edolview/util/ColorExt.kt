@@ -15,7 +15,7 @@ fun DoubleArray.toColor(): Color {
     }
 }
 
-fun DoubleArray.toColorStr(imageSpec: ImageSpec) = map {
+fun DoubleArray.toColorStr(imageSpec: ImageSpec, separator: String = ", ") = map {
     // scale == 0 means that an opened image is not uint image
     val scale = imageSpec.typeMaxValue
 
@@ -24,6 +24,6 @@ fun DoubleArray.toColorStr(imageSpec: ImageSpec) = map {
         value *= scale
     }
     if (imageSpec.isInt) value.format(0) else value
-}.joinToString(", ")
+}.joinToString(separator)
 
 fun Color.toFloatArray() = floatArrayOf(this.r, this.g, this.b, this.a)

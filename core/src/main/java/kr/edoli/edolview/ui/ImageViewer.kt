@@ -192,15 +192,12 @@ class ImageViewer : WidgetGroup() {
                         }
                     }
                 }
-                rgbTooltip.setPosition(x, y)
+                updateRGBTooltipPosition(x, y)
+                rgbTooltip.setPosition(x + 16f, y)
             }
 
             override fun enter(event: InputEvent?, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
-                if (!rgbTooltip.hasParent()) {
-                    stage.addActor(rgbTooltip)
-                }
-                rgbTooltip.toFront()
-                rgbTooltip.isVisible = true
+                updateRGBTooltipPosition(x, y)
                 super.enter(event, x, y, pointer, fromActor)
             }
 
@@ -213,7 +210,7 @@ class ImageViewer : WidgetGroup() {
 
             override fun mouseMoved(event: InputEvent, x: Float, y: Float): Boolean {
                 stage.scrollFocus = this@ImageViewer
-                rgbTooltip.setPosition(x + 16f, y)
+                updateRGBTooltipPosition(x, y)
                 localToImageCoordinates(imageCoord.set(x, y))
                 ImContext.cursorPosition.update(Point2D(imageCoord.x.toDouble(), imageCoord.y.toDouble()))
                 return false
@@ -477,6 +474,29 @@ class ImageViewer : WidgetGroup() {
         val marqueeHeight = vecB.y - vecA.y
         imageX = imageX + (width - marqueeWidth) / 2 - vecA.x
         imageY = imageY + (height - marqueeHeight) / 2 - vecA.y
+    }
+
+    private fun updateRGBTooltipPosition(x: Float, y: Float) {
+        if (!ImContext.isShowRGBTooltip.get()) {
+            return
+        }
+
+        if (!rgbTooltip.hasParent()) {
+            stage.addActor(rgbTooltip)
+        }
+
+        val imageX = (x - imageX) / imageScale
+        val imageY = imageHeight - ((y - imageY) / imageScale)
+        val isInImageCoordinates = imageX >= 0 && imageX < imageWidth
+                && imageY >= 0 && imageY < imageHeight
+
+        if (isInImageCoordinates) {
+            rgbTooltip.toFront()
+            rgbTooltip.isVisible = true
+            rgbTooltip.setPosition(x + 16f, y)
+        } else {
+            rgbTooltip.isVisible = false
+        }
     }
 
     private fun localToImageCoordinates(vec: Vector2): Vector2 {

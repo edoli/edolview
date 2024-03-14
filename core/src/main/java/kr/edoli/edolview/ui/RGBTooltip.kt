@@ -4,25 +4,21 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import kr.edoli.edolview.ImContext
 import kr.edoli.edolview.ui.res.uiSkin
-import kr.edoli.edolview.util.toColor
+import kr.edoli.edolview.util.toColorStr
 
 class RGBTooltip: Table() {
-    companion object {
-        const val rowHeight = 24f
-    }
 
     init {
         background = uiSkin.getDrawable("tooltip_background")
-//        val colorRect = ColorRect()
         val colorLabel = Label("", uiSkin)
         pad(8f)
-//        add(colorRect).width(rowHeight).height(rowHeight)
-//        add().width(8f)
         add(colorLabel)
 
         ImContext.cursorRGB.subscribe(this, "Cursor RGB tooltip") {
-//            colorRect.color = it.toColor()
-            colorLabel.setText(it.joinToString("\n"))
+            val imageSpec = ImContext.mainImageSpec.get()
+            if (imageSpec != null) {
+                colorLabel.setText(it.toColorStr(imageSpec, "\n"))
+            }
 
             validate()
             pack()
