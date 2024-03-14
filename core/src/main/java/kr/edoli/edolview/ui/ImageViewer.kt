@@ -24,6 +24,9 @@ import kr.edoli.edolview.image.ImageConvert
 import kr.edoli.edolview.image.MarqueeUtils
 import kr.edoli.edolview.image.bound
 import kr.edoli.edolview.shader.BackgroundShaderBuilder
+import kr.edoli.edolview.ui.component.MarkerGroup
+import kr.edoli.edolview.ui.component.RGBMarker
+import kr.edoli.edolview.ui.component.RGBTooltip
 import kr.edoli.edolview.ui.custom.MyInputListener
 import kr.edoli.edolview.ui.res.Colors
 import kr.edoli.edolview.ui.res.Font
@@ -58,8 +61,8 @@ class ImageViewer : WidgetGroup() {
 
     val defaultShader = SpriteBatch.createDefaultShader()
 
-    val rgbTooltip = RGBTooltip()
-
+    val rgbTooltip = RGBTooltip(ImContext.cursorRGB)
+    val markers = MarkerGroup(this)
 
     enum class DragMode {
         marquee, move
@@ -80,6 +83,8 @@ class ImageViewer : WidgetGroup() {
         }
 
         ImContext.smoothing.subscribe(this, "Update texture smoothing") { updateSmoothing() }
+
+        addActor(markers)
 
         // Drag listener
         addListener(object : MyInputListener() {
@@ -102,7 +107,15 @@ class ImageViewer : WidgetGroup() {
                     return false
                 }
 
-                if (UIUtils.shift()) {
+                if (UIUtils.alt()) {
+                    val selectedMarker = markers.getMarkerAtLocal(x, y)
+                    if (selectedMarker != null) {
+                        markers.removeActor(selectedMarker)
+                    } else {
+                        markers.addMarkerLocal(RGBMarker(), x, y)
+                    }
+                    return false
+                } else if (UIUtils.shift()) {
                     ImContext.marqueeBoxActive.update(true)
                     localToImageCoordinates(imageCoord.set(x, y))
 
@@ -499,13 +512,13 @@ class ImageViewer : WidgetGroup() {
         }
     }
 
-    private fun localToImageCoordinates(vec: Vector2): Vector2 {
+    fun localToImageCoordinates(vec: Vector2): Vector2 {
         vec.x = (vec.x - imageX) / imageScale
         vec.y = imageHeight - ((vec.y - imageY) / imageScale)
         return vec
     }
 
-    private fun imageToLocalCoordinates(vec: Vector2): Vector2 {
+    fun imageToLocalCoordinates(vec: Vector2): Vector2 {
         vec.x = (vec.x * imageScale) + imageX
         vec.y = ((imageHeight - vec.y) * imageScale) + imageY
         return vec
@@ -639,7 +652,12 @@ class ImageViewer : WidgetGroup() {
             shapeRenderer.line(mousePos.x, y, mousePos.x, height)
             shapeRenderer.end()
         }
+
+        // draw markers
         batch.begin()
+
+        markers.update()
+        markers.draw(batch, parentAlpha)
     }
 
     fun drawImage(batch: Batch, localX: Float, localY: Float, localScale: Float) {
