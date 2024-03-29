@@ -95,7 +95,7 @@ object ImContext {
 
     val presentationMode = ObservableValue(false, "Presentation mode")
 
-    val isShowBackground = ObservableValue(false, "Show background")
+    val isShowBackground = ObservableValue(true, "Show background")
     val isShowRGBTooltip = ObservableValue(false, "Show rgb tooltip")
     val isShowCrosshair = ObservableValue(true, "Show crosshair")
     val isShowController = ObservableValue(true, "Show controller")
