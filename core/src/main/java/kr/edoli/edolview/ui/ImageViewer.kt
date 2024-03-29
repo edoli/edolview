@@ -18,6 +18,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.UIUtils
 import com.badlogic.gdx.utils.Align
 import com.badlogic.gdx.utils.BufferUtils
 import kr.edoli.edolview.ImContext
+import kr.edoli.edolview.geom.CustomIntersector
 import kr.edoli.edolview.geom.Point2D
 import kr.edoli.edolview.image.ClipboardUtils
 import kr.edoli.edolview.image.ImageConvert
@@ -51,6 +52,7 @@ class ImageViewer : WidgetGroup() {
 
     val shapeRenderer = ShapeRenderer()
 
+    val arrowRegion = TextureRegion(Texture(Gdx.files.internal("arrow.png")))
     val backgroundShader = BackgroundShaderBuilder().build(Gdx.files.internal("backgroundShader.frag").readString())
     val backgroundMesh = Mesh(false, 4, 6,
         VertexAttribute(VertexAttributes.Usage.Position, 2, ShaderProgram.POSITION_ATTRIBUTE)).apply {
@@ -489,6 +491,17 @@ class ImageViewer : WidgetGroup() {
         imageY = imageY + (height - marqueeHeight) / 2 - vecA.y
     }
 
+    private fun isImageInViewer(): Boolean {
+        val region = textureRegion ?: return true
+
+        val left = imageX
+        val right = imageX + region.regionWidth.toFloat() * imageScale
+        val bottom = imageY
+        val top = imageY + region.regionHeight.toFloat() * imageScale
+
+        return left < width && right > 0 && bottom < height && top > 0
+    }
+
     private fun updateRGBTooltipPosition(x: Float, y: Float) {
         if (!ImContext.isShowRGBTooltip.get()) {
             return
@@ -572,7 +585,11 @@ class ImageViewer : WidgetGroup() {
             bufferCallbacks.clear()
         }
 
-        drawImage(batch, imageX, imageY, imageScale)
+        if (isImageInViewer()) {
+            drawImage(batch, imageX, imageY, imageScale)
+        } else {
+            drawArrow(batch)
+        }
 
         // prepare draw additional UI
         shapeRenderer.projectionMatrix = batch.projectionMatrix
@@ -658,6 +675,41 @@ class ImageViewer : WidgetGroup() {
 
         markers.update()
         markers.draw(batch, parentAlpha)
+    }
+
+    fun drawArrow(batch: Batch) {
+        val region = textureRegion
+
+        if (region != null) {
+            batch.begin()
+            val imageCenterX = imageX + (region.regionWidth.toFloat() * imageScale) * 0.5f
+            val imageCenterY = imageY + (region.regionHeight.toFloat() * imageScale) * 0.5f
+
+            val viewerCenterX = width * 0.5f
+            val viewerCenterY = height * 0.5f
+
+            val direction = Vector2(imageCenterX - viewerCenterX, imageCenterY - viewerCenterY)
+
+            val arrowWidth = 64.0f
+            val arrowHeight = 64.0f
+
+            val halfX = viewerCenterX - arrowWidth * 0.75f
+            val halfY = viewerCenterY - arrowHeight * 0.75f
+            val intersection = CustomIntersector.intersectSegmentRectangle(
+                Vector2.Zero, direction, -halfX, -halfY, halfX * 2, halfY * 2)
+
+            if (intersection != null) {
+                batch.draw(arrowRegion,
+                    intersection.x + viewerCenterX - arrowWidth * 0.5f,
+                    intersection.y + viewerCenterY - arrowWidth * 0.5f,
+                    arrowWidth * 0.5f,
+                    arrowHeight * 0.5f,
+                    arrowWidth,
+                    arrowHeight,
+                    1.0f, 1.0f, direction.angleDeg())
+                batch.end()
+            }
+        }
     }
 
     fun drawImage(batch: Batch, localX: Float, localY: Float, localScale: Float) {
