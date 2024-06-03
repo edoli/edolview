@@ -5,7 +5,7 @@ import com.google.common.cache.CacheLoader
 import kr.edoli.edolview.image.ImageConvert
 import kr.edoli.edolview.image.ImageSpec
 import kr.edoli.edolview.image.timesAssign
-import org.apache.commons.io.FileUtils
+import kr.edoli.edolview.util.FileUtils
 import org.apache.commons.io.FilenameUtils
 import org.opencv.core.Mat
 import java.io.BufferedReader
@@ -65,13 +65,7 @@ object ImageStore {
     }
 
     fun bytesToMat(bytes: ByteArray): Mat {
-//        if (checkMagicNumber(bytes, byteArrayOf(0x49, 0x49, 0x2A, 0x00))) {
-//            // TIFF
-//            val img = ImageIO.read(ByteArrayInputStream(bytes))
-//            return ImageConvert.bufferedToMat(img)
-//        } else {
         return ImageConvert.decodeBytes(bytes)
-//        }
     }
 
     fun checkMagicNumber(bytes: ByteArray, magicNumber: ByteArray): Boolean {

@@ -23,7 +23,7 @@ object NativeBuffer {
         }
     }
 
-    fun wrapAddressByteBuffer(addr: Long, length: Int) {
+    fun wrapAddressByteBuffer(addr: Long, length: Int): ByteBuffer {
         val buffer = ByteBuffer.allocateDirect(0).order(ByteOrder.nativeOrder())
         try {
             address.setLong(buffer, addr)
@@ -32,5 +32,6 @@ object NativeBuffer {
         } catch (e: IllegalAccessException) {
             throw AssertionError(e);
         }
+        return buffer
     }
 }
