@@ -40,17 +40,29 @@ class ObservableValue<T>(val initValue: T, val name: String, val checkValue: (T)
     }
 
     fun update(action: (T) -> T) {
+        if (!ObservableContext.push(this)) {
+            return
+        }
+
         value = checkValue(action(value))
 
         val startTime = System.nanoTime()
         observable.onNext(value)
         lastTotalUpdateTime = System.nanoTime() - startTime
+
+        ObservableContext.pop(this)
     }
 
     fun update(newValue: T) {
+        if (!ObservableContext.push(this)) {
+            return
+        }
+
         val startTime = System.nanoTime()
         observable.onNext(checkValue(newValue))
         lastTotalUpdateTime = System.nanoTime() - startTime
+
+        ObservableContext.pop(this)
     }
 
     fun get() = value

@@ -11,18 +11,18 @@ import kotlin.math.min
 class ListAssetPanel(observableList: ObservableList<Asset>) : Panel(false) {
 
     init {
-        add(UIFactory.createList(observableList, Asset::name) {
+        add(UIFactory.createReorderableList(observableList, Asset::name) {
             ImContext.mainAsset.update(it)
         }.apply {
-            alignment = Align.right
-
-            onRemoveItemIndex = { index ->
-                val list = observableList.items
-                val newList = list.toMutableList()
-                val removedAsset = newList.removeAt(index)
-                removedAsset.dispose()
-                observableList.update(newList, min(newList.size - 1, index))
-            }
-        }).minWidth(0f).expandX().fillX()
+//            alignment = Align.right
+//
+//            onRemoveItemIndex = { index ->
+//                val list = observableList.items
+//                val newList = list.toMutableList()
+//                val removedAsset = newList.removeAt(index)
+//                removedAsset.dispose()
+//                observableList.update(newList, min(newList.size - 1, index))
+//            }
+        }).minWidth(0f).expand().fill()
     }
 }

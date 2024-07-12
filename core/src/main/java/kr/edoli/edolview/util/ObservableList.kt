@@ -21,11 +21,12 @@ class ObservableList<T>(
         get() = list.size
 
     var currentIndex = initialIndex
+        private set
 
     var lastTotalUpdateTime = 0L
 
     init {
-        update()
+        updateInternal {}
 
         ObservableContext.observableLists.add(this)
     }
@@ -60,26 +61,26 @@ class ObservableList<T>(
     }
 
     fun update(index: Int) {
-        currentIndex = index
-
-        update()
+        updateInternal { currentIndex = index }
     }
 
     fun update(newList: List<T>, newInitIndex: Int = -1) {
-        list = newList
-
-        currentIndex = newInitIndex
-
-        update()
+        updateInternal {
+            list = newList
+            currentIndex = newInitIndex
+        }
     }
 
     fun update(action: (List<T>) -> List<T>) {
-        list = action(list)
-
-        update()
+        updateInternal { list = action(list) }
     }
 
-    private fun update() {
+    private fun updateInternal(action: () -> Unit) {
+        if (!ObservableContext.push(this)) {
+            return
+        }
+
+        action()
         if (list.isEmpty()) {
             currentIndex = -1
         } else if (currentIndex > list.size) {
@@ -93,9 +94,38 @@ class ObservableList<T>(
         val startTime = System.nanoTime()
         observable.onNext(ObservableListItem(list, list.getOrNull(currentIndex)))
         lastTotalUpdateTime = System.nanoTime() - startTime
+
+        ObservableContext.pop(this)
+    }
+
+    fun changeOrder(sourceIndex: Int, targetIndex: Int) {
+        updateInternal {
+            if (sourceIndex != targetIndex
+                && sourceIndex >= 0
+                && sourceIndex < list.size
+                && targetIndex >= 0
+                && targetIndex < list.size)
+            {
+                val arrayList = list
+
+                if (arrayList is ArrayList) {
+                    val source = arrayList.removeAt(sourceIndex)
+                    arrayList.add(targetIndex, source)
+
+                    if (currentIndex == sourceIndex) {
+                        currentIndex = targetIndex
+                    }
+
+                } else {
+                    throw Error("This ObservableList does not has ArrayList")
+                }
+            }
+        }
     }
 
     fun get() = list.getOrNull(currentIndex)
+
+    operator fun get(index: Int) = list.getOrNull(index)
 
     fun once(onNext: (list: List<T>, currentValue: T?) -> Unit) {
         observable.subscribe {

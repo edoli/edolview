@@ -256,6 +256,18 @@ class ImageViewer : WidgetGroup() {
                     ImContext.mainAssetNavigator.update(1)
                     return true
                 }
+                if (event.keyCode == Input.Keys.DOWN) {
+                    if (ImContext.recentAssets.currentIndex < ImContext.recentAssets.size - 1) {
+                        ImContext.recentAssets.update(ImContext.recentAssets.currentIndex + 1)
+                    }
+                    return true
+                }
+                if (event.keyCode == Input.Keys.UP) {
+                    if (ImContext.recentAssets.currentIndex > 0) {
+                        ImContext.recentAssets.update(ImContext.recentAssets.currentIndex - 1)
+                    }
+                    return true
+                }
                 if (keycode == Input.Keys.C && UIUtils.ctrl()) {
                     bufferCallbacks.add { byteArray ->
                         val mat = ImContext.mainImage.get()

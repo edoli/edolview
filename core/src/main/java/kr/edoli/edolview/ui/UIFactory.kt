@@ -1,5 +1,6 @@
 package kr.edoli.edolview.ui
 
+import ReorderableList
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Cursor
 import com.badlogic.gdx.scenes.scene2d.Actor
@@ -305,6 +306,16 @@ object UIFactory {
                 }
             })
         }
+
+    fun <T> createReorderableList(
+        observable: ObservableList<T>,
+        textFunc: (T) -> String,
+        onSelected: (T?) -> Unit
+    ) = ReorderableList(observable, listStyle, textButtonStyle, textFunc).apply {
+        observable.subscribe(this@UIFactory, "Double binding") { items, newValue ->
+            refreshList()
+        }
+    }
 
     fun <T> createSelectBox(observable: ObservableList<T>): SelectBox<T> =
         SelectBox<T>(uiSkin).apply {

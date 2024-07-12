@@ -36,9 +36,15 @@ class Observable<T>(val name: String) {
     }
 
     fun update(event: T) {
+        if (!ObservableContext.push(this)) {
+            return
+        }
+
         val startTime = System.nanoTime()
         observable.onNext(event)
         lastTotalUpdateTime = System.nanoTime() - startTime
+
+        ObservableContext.pop(this)
     }
 
     fun once(onNext: (T) -> Unit) {

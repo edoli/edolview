@@ -50,11 +50,17 @@ class ObservableLazyValue<T>(val initValue: T, val name: String, val checkValue:
     }
 
     fun update(action: () -> T) {
+        if (!ObservableContext.push(this)) {
+            return
+        }
+
         storedAction = action
 
         if (doExecuteCount > 0) {
             executeUpdate()
         }
+
+        ObservableContext.pop(this)
     }
 
     private fun executeUpdate() {

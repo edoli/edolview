@@ -173,7 +173,10 @@ object ImContext {
                     }
                 }
             }
-            
+        }
+
+        recentAssets.subscribe(this, "Update main image from recent assets") { assets, asset ->
+            mainAsset.update(asset)
         }
 
         mainImageSpec.subscribe(this, "Update image spec") { spec ->
