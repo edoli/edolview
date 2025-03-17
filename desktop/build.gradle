@@ -3,10 +3,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 buildscript {
     ext {
         appName = "EdolView"
-        kotlin_version = '1.9.21'
-        openjfx_version = '0.0.8'
-        gdx_version = '1.11.0'
-        ikonli_version = "11.3.4"
     }
 }
 
@@ -18,9 +14,9 @@ plugins {
 dependencies {
     implementation project(":core")
 
-    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdx_version"
-    implementation "com.badlogicgames.gdx:gdx-platform:$gdx_version:natives-desktop"
-    implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdx_version:natives-desktop"
+    implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
+    implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
+    implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
 }
 
 tasks.withType(KotlinCompile).configureEach {
@@ -40,7 +36,7 @@ project.ext.assetsDir = new File("../assets")
 project.ext.version = '1.4.3'
 
 application {
-    mainClassName = project.mainClassName
+    mainClass = project.mainClassName
     applicationDefaultJvmArgs = ["-Dfile.encoding=UTF-8"]
 }
 
