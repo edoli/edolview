@@ -28,10 +28,10 @@ jobs:
           distribution: 'adopt'
 
       - name: Validate Gradle wrapper
-        uses: gradle/wrapper-validation-action@v1
+        uses: gradle/actions/wrapper-validation@v3
 
       - name: Build with Gradle
-        uses: gradle/gradle-build-action@v3
+        uses: gradle/actions/setup-gradle@v3
         with:
           arguments: installDist
 
@@ -42,7 +42,7 @@ jobs:
           filename: 'release-${{ matrix.release_suffix }}.zip'
           path: './desktop/build/install/desktop'
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: release-${{ matrix.os }}
           path: '*.zip'
@@ -53,7 +53,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/download-artifact@v3
+      - uses: actions/download-artifact@v4
 
       - name: Display fetched artifacts
         run: ls -R
