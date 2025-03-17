@@ -15,7 +15,5 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "edolview"
-include ':app'
-include ':opencv-sdk'
 include ':core'
 include ':desktop'

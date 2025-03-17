@@ -1,3 +1,5 @@
+package kr.edoli.edolview.ui.custom
+
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.BitmapFont
 import com.badlogic.gdx.graphics.g2d.GlyphLayout
@@ -123,7 +125,7 @@ class ReorderableList<T>(val observableList: ObservableList<T>, val listStyle: L
     private fun getItemIndexAt(y: Float): Int {
         tempCoords.set(0f, y)
         val itemHeight = actors.firstOrNull()?.height ?: return -1
-        val index = ((actors.size * itemHeight - tempCoords.y) / itemHeight).toInt()
+        val index = ((actors.size * itemHeight - tempCoords.y - itemHeight / 2.0) / itemHeight).toInt()
         return index.coerceIn(0, actors.size - 1)
     }
 

@@ -1,6 +1,5 @@
 package kr.edoli.edolview.ui
 
-import ReorderableList
 import com.badlogic.gdx.Input
 import com.badlogic.gdx.graphics.Cursor
 import com.badlogic.gdx.scenes.scene2d.Actor
@@ -19,6 +18,7 @@ import kr.edoli.edolview.ui.contextmenu.ContextMenuManager
 import kr.edoli.edolview.ui.custom.CustomList
 import kr.edoli.edolview.ui.custom.CustomSlider
 import kr.edoli.edolview.ui.custom.DropDownMenu
+import kr.edoli.edolview.ui.custom.ReorderableList
 import kr.edoli.edolview.ui.drawable.BorderedDrawable
 import kr.edoli.edolview.ui.drawable.ColorDrawable
 import kr.edoli.edolview.ui.res.Colors
