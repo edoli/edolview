@@ -120,13 +120,13 @@ startScripts {
                 "--add-opens=java.base/java.nio=ALL-UNNAMED",
                 "--add-opens",
                 "java.base/java.nio=ALL-UNNAMED"]
-        unixScript.text = unixScript.text.replace('APP_NAME="desktop"', '''
-cd $APP_HOME
+        unixScript.text = unixScript.text.replace('APP_HOME=$( cd -P "${APP_HOME:-./}.." > /dev/null && printf \'%s\\n\' "$PWD" ) || exit', '''
+APP_HOME=$( cd -P "${APP_HOME:-./}.." > /dev/null && printf '%s\\n' "$PWD" ) || exit
+
+[ "$PWD" != "$APP_HOME" ] && cd "$APP_HOME"
 
 JAVA_HOME=./jre
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib
-
-APP_NAME="desktop"
 ''').replace('DEFAULT_JVM_OPTS=\'"-Dfile.encoding=UTF-8"\'', "DEFAULT_JVM_OPTS=\"${unixJVMOpts.join(' ')}\"")
     }
 }
