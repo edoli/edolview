@@ -22,6 +22,7 @@ import com.badlogic.gdx.backends.lwjgl3.audio.OpenALLwjgl3Audio;
 import com.badlogic.gdx.backends.lwjgl3.audio.mock.MockAudio;
 import com.badlogic.gdx.graphics.glutils.GLVersion;
 import com.badlogic.gdx.utils.*;
+import kr.edoli.edolview.WInit;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWErrorCallback;
@@ -88,6 +89,7 @@ public class MyLwjgl3Application implements Lwjgl3ApplicationBase {
         this.sync = new Sync();
 
         Lwjgl3Window window = createWindow(config, listener, 0);
+        WInit.winit(window);
         windows.add(window);
         try {
             loop();
