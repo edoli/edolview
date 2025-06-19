@@ -3,23 +3,21 @@ package kr.edoli.edolview.ui.component
 import com.badlogic.gdx.scenes.scene2d.ui.Label
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import kr.edoli.edolview.ImContext
-import kr.edoli.edolview.ui.res.uiSkin
+import kr.edoli.edolview.ui.UIFactory
 import kr.edoli.edolview.util.ObservableValue
 import kr.edoli.edolview.util.toColorStr
 
 class RGBTooltip(observable: ObservableValue<DoubleArray>? = null): Table() {
 
-    val colorLabel = Label("", uiSkin)
+    val colorLabel = Label("", UIFactory.labelStyle)
 
     init {
-        background = uiSkin.getDrawable("tooltip_background")
+        background = UIFactory.tooltipStyle.background
         pad(8f)
         add(colorLabel)
 
-        if (observable != null) {
-            observable.subscribe(this, "Cursor RGB tooltip") {
-                updateColor(it)
-            }
+        observable?.subscribe(this, "Cursor RGB tooltip") {
+            updateColor(it)
         }
     }
 

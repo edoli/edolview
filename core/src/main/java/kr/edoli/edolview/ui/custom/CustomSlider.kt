@@ -5,8 +5,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Skin
 import com.badlogic.gdx.scenes.scene2d.ui.Slider
 import kr.edoli.edolview.ui.drawable.SliderDrawable
 
-class CustomSlider(min: Float, max: Float, stepSize: Float, vertical: Boolean, skin: Skin)
-    : Slider(min, max, stepSize, vertical, skin) {
+class CustomSlider(min: Float, max: Float, stepSize: Float, vertical: Boolean, style: SliderStyle)
+    : Slider(min, max, stepSize, vertical, style) {
 
     var defaultValue = 0f
         set(value) {

@@ -19,11 +19,9 @@ import kr.edoli.edolview.ui.custom.CustomList
 import kr.edoli.edolview.ui.custom.CustomSlider
 import kr.edoli.edolview.ui.custom.DropDownMenu
 import kr.edoli.edolview.ui.custom.ReorderableList
-import kr.edoli.edolview.ui.drawable.BorderedDrawable
-import kr.edoli.edolview.ui.drawable.ColorDrawable
+import kr.edoli.edolview.ui.drawable.*
 import kr.edoli.edolview.ui.res.Colors
 import kr.edoli.edolview.ui.res.Font
-import kr.edoli.edolview.ui.res.uiSkin
 import kr.edoli.edolview.util.*
 import org.opencv.core.Rect
 import kotlin.math.abs
@@ -43,7 +41,7 @@ object UIFactory {
         overFontColor = Colors.over
         disabledFontColor = Colors.inactive
 
-        up = BorderedDrawable(Colors.background, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
+        up = BorderedDrawable(Colors.backgroundComponent, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
         over = BorderedDrawable(Colors.backgroundOver, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
         down = BorderedDrawable(Colors.backgroundDown, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
     }
@@ -54,12 +52,19 @@ object UIFactory {
         downFontColor = Colors.negative
         disabledFontColor = Colors.inactive
 
-        up = BorderedDrawable(Colors.background, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
+        checkedFontColor = Colors.reverse
+        checkedOverFontColor = Colors.reverse
+        checkedDownFontColor = Colors.negative
+        checkedFocusedFontColor = Colors.reverse
+
+        up = BorderedDrawable(Colors.backgroundComponent, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
         over = BorderedDrawable(Colors.backgroundOver, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
         down = BorderedDrawable(Colors.backgroundDown, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
-        checked = BorderedDrawable(Colors.accentDarkSemi, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
-        checkedOver = BorderedDrawable(Colors.accentSemi, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
+        checked = BorderedDrawable(Colors.accent, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
+        checkedOver = BorderedDrawable(Colors.accentOver, Colors.backgroundBorder).apply { pad(2f, 6f, 2f, 6f) }
     }
+
+    val labelStyle = Label.LabelStyle(Font.defaultFont, Colors.normal)
 
     val iconLabelStyle = Label.LabelStyle(Font.ioniconsFont, Colors.normal)
     val iconButtonStyle = TextButton.TextButtonStyle().apply {
@@ -69,31 +74,123 @@ object UIFactory {
         overFontColor = Colors.over
         disabledFontColor = Colors.inactive
     }
+
     val iconToggleButtonStyle = TextButton.TextButtonStyle().apply {
         font = Font.ioniconsFont
         fontColor = Colors.normal
         downFontColor = Colors.negative
         overFontColor = Colors.over
         checkedFontColor = Colors.accent
+        checkedOverFontColor = Colors.accentOver
         disabledFontColor = Colors.inactive
+    }
+
+    val textFieldStyle = TextField.TextFieldStyle().apply {
+        font = Font.defaultFont
+        fontColor = Colors.normal
+        cursor = CursorDrawable(Colors.normal)
+        selection = ColorDrawable(Colors.translucent).apply {
+            pad(0f, 4f, 0f, 4f)
+        }
+        background = RoundedBorderedDrawable(Colors.backgroundTextField, Colors.backgroundBorder).apply {
+            isBorder = true
+            borderRadius = 2f
+            segments = 4
+            pad(2f, 6f, 2f, 6f)
+        }
     }
 
     val listStyle = List.ListStyle().apply {
         font = Font.defaultFont
-        fontColorSelected = Colors.normal
+        fontColorSelected = Colors.reverse
         fontColorUnselected = Colors.normal
 
-        background = BorderedDrawable(Colors.backgroundDark, Colors.backgroundBorder)
+        background = BorderedDrawable(Colors.background, Colors.backgroundBorder)
         over = ColorDrawable(Colors.backgroundOver).apply { pad(2f, 6f, 2f, 6f) }
         down = ColorDrawable(Colors.backgroundDown).apply { pad(2f, 6f, 2f, 6f) }
         selection = ColorDrawable(Colors.accent).apply { pad(2f, 6f, 2f, 6f) }
+    }
+
+    val scrollStyle = ScrollPane.ScrollPaneStyle().apply {
+        background = BorderedDrawable(Colors.background, Colors.backgroundBorder)
+        hScroll = BorderedDrawable(Colors.background, Colors.backgroundBorder).apply {
+            pad(2f, 0f, 2f, 0f)
+        }
+        hScrollKnob = BorderedDrawable(Colors.background, Colors.backgroundBorder).apply {
+            pad(2f, 0f, 2f, 0f)
+        }
+        vScroll = BorderedDrawable(Colors.background, Colors.backgroundBorder).apply {
+            pad(0f, 2f, 0f, 2f)
+        }
+        vScrollKnob = BorderedDrawable(Colors.background, Colors.backgroundBorder).apply {
+            pad(0f, 2f, 0f, 2f)
+        }
+    }
+
+    val selectBoxStyle = SelectBox.SelectBoxStyle().apply {
+        font = Font.defaultFont
+        fontColor = Colors.normal
+        background = SelectBoxDrawable().pad(2f, 5f, 1f, 4f).apply {
+            setMinSize(48f, 16f)
+        }
+        listStyle = List.ListStyle().apply {
+            font = Font.defaultFont
+            fontColorSelected = Colors.background
+            fontColorUnselected = Colors.normal
+
+            background = BorderedDrawable(Colors.backgroundPopup, Colors.backgroundBorder)
+            over = ColorDrawable(Colors.backgroundOver).apply { pad(2f, 6f, 2f, 6f) }
+            down = ColorDrawable(Colors.backgroundDown).apply { pad(2f, 6f, 2f, 6f) }
+            selection = ColorDrawable(Colors.accent).apply { pad(2f, 6f, 2f, 6f) }
+        }
+        scrollStyle = UIFactory.scrollStyle
+    }
+
+    val sliderStyle = Slider.SliderStyle().apply {
+        background = SliderDrawable(Colors.backgroundOver)
+        knob = BorderedDrawable(Colors.backgroundComponent, Colors.backgroundBorder).apply {
+            minWidth = 8f
+            minHeight = 16f
+        }
+        knobOver = BorderedDrawable(Colors.backgroundOver, Colors.backgroundBorder).apply {
+            minWidth = 8f
+            minHeight = 16f
+        }
+    }
+
+    val tooltipStyle = TextTooltip.TextTooltipStyle().apply {
+        label = labelStyle
+        background = RoundedBorderedDrawable(Colors.backgroundTooltip).apply {
+            isBorder = false
+            borderRadius = 4f
+            pad(4f, 8f, 4f, 8f)
+        }
+        wrapWidth = 156.0f
+    }
+
+    val splitPaneStyle = kr.edoli.edolview.ui.custom.SplitPane.SplitPaneStyle().apply {
+        val splitHandleMinSize = 6f
+        handle = SplitHandleDrawable(Colors.background, Colors.backgroundBorder, Colors.backgroundBorder,
+            splitHandleMinSize, false)
+        handleOver = SplitHandleDrawable(Colors.backgroundOver, Colors.backgroundBorder, Colors.backgroundBorder,
+            splitHandleMinSize, false)
+    }
+
+    val windowStyle = Window.WindowStyle().apply {
+        titleFont = Font.defaultFont
+        titleFontColor = Colors.normal
+        background = ColorDrawable(Colors.background)
+    }
+
+    val skin = Skin().apply {
+        add("default", labelStyle)
     }
 
     fun <T> createField(
         observable: ObservableValue<T>, strToValue: (String) -> T, valueToString: (T) -> String,
         checkValid: (String) -> Boolean
     ): TextField {
-        val textField = object : TextField("", uiSkin) {
+        val textField = object : TextField("", textFieldStyle) {
             override fun getPrefWidth(): Float {
                 return 0f
             }
@@ -193,7 +290,7 @@ object UIFactory {
     fun createSlider(icon: String, min: Float, max: Float, stepSize: Float, observable: ObservableValue<Float>) =
         Table().apply {
             add(Label(icon, iconLabelStyle)).padRight(8f)
-            add(CustomSlider(min, max, stepSize, false, uiSkin).apply {
+            add(CustomSlider(min, max, stepSize, false, sliderStyle).apply {
                 val slider = this@apply
                 setButton(Input.Buttons.LEFT)
                 defaultValue = observable.initValue
@@ -287,7 +384,7 @@ object UIFactory {
         observable: ObservableList<T>,
         textFunc: (T) -> String,
         onSelected: (T?) -> Unit
-    ) = CustomList(uiSkin, textFunc).apply {
+    ) = CustomList(listStyle, textFunc).apply {
             observable.subscribe(this@UIFactory, "Double binding") { items, newValue ->
                 val array = com.badlogic.gdx.utils.Array<T>()
                 items.forEach { array.add(it) }
@@ -318,7 +415,7 @@ object UIFactory {
     }
 
     fun <T> createSelectBox(observable: ObservableList<T>): SelectBox<T> =
-        SelectBox<T>(uiSkin).apply {
+        SelectBox<T>(selectBoxStyle).apply {
             observable.subscribeValue(this@UIFactory, "Double binding") { newValue ->
                 selected = newValue
                 if (observable.items != items) {
@@ -369,9 +466,7 @@ object UIFactory {
         }
 
     fun createIcon(text: String) =
-        Label(text, uiSkin).apply {
-            style = iconLabelStyle
-        }
+        Label(text, iconLabelStyle)
 
     fun createToggleIconButton(text: String, observable: ObservableValue<Boolean>) =
             createToggleTextButton(text, observable).apply {
@@ -461,7 +556,7 @@ object UIFactory {
     fun <T> createLabel(observable: ObservableValue<T>, tooltipText: String? = observable.name, textFormat: (value: T) -> String = { it.toString() })
             : Label {
         var lastValue: T? = null
-        return Label("", uiSkin).apply {
+        return Label("", labelStyle).apply {
             observable.subscribe(this@UIFactory, "Double binding") { newValue ->
                 lastValue = newValue
                 setText(textFormat(newValue))

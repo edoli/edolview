@@ -4,7 +4,7 @@ import com.badlogic.gdx.Gdx
 import com.badlogic.gdx.Screen
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.Cursor
-import com.badlogic.gdx.graphics.GL30
+import com.badlogic.gdx.graphics.GL20
 import com.badlogic.gdx.graphics.g2d.Batch
 import com.badlogic.gdx.graphics.g2d.PolygonSpriteBatch
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer
@@ -22,7 +22,6 @@ import kr.edoli.edolview.config.KeyboardShortcuts
 import kr.edoli.edolview.ui.custom.SplitPane
 import kr.edoli.edolview.ui.panel.FileInfoPanel
 import kr.edoli.edolview.ui.res.Ionicons
-import kr.edoli.edolview.ui.res.uiSkin
 import kr.edoli.edolview.ui.window.ObservableInfo
 import kr.edoli.edolview.util.FullScreenManager
 import kotlin.math.max
@@ -52,7 +51,7 @@ class MainScreen : Screen {
             setScrollingDisabled(true, false)
         }
 
-        val middleTable = SplitPane(imageViewer, sidePane, false, uiSkin).apply {
+        val middleTable = SplitPane(imageViewer, sidePane, false, UIFactory.splitPaneStyle).apply {
             setSplitAmount(1f)
 
             onSplitChanged = {
@@ -100,7 +99,7 @@ class MainScreen : Screen {
         // main stage
         stage.addActor(layoutTable)
 
-        stage.addActor(Window("File info", uiSkin).apply {
+        stage.addActor(Window("File info", UIFactory.windowStyle).apply {
             add(FileInfoPanel()).expand().fill()
             addListener {
                 y = stage.height - height - 32f
@@ -230,7 +229,8 @@ class MainScreen : Screen {
             lastUIScale = uiScale
         }
         Gdx.gl.glClearColor(0f, 0f, 0f, 1f)
-        Gdx.gl.glClear(GL30.GL_COLOR_BUFFER_BIT)
+//        Gdx.gl.glClear(GL30.GL_COLOR_BUFFER_BIT)
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT or GL20.GL_DEPTH_BUFFER_BIT or (if (Gdx.graphics.bufferFormat.coverageSampling) GL20.GL_COVERAGE_BUFFER_BIT_NV else 0))
 
         stage.act(delta)
 

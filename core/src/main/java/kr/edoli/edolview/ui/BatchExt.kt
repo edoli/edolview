@@ -130,6 +130,20 @@ fun Batch.drawLine(x1: Float, y1: Float, x2: Float, y2: Float, lineWidth: Float)
             x2 + ndy, y2 - ndx)
 }
 
+fun Batch.drawPath(vertices: FloatArray, lineWidth: Float) {
+    if (vertices.size < 4) return // 최소 두 점 필요
+
+    var i = 0
+    while (i < vertices.size - 2) {
+        val x1 = vertices[i]
+        val y1 = vertices[i + 1]
+        val x2 = vertices[i + 2]
+        val y2 = vertices[i + 3]
+        drawLine(x1, y1, x2, y2, lineWidth)
+        i += 2
+    }
+}
+
 fun Batch.drawRectBorder(rect: Rectangle, lineWidth: Float) {
     drawRectBorder(rect.x, rect.y, rect.width, rect.height, lineWidth)
 }

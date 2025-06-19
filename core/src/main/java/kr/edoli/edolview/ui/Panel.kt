@@ -6,9 +6,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table
 import kr.edoli.edolview.ui.drawable.BorderedDrawable
 import kr.edoli.edolview.ui.panel.CollapsiblePanel
 import kr.edoli.edolview.ui.res.Colors
-import kr.edoli.edolview.ui.res.uiSkin
 
-open class Panel(showBackground: Boolean = true) : Table(uiSkin) {
+open class Panel(showBackground: Boolean = true) : Table(UIFactory.skin) {
 
     var onGoneChanged: (isGone: Boolean) -> Unit = {}
 

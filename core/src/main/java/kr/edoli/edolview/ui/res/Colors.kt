@@ -9,30 +9,34 @@ fun Color.awtColor(): java.awt.Color {
 
 object Colors {
     val transpent = Color.valueOf("00000000")
+    val translucent = Color.valueOf("FFFFFF44")
 
-    val background = Color.valueOf("474747")
-    val backgroundDark = Color.valueOf("363636")
-    val backgroundContextMenu = Color.valueOf("272727")
-    val backgroundOver = Color.valueOf("676767")
-    val backgroundDown = Color.valueOf("272727")
-    val backgroundBorder = Color.valueOf("333333")
+    val background = Color.valueOf("111111")
+    val backgroundComponent = Color.valueOf("1F1F1F")
+    val backgroundPopup = Color.valueOf("1F1F1F")
+    val backgroundOver = Color.valueOf("4D4D4D")
+    val backgroundDown = Color.valueOf("313131")
+    val backgroundBorder = Color.valueOf("232323")
+    val backgroundTextField = Color.valueOf("172B3D")
+    val backgroundTooltip = Color.valueOf("000000C0")
 
-    val normal = Color.valueOf("F7FFF7")
+    val normal = Color.valueOf("D4D4D4")
+    val reverse = Color.valueOf("111111")
+
     val negative = Color.valueOf("FF6B6B")
     val over = Color.valueOf("FFE66D")
-    val inactive = Color.valueOf("ACACAC")
-    val accent = Color.valueOf("4ECDC4")
-    val accentDark = Color.valueOf("2E8D84")
-    val accentSemi = Color.valueOf("4ECDC488")
-    val accentDarkSemi = Color.valueOf("2E8D8488")
+    val inactive = Color.valueOf("8D8D8D")
+    val accent = Color.valueOf("4EADE4")
+    val accentOver = Color.valueOf("65BEFA")
+    val accentDark = Color.valueOf("226699")
 
     val RED = Color.valueOf("FF0000")
     val GREEN = Color.valueOf("00FF00")
-    val BLUE = Color.valueOf("4444FF")
+    val BLUE = Color.valueOf("2222FF")
+    val GRAY = Color.valueOf("AAAAAA")
 
     val GRID_STROKE = Color.valueOf("AAAAAA40")
     val VG_TOOLTIP_BG = Color.valueOf("000000C0")
-    val GRAY = Color.valueOf("AAAAAA")
     val VG_TOOLTIP = Color.valueOf("DDDDDD")
 
     init {

@@ -1,4 +1,4 @@
-package kr.edoli.edolview.ui.res
+package kr.edoli.edolview.ui.drawable
 
 import com.badlogic.gdx.graphics.Color
 import com.badlogic.gdx.graphics.g2d.Batch
@@ -7,8 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.BaseDrawable
 import kr.edoli.edolview.ui.drawPolygon
 import kr.edoli.edolview.ui.drawRectBorder
 
-class SelectBoxDrawable : BaseDrawable() {
-    val borderColor = Color(0x202020ff)
+class SelectBoxDrawable(val borderColor: Color = Color(0x202020ff)) : BaseDrawable() {
 
     override fun draw(batch: Batch, x: Float, y: Float, width: Float, height: Float) {
         batch.color = borderColor

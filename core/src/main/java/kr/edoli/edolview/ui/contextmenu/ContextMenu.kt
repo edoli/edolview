@@ -36,7 +36,7 @@ class ContextMenu(private val contextMenuManager: ContextMenuManager, builder: (
 class ContextMenuPanel : Panel() {
     init {
         align(Align.left)
-        background = BorderedDrawable(Colors.backgroundContextMenu, Colors.backgroundBorder)
+        background = BorderedDrawable(Colors.backgroundPopup, Colors.backgroundBorder)
     }
 
     val menuButtonStyle = TextButton.TextButtonStyle(

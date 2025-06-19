@@ -7,12 +7,11 @@ import kr.edoli.edolview.ImContext
 import kr.edoli.edolview.ui.Panel
 import kr.edoli.edolview.ui.UIFactory
 import kr.edoli.edolview.ui.res.Ionicons
-import kr.edoli.edolview.ui.res.uiSkin
 
 class NavigationPanel : Panel(false) {
     init {
         add(Table().apply {
-            add(Label("Interval", uiSkin))
+            add(Label("Interval", UIFactory.labelStyle))
             add().width(4f)
             add(UIFactory.createIntField(ImContext.frameInterval)).width(100f)
         }).expandX().fillX()

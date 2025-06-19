@@ -66,6 +66,7 @@ fun main(args: Array<String>) {
         config.setWindowedMode(1280, 720)
         config.setWindowIcon("icon.png")
         config.disableAudio(true)
+        config.setBackBufferConfig(8, 8, 8, 8, 16, 0, 3)
 
         MyLwjgl3Application(App(initPath), config)
     } catch (e: Exception) {

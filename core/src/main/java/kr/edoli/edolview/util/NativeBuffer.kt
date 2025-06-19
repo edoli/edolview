@@ -34,4 +34,20 @@ object NativeBuffer {
         }
         return buffer
     }
+
+    fun Buffer.getAddress(): Long {
+        try {
+            return address.getLong(this)
+        } catch (e: IllegalAccessException) {
+            throw AssertionError(e);
+        }
+    }
+
+    fun Buffer.getCapacity(): Int {
+        try {
+            return capacity.getInt(this)
+        } catch (e: IllegalAccessException) {
+            throw AssertionError(e);
+        }
+    }
 }

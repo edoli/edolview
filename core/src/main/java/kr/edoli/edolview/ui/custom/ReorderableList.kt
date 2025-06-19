@@ -163,8 +163,8 @@ class ReorderableList<T>(val observableList: ObservableList<T>, val listStyle: L
         override fun draw(batch: Batch, parentAlpha: Float) {
             background?.draw(batch, x, y, width, height)
 
-            val color = batch.color
-            batch.setColor(fontColor.r, fontColor.g, fontColor.b, fontColor.a * parentAlpha)
+            val color = font.color.cpy()
+            font.color.set(fontColor.r, fontColor.g, fontColor.b, fontColor.a * parentAlpha)
 
             glyphLayout.setText(font, text)
             val textWidth = glyphLayout.width
@@ -187,7 +187,7 @@ class ReorderableList<T>(val observableList: ObservableList<T>, val listStyle: L
                 }
             }
 
-            batch.color = color
+            font.color.set(color)
         }
     }
 }
