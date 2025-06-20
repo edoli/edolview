@@ -98,7 +98,7 @@ class DisplayProfilePanel : Panel(false) {
                 })
             })
         })
-        row()
+        row().padTop(4f)
         add(Table().apply {
             add(UIFactory.createToggleTextButton("Red", ImContext.invertR))
             add(UIFactory.createToggleTextButton("Green", ImContext.invertG))
