@@ -256,7 +256,6 @@ object UIFactory {
     fun createRectField(observable: ObservableValue<Rect>) = createField(observable, { str ->
         if (str.contains(":")) {
             val numbers = str.replace("[()\\[\\]]".toRegex(), "").replace(":", ",").split(",").map {
-                println(it)
                 it.trim().toInt()
             }
             Rect(numbers[2], numbers[0], numbers[3] - numbers[2], numbers[1] - numbers[0])
