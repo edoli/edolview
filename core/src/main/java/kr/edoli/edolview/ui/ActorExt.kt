@@ -26,6 +26,25 @@ fun <T : Actor> T.contextMenu(builder: ContextMenuPanel.() -> Unit): T {
     return this
 }
 
+fun <T : Actor> T.scrollFocusOnOver(): T {
+    addListener(object : InputListener() {
+        override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
+            if (event.stage != null) {
+                println(this@scrollFocusOnOver)
+                event.stage.scrollFocus = this@scrollFocusOnOver
+                event.stop()
+            }
+        }
+
+        override fun exit(event: InputEvent, x: Float, y: Float, pointer: Int, toActor: Actor?) {
+            if (event.stage != null && event.stage.scrollFocus == this@scrollFocusOnOver && (toActor == null || toActor != this@scrollFocusOnOver)) {
+                event.stage.scrollFocus = null
+            }
+        }
+    })
+    return this
+}
+
 fun <T: Actor> T.cursor(cursor: Cursor.SystemCursor): T {
     addListener(object : InputListener() {
         override fun enter(event: InputEvent?, x: Float, y: Float, pointer: Int, fromActor: Actor?) {

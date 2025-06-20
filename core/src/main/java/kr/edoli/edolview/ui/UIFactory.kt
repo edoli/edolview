@@ -319,19 +319,16 @@ object UIFactory {
                                 slider.value -= stepSize * amountY * 100
                             }
                         }
+                        event.stop()
                         return true
                     }
 
-                    override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
-                        stage.scrollFocus = slider
-                    }
-
-                    override fun exit(event: InputEvent, x: Float, y: Float, pointer: Int, toActor: Actor?) {
-                        if (toActor == null || toActor != slider) {
-                            stage.scrollFocus = null
-                        }
+                    override fun touchDown(event: InputEvent, x: Float, y: Float, pointer: Int, button: Int): Boolean {
+                        event.stop()
+                        return super.touchDown(event, x, y, pointer, button)
                     }
                 })
+                scrollFocusOnOver()
 
                 addListener(object : ChangeListener() {
                     override fun changed(event: ChangeEvent, actor: Actor) {
@@ -432,20 +429,6 @@ object UIFactory {
             })
 
             addListener(object : InputListener() {
-                override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
-                    if (fromActor != event.target) {
-                        stage.scrollFocus = event.target
-                    }
-                    super.enter(event, x, y, pointer, fromActor)
-                }
-
-                override fun exit(event: InputEvent, x: Float, y: Float, pointer: Int, toActor: Actor?) {
-                    if (toActor != event.target) {
-                        stage.scrollFocus = null
-                    }
-                    super.exit(event, x, y, pointer, toActor)
-                }
-
                 override fun scrolled(event: InputEvent, x: Float, y: Float, amountX: Float, amountY: Float): Boolean {
                     var nextIndex = (selectedIndex + amountY.toInt()) % items.size
                     if (nextIndex < 0) {
@@ -456,6 +439,7 @@ object UIFactory {
                     return true
                 }
             })
+            scrollFocusOnOver()
         }.tooltip(observable.name).contextMenu {
             addMenu("Reset value") {
                 observable.reset()

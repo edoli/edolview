@@ -49,6 +49,7 @@ class MainScreen : Screen {
             setSmoothScrolling(false)
             setOverscroll(false, false)
             setScrollingDisabled(true, false)
+            scrollFocusOnOver()
         }
 
         val middleTable = SplitPane(imageViewer, sidePane, false, UIFactory.splitPaneStyle).apply {
