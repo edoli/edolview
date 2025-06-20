@@ -14,6 +14,12 @@ class HistogramWidget : VGWidget() {
     val colors = arrayOf(Colors.RED, Colors.GREEN, Colors.BLUE, Colors.GRAY)
 
     override fun drawVG(vg: SimpleVG) {
+        // grid
+        val gridX = (width / 32f).toInt()
+        val gridY = (height / 32f).toInt()
+        vg.setStrokeColor(Colors.GRID_STROKE)
+        vg.grid(0f, 0f, width, height, gridX, gridY)
+
         while (isShow.size < histograms.size) {
             isShow.add(true)
         }
@@ -21,12 +27,6 @@ class HistogramWidget : VGWidget() {
         if (histograms.isEmpty()) {
             return
         }
-
-        // grid
-        val gridX = (width / 32f).toInt()
-        val gridY = (height / 32f).toInt()
-        vg.setStrokeColor(Colors.GRID_STROKE)
-        vg.grid(0f, 0f, width, height, gridX, gridY)
 
         // draw histogram
         val num = histograms[0].n
@@ -84,7 +84,7 @@ class HistogramWidget : VGWidget() {
             val imageSpec = ImContext.mainImageSpec.get() ?: return
             val histValue = histograms[0].value(mouseXIndex).toColorValueStr(imageSpec, 2)
             vg.setFillColor(Colors.VG_TOOLTIP)
-            vg.text(histValue, valueX + 2f, valueY + 16f + 2f)
+            vg.text("X: $histValue", valueX + 2f, valueY + 16f + 2f)
 
         }
     }

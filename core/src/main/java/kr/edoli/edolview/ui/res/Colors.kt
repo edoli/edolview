@@ -35,7 +35,7 @@ object Colors {
     val BLUE = Color.valueOf("2222FF")
     val GRAY = Color.valueOf("AAAAAA")
 
-    val GRID_STROKE = Color.valueOf("AAAAAA40")
+    val GRID_STROKE = Color.valueOf("232323")
     val VG_TOOLTIP_BG = Color.valueOf("000000C0")
     val VG_TOOLTIP = Color.valueOf("DDDDDD")
 

@@ -58,6 +58,13 @@ class Histogram(val n: Int) {
         return (index * denominator) / (n - 1) + minValue
     }
 
+    fun getFreq(index: Int): Int {
+        if (index < 0 || index >= freq.size) {
+            return 0
+        }
+        return freq[index]
+    }
+
     fun clear() {
         for (i in freq.indices) {
             freq[i] = 0

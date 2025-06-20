@@ -26,16 +26,16 @@ class PlotWidget : VGWidget() {
     var channels = 1
 
     override fun drawVG(vg: SimpleVG) {
-        val data = this.data
-        if (data == null || data.isEmpty()) {
-            return
-        }
-
         // grid
         val gridX = (width / 32f).toInt()
         val gridY = (height / 32f).toInt()
         vg.setStrokeColor(Colors.GRID_STROKE)
         vg.grid(0f, 0f, width, height, gridX, gridY)
+
+        val data = this.data
+        if (data == null || data.isEmpty()) {
+            return
+        }
 
         // draw plot
         val scale = height / (maxValue - minValue)
