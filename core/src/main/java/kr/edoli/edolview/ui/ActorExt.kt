@@ -5,13 +5,16 @@ import com.badlogic.gdx.graphics.Cursor
 import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
+import com.badlogic.gdx.scenes.scene2d.Touchable
 import com.badlogic.gdx.scenes.scene2d.ui.TextTooltip
 import kr.edoli.edolview.ui.contextmenu.ContextMenu
 import kr.edoli.edolview.ui.contextmenu.ContextMenuPanel
 
 fun <T : Actor> T.tooltip(text: String?): T {
     if (text != null) {
-        addListener(TextTooltip(text, UIFactory.tooltipManager, UIFactory.tooltipStyle))
+        addListener(TextTooltip(text, UIFactory.tooltipManager, UIFactory.tooltipStyle).apply {
+            container.touchable = Touchable.disabled
+        })
     }
     return this
 }
@@ -30,7 +33,6 @@ fun <T : Actor> T.scrollFocusOnOver(): T {
     addListener(object : InputListener() {
         override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
             if (event.stage != null) {
-                println(this@scrollFocusOnOver)
                 event.stage.scrollFocus = this@scrollFocusOnOver
                 event.stop()
             }

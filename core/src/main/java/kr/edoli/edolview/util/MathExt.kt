@@ -10,6 +10,8 @@ import kotlin.math.min
  * Created by daniel on 16. 9. 10.
  */
 
+fun Int.hasFlag(flag: Int): Boolean = (this and flag) == flag
+
 fun String.isInt(): Boolean = toIntOrNull() !== null
 fun String.isFloat(): Boolean = toFloatOrNull() !== null
 

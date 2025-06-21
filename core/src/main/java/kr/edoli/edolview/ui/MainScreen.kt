@@ -13,9 +13,10 @@ import com.badlogic.gdx.scenes.scene2d.Actor
 import com.badlogic.gdx.scenes.scene2d.InputEvent
 import com.badlogic.gdx.scenes.scene2d.InputListener
 import com.badlogic.gdx.scenes.scene2d.Stage
+import com.badlogic.gdx.scenes.scene2d.actions.Actions
+import com.badlogic.gdx.scenes.scene2d.ui.CustomWindow
 import com.badlogic.gdx.scenes.scene2d.ui.ScrollPane
 import com.badlogic.gdx.scenes.scene2d.ui.Table
-import com.badlogic.gdx.scenes.scene2d.ui.Window
 import com.badlogic.gdx.utils.viewport.ScreenViewport
 import kr.edoli.edolview.ImContext
 import kr.edoli.edolview.config.KeyboardShortcuts
@@ -100,12 +101,13 @@ class MainScreen : Screen {
         // main stage
         stage.addActor(layoutTable)
 
-        stage.addActor(Window("File info", UIFactory.windowStyle).apply {
+        stage.addActor(CustomWindow("File info", UIFactory.windowStyle).apply {
             add(FileInfoPanel()).expand().fill()
-            addListener {
+
+            addAction(Actions.run {
                 y = stage.height - height - 32f
-                return@addListener false
-            }
+            })
+
             titleTable.add().expandX()
             titleTable.add(UIFactory.createIconButton(Ionicons.ionMdClose) {
                 ImContext.isShowFileInfo.update(false)
@@ -208,7 +210,7 @@ class MainScreen : Screen {
             }
         })
         stage.addCaptureListener(object : InputListener() {
-            override fun enter(event: InputEvent?, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
+            override fun enter(event: InputEvent, x: Float, y: Float, pointer: Int, fromActor: Actor?) {
                 Gdx.graphics.setSystemCursor(Cursor.SystemCursor.Arrow)
                 super.enter(event, x, y, pointer, fromActor)
             }

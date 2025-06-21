@@ -176,10 +176,11 @@ object UIFactory {
             splitHandleMinSize, false)
     }
 
-    val windowStyle = Window.WindowStyle().apply {
+    val windowStyle = CustomWindow.CustomWindowStyle().apply {
         titleFont = Font.defaultFont
         titleFontColor = Colors.normal
-        background = ColorDrawable(Colors.background)
+        background = WindowDrawable(Colors.background, Colors.backgroundBorder, Colors.backgroundBorder)
+//        borderOverBackground = WindowDrawable(Colors.background, Colors.backgroundBorder, Colors.accent)
     }
 
     val skin = Skin().apply {
