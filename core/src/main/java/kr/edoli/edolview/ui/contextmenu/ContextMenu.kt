@@ -8,8 +8,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton
 import com.badlogic.gdx.scenes.scene2d.utils.ClickListener
 import com.badlogic.gdx.utils.Align
 import kr.edoli.edolview.ui.Panel
-import kr.edoli.edolview.ui.drawable.BorderedDrawable
 import kr.edoli.edolview.ui.drawable.ColorDrawable
+import kr.edoli.edolview.ui.drawable.RoundedBorderedDrawable
 import kr.edoli.edolview.ui.res.Colors
 import kr.edoli.edolview.ui.res.Font
 import kotlin.math.max
@@ -36,7 +36,10 @@ class ContextMenu(private val contextMenuManager: ContextMenuManager, builder: (
 class ContextMenuPanel : Panel() {
     init {
         align(Align.left)
-        background = BorderedDrawable(Colors.backgroundPopup, Colors.backgroundBorder)
+        background = RoundedBorderedDrawable(Colors.backgroundPopup, Colors.accentDark).apply {
+            borderRadius = 4f
+            pad(4f)
+        }
     }
 
     val menuButtonStyle = TextButton.TextButtonStyle(
