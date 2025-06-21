@@ -2,6 +2,7 @@ package kr.edoli.edolview.ui.panel.histogram
 
 import com.badlogic.gdx.scenes.scene2d.ui.Table
 import kr.edoli.edolview.ImContext
+import kr.edoli.edolview.image.channelNames
 import kr.edoli.edolview.image.split
 import kr.edoli.edolview.ui.Panel
 import kr.edoli.edolview.ui.UIFactory
@@ -46,22 +47,16 @@ class HistogramPanel : Panel(false) {
             }
         }
 
-        histogramActor.histograms.clear()
-        histogramActor.histograms.addAll(histograms)
+        histogramActor.setData(histograms)
 
         buttons.clearChildren()
-        val names = when (mat.channels()) {
-            1 -> arrayOf("Gray")
-            3 -> arrayOf("Red", "Green", "Blue")
-            4 -> arrayOf("Red", "Green", "Blue", "Alpha")
-            else -> arrayOf()
-        }
+        val names = mat.channelNames()
 
         (names.indices).forEach { index ->
             buttons.add(UIFactory.createTextButton(names[index]) {
                 histogramActor.isShow[index] = it.isChecked
             }.apply {
-                isChecked = true
+                isChecked = histogramActor.isShow[index]
                 style = UIFactory.textToggleButtonStyle
             })
         }

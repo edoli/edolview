@@ -384,6 +384,15 @@ fun Mat.toShortArray(): ShortArray {
     }
 }
 
+fun Mat.channelNames(): List<String> {
+    return when (this.channels()) {
+        1 -> listOf("Gray")
+        3 -> listOf("Red", "Green", "Blue")
+        4 -> listOf("Red", "Green", "Blue", "Alpha")
+        else -> List(this.channels()) { "Channel $it" }
+    }
+}
+
 /* Type conversion */
 
 val IntRange.cv: Range

@@ -13,16 +13,21 @@ class HistogramWidget : VGWidget() {
     val isShow = ArrayList<Boolean>()
     val colors = arrayOf(Colors.RED, Colors.GREEN, Colors.BLUE, Colors.GRAY)
 
+    fun setData(histograms: List<Histogram>) {
+        this.histograms.clear()
+        this.histograms.addAll(histograms)
+
+        while (isShow.size < histograms.size) {
+            isShow.add(true)
+        }
+    }
+
     override fun drawVG(vg: SimpleVG) {
         // grid
         val gridX = (width / 32f).toInt()
         val gridY = (height / 32f).toInt()
         vg.setStrokeColor(Colors.GRID_STROKE)
         vg.grid(0f, 0f, width, height, gridX, gridY)
-
-        while (isShow.size < histograms.size) {
-            isShow.add(true)
-        }
 
         if (histograms.isEmpty()) {
             return
