@@ -26,6 +26,9 @@ class ContextMenuManager {
     fun openMenu(owner: Actor, contextMenu: ContextMenu) {
         updateStage(owner.stage)
 
+        // Remove previous menu
+        showingContextMenu?.rootTable?.remove()
+
         owner.stage.addActor(contextMenu.rootTable)
         showingContextMenu = contextMenu
         contextMenu.rootTable.let {
@@ -35,8 +38,6 @@ class ContextMenuManager {
     }
 
     fun hideMenu() {
-        showingContextMenu?.let { contextMenu ->
-            contextMenu.rootTable.remove()
-        }
+        showingContextMenu?.rootTable?.remove()
     }
 }
