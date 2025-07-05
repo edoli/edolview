@@ -1,0 +1,209 @@
+name: Build OpenCV 4.5 for macOS
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-opencv-macos:
+    runs-on: macos-latest
+    
+    strategy:
+      matrix:
+        arch: [arm64]
+        
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Setup environment
+      run: |
+        echo "OPENCV_VERSION=4.5.5" >> $GITHUB_ENV
+        echo "INSTALL_PREFIX=/usr/local" >> $GITHUB_ENV
+        echo "BUILD_ARCH=${{ matrix.arch }}" >> $GITHUB_ENV
+        
+    - name: Cache OpenCV source
+      uses: actions/cache@v3
+      id: cache-opencv-src
+      with:
+        path: |
+          ~/opencv_build/opencv-${{ env.OPENCV_VERSION }}
+          ~/opencv_build/opencv_contrib-${{ env.OPENCV_VERSION }}
+        key: opencv-src-${{ env.OPENCV_VERSION }}-${{ runner.os }}
+        
+    - name: Download OpenCV source
+      if: steps.cache-opencv-src.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p ~/opencv_build && cd ~/opencv_build
+
+        # Download OpenCV source
+        curl -L -o opencv.zip https://github.com/opencv/opencv/archive/${{ env.OPENCV_VERSION }}.zip
+        unzip opencv.zip
+
+        # Download OpenCV contrib modules
+        curl -L -o opencv_contrib.zip https://github.com/opencv/opencv_contrib/archive/${{ env.OPENCV_VERSION }}.zip
+        unzip opencv_contrib.zip
+
+        # Clean up zip files
+        rm opencv.zip opencv_contrib.zip
+        
+    - name: Install dependencies
+      run: |
+        # Homebrew update and install dependencies
+        brew update
+        brew install cmake pkg-config
+        brew install jpeg libpng libtiff openexr eigen tbb
+        
+    - name: Configure CMake
+      run: |
+        cd ~/opencv_build/opencv-${{ env.OPENCV_VERSION }}
+        mkdir -p build && cd build
+        
+        # CMake configuration
+        cmake -D CMAKE_BUILD_TYPE=RELEASE \
+              -D CMAKE_INSTALL_PREFIX=${{ env.INSTALL_PREFIX }} \
+              -D CMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
+              -D CMAKE_POLICY_DEFAULT_CMP0148=OLD \
+              -D CMAKE_MINIMUM_REQUIRED_VERSION=3.5 \
+              -D CMAKE_POLICY_VERSION_MINIMUM=3.5 \
+              -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib-${{ env.OPENCV_VERSION }}/modules \
+              -D BUILD_SHARED_LIBS=ON \
+              -D BUILD_STATIC_LIBS=OFF \
+              -D BUILD_opencv_apps=OFF \
+              -D BUILD_opencv_calib3d=OFF \
+              -D BUILD_opencv_dnn=OFF \
+              -D BUILD_opencv_features2d=OFF \
+              -D BUILD_opencv_flann=OFF \
+              -D BUILD_opencv_gapi=OFF \
+              -D BUILD_opencv_highgui=OFF \
+              -D BUILD_opencv_ml=OFF \
+              -D BUILD_opencv_objdetect=OFF \
+              -D BUILD_opencv_photo=OFF \
+              -D BUILD_opencv_stitching=OFF \
+              -D BUILD_opencv_video=OFF \
+              -D BUILD_opencv_videoio=OFF \
+              -D BUILD_opencv_core=ON \
+              -D BUILD_opencv_imgproc=ON \
+              -D BUILD_opencv_imgcodecs=ON \
+              -D BUILD_JAVA=ON \
+              -D BUILD_opencv_python3=OFF \
+              -D BUILD_opencv_python2=OFF \
+              -D BUILD_TESTS=OFF \
+              -D BUILD_PERF_TESTS=OFF \
+              -D BUILD_EXAMPLES=OFF \
+              -D INSTALL_PYTHON_EXAMPLES=OFF \
+              -D INSTALL_C_EXAMPLES=OFF \
+              -D OPENCV_ENABLE_NONFREE=ON \
+              -D WITH_OPENMP=ON \
+              -D WITH_TBB=ON \
+              -D WITH_EIGEN=ON \
+              -D ENABLE_FAST_MATH=ON \
+              -D PYTHON_EXECUTABLE="" \
+              -D PYTHON2_EXECUTABLE="" \
+              -D PYTHON3_EXECUTABLE="" \
+              -Wno-dev \
+              ..
+              
+    - name: Build OpenCV
+      run: |
+        cd ~/opencv_build/opencv-${{ env.OPENCV_VERSION }}/build
+        
+        # Check available cores and set parallel build
+        NPROC=$(sysctl -n hw.ncpu)
+        echo "Building with $NPROC cores"
+        
+        make -j$NPROC
+        
+    - name: Install OpenCV
+      run: |
+        cd ~/opencv_build/opencv-${{ env.OPENCV_VERSION }}/build
+        sudo make install
+        
+    - name: Package libraries
+      run: |
+        # Create directory structure for packaging
+        mkdir -p opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/lib
+        mkdir -p opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/include
+        mkdir -p opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/share
+        
+        # Copy libraries
+        cp -r ${{ env.INSTALL_PREFIX }}/lib/libopencv_core* opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/lib/
+        cp -r ${{ env.INSTALL_PREFIX }}/lib/libopencv_imgproc* opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/lib/
+        cp -r ${{ env.INSTALL_PREFIX }}/lib/libopencv_imgcodecs* opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/lib/
+        cp -r ${{ env.INSTALL_PREFIX }}/lib/libopencv_java* opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/lib/ || true
+        
+        # Copy include files
+        cp -r ${{ env.INSTALL_PREFIX }}/include/opencv4 opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/include/
+        
+        # Copy Java bindings if available
+        if [ -d "${{ env.INSTALL_PREFIX }}/share/java/opencv4" ]; then
+          cp -r ${{ env.INSTALL_PREFIX }}/share/java opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/share/
+        fi
+        
+        # Copy pkg-config
+        if [ -d "${{ env.INSTALL_PREFIX }}/lib/pkgconfig" ]; then
+          mkdir -p opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/lib/pkgconfig
+          cp ${{ env.INSTALL_PREFIX }}/lib/pkgconfig/opencv4.pc opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/lib/pkgconfig/
+        fi
+        
+        # Generate VERSION file
+        echo "OpenCV ${{ env.OPENCV_VERSION }}" > opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/VERSION
+        echo "Architecture: ${{ matrix.arch }}" >> opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/VERSION
+        echo "Built on: $(date)" >> opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/VERSION
+        
+        # Add README file
+        cat > opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/README.md << 'EOF'
+        # OpenCV ${{ env.OPENCV_VERSION }} for macOS
+        
+        ## Installation
+        ```bash
+        # Copy libraries to system directories
+        sudo cp -r lib/* /usr/local/lib/
+        sudo cp -r include/* /usr/local/include/
+        sudo cp -r share/* /usr/local/share/
+        
+        # Library path
+        export DYLD_LIBRARY_PATH=/usr/local/lib:$DYLD_LIBRARY_PATH
+        ```
+        
+        ## Usage
+        ```bash
+        g++ -std=c++11 your_program.cpp -o your_program \
+            -I/usr/local/include/opencv4 \
+            -L/usr/local/lib \
+            -lopencv_core -lopencv_imgproc -lopencv_imgcodecs
+        ```
+        
+        ## Libraries included
+        - libopencv_core
+        - libopencv_imgproc  
+        - libopencv_imgcodecs
+        - libopencv_java4 (if Java support enabled)
+        EOF
+        
+    - name: Create archive
+      run: |
+        tar -czf opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}.tar.gz \
+            opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/
+            
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}
+        path: opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}.tar.gz
+        retention-days: 30
+        
+    - name: Verify build
+      run: |
+        # 빌드된 라이브러리 확인
+        echo "=== Built libraries ==="
+        ls -la opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/lib/
+        
+        echo "=== Library info ==="
+        for lib in opencv-${{ env.OPENCV_VERSION }}-macos-${{ matrix.arch }}/lib/libopencv_*.dylib; do
+          if [ -f "$lib" ]; then
+            echo "Library: $(basename $lib)"
+            file "$lib"
+            otool -L "$lib" | head -5
+            echo "---"
+          fi
+        done
