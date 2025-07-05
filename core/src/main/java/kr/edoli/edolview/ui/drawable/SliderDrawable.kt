@@ -10,7 +10,7 @@ import kotlin.math.min
 
 open class SliderDrawable(private val fill: Color) : BaseDrawable() {
 
-    var padding = 4f
+    var sliderPad = 4f
 
     var drawDelta = false
     var defaultFraction = 0f
@@ -22,7 +22,7 @@ open class SliderDrawable(private val fill: Color) : BaseDrawable() {
 
     override fun draw(batch: Batch, x: Float, y: Float, width: Float, height: Float) {
         batch.color = fill
-        batch.draw(UIRes.white, x + padding, y, width - padding * 2, height)
+        batch.draw(UIRes.white, x + sliderPad, y, width - sliderPad * 2, height)
 
         if (drawDelta) {
             val deltaX = min(defaultFraction, currentFraction) * width
