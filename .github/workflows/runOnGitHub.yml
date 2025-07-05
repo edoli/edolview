@@ -9,12 +9,14 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]  # macos-latest
+        os: [ubuntu-latest, windows-latest, macos-latest]
         include:
           - os: ubuntu-latest
             release_suffix: ubuntu
           - os: windows-latest
             release_suffix: win
+          - os: macos-latest
+            release_suffix: mac
 
     runs-on: ${{ matrix.os }}
 
@@ -67,4 +69,4 @@ jobs:
           files: |
             release-windows-latest/*.zip
             release-ubuntu-latest/*.zip
-          # release-macos-latest/*.zip
+            release-macos-latest/*.zip
