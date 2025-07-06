@@ -54,9 +54,10 @@ run {
 
 distTar.enabled = false
 
+OperatingSystem os = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem;
+
 task installAfter() {
     doLast {
-        OperatingSystem os = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem;
         var rootPath = project.projectDir.absolutePath
         if (os.isWindows()) {
             new File("${rootPath}/build/install/desktop/lib").listFiles().findAll{
@@ -120,6 +121,8 @@ startScripts {
                 "--add-opens=java.base/java.nio=ALL-UNNAMED",
                 "--add-opens",
                 "java.base/java.nio=ALL-UNNAMED"]
+        
+        // Linux script
         unixScript.text = unixScript.text.replace('APP_HOME=$( cd -P "${APP_HOME:-./}.." > /dev/null && printf \'%s\\n\' "$PWD" ) || exit', '''
 APP_HOME=$( cd -P "${APP_HOME:-./}.." > /dev/null && printf '%s\\n' "$PWD" ) || exit
 
@@ -128,6 +131,10 @@ APP_HOME=$( cd -P "${APP_HOME:-./}.." > /dev/null && printf '%s\\n' "$PWD" ) || 
 JAVA_HOME=./jre
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib
 ''').replace('DEFAULT_JVM_OPTS=\'"-Dfile.encoding=UTF-8"\'', "DEFAULT_JVM_OPTS=\"${unixJVMOpts.join(' ')}\"")
+
+        if (os.isMacOsX()) {
+            unixScript.text = unixScript.text.replace('export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:./lib', 'export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:./lib')
+        }
     }
 }
 
@@ -142,22 +149,30 @@ distributions {
             exclude('edolview.bat')
             exclude('icon.ico')
             exclude('config.json')
+            exclude('lib/')
 
-            OperatingSystem os = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem;
             if (os.isWindows()) {
-                exclude('lib/')
                 exclude('install.sh')
                 exclude('edolview')
             }
             if (os.isLinux()) {
                 exclude('*.exe')
                 exclude('*.dll')
+                // 리눅스에서는 .so 파일들만 포함
+                from('../assets/lib') {
+                    include('**/*.so*')
+                    into('lib')
+                }
             }
             if (os.isMacOsX()) {
                 exclude('*.exe')
                 exclude('*.dll')
-                exclude('lib/')
                 exclude('install.sh')
+                // 맥에서는 .dylib 파일들만 포함
+                from('../assets/lib') {
+                    include('**/*.dylib*')
+                    into('lib')
+                }
             }
         }
     }
