@@ -86,7 +86,15 @@ task installAfter() {
             args("java.base,java.desktop,java.logging,jdk.unsupported")
             args("--no-header-files")
             args("--no-man-pages")
-            args("--compress=1")
+            
+            def javaVersion = System.getProperty("java.version")
+            def majorVersion = javaVersion.split("\\.")[0] as Integer
+            if (majorVersion >= 21) {
+                args("--compress=zip-6")
+            } else {
+                args("--compress=2")
+            }
+            
             args("--output")
             args("${rootPath}/build/install/desktop/jre")
         }
