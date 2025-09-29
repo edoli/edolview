@@ -1,6 +1,6 @@
 # EdolView - Image Viewer for Visualization and Analysis
 
-## Moved to Rust Version of Edolview
+## ⚠️ Moved to Rust Version of Edolview
 
 The Kotlin version of Edolview has been deprecated and will no longer be maintained. 
 
