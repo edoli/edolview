@@ -1,5 +1,13 @@
 # EdolView - Image Viewer for Visualization and Analysis
 
+## Moved to Rust Version of Edolview
+
+The Kotlin version of Edolview has been deprecated and will no longer be maintained. 
+
+Instead, the repository has been migrated to the **Rust** version of Edolview: https://github.com/edoli/edolview-rs.
+
+## Features
+
 Image viewer for graphics and vision researchers.
 
 * Pixel value analysis: easy to check each pixel value or mean of pixles in area.
