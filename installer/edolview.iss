@@ -24,6 +24,7 @@
 [Setup]
 AppId={#AppIdValue}
 AppName={#AppNameValue}
+UninstallDisplayName={#AppNameValue}
 AppVersion={#AppVersion}
 AppPublisher=Daniel Jeon
 AppPublisherURL=https://github.com/edoli/edolview-rs
