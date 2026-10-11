@@ -111,7 +111,25 @@ pub fn check_for_update() -> Result<Option<AvailableUpdate>, String> {
     }))
 }
 
-pub fn start_update(update: &AvailableUpdate) -> Result<String, String> {
+/// Owns the ready helper until the UI is ready to close. Dropping a queued
+/// update cancels it without allowing the installer to run.
+pub struct PreparedUpdate {
+    message: String,
+    #[cfg(target_os = "windows")]
+    handoff: Option<InnoHandoff>,
+}
+
+impl PreparedUpdate {
+    pub fn commit(self) -> Result<String, String> {
+        #[cfg(target_os = "windows")]
+        if let Some(mut handoff) = self.handoff {
+            handoff.commit()?;
+        }
+        Ok(self.message)
+    }
+}
+
+pub fn start_update(update: &AvailableUpdate) -> Result<PreparedUpdate, String> {
     let current_exe = env::current_exe().map_err(|e| format!("Failed to locate current executable: {e}"))?;
     #[cfg(target_os = "windows")]
     if is_legacy_machine_install(&current_exe) && install_scope(&current_exe).is_none() {
@@ -126,28 +144,40 @@ pub fn start_update(update: &AvailableUpdate) -> Result<String, String> {
 
     download_asset(update.asset_download_url.as_str(), &asset_path)?;
     #[cfg(target_os = "windows")]
-    if update.target == UpdateTarget::WindowsInno {
+    let handoff = if update.target == UpdateTarget::WindowsInno {
         let scope = install_scope(&current_exe)
             .ok_or("This copy is not registered with Inno Setup. Reinstall it using the new installer.")?;
-        prepare_inno_handoff(&current_exe, &temp_dir, scope, &update.version, &app_config_dir())?.commit()?;
+        Some(prepare_inno_handoff(
+            &current_exe,
+            &temp_dir,
+            scope,
+            &update.version,
+            &app_config_dir(),
+        )?)
     } else {
         launch_update_helper(update.target, &current_exe, &asset_path)?;
-    }
+        None
+    };
     #[cfg(not(target_os = "windows"))]
     launch_update_helper(update.target, &current_exe, &asset_path)?;
 
     #[cfg(target_os = "windows")]
-    return Ok(format!(
+    let message = format!(
         "Downloaded {}. Edolview will close, update silently, and reopen automatically.",
         update.version
-    ));
+    );
 
     #[cfg(not(target_os = "windows"))]
-    Ok(format!(
+    let message = format!(
         "Downloaded {}. Edolview will now close, and a separate updater window will stay visible while the {} is applied.",
         update.version,
         update.target.label()
-    ))
+    );
+    Ok(PreparedUpdate {
+        message,
+        #[cfg(target_os = "windows")]
+        handoff,
+    })
 }
 
 fn http_agent(seconds: u64) -> ureq::Agent {
@@ -319,7 +349,17 @@ impl Drop for InnoHandoff {
 
 #[cfg(target_os = "windows")]
 impl InnoHandoff {
-    fn commit(mut self) -> Result<(), String> {
+    fn commit(&mut self) -> Result<(), String> {
+        if self
+            .child
+            .as_mut()
+            .ok_or("Update helper was not started")?
+            .try_wait()
+            .map_err(|e| format!("Failed to read helper status: {e}"))?
+            .is_some()
+        {
+            return Err("Update helper exited before Edolview was ready to close. Try updating again.".into());
+        }
         fs::write(self.directory.join("go.pending"), b"install")
             .and_then(|_| fs::rename(self.directory.join("go.pending"), self.directory.join("go")))
             .map_err(|e| format!("Failed to hand off update: {e}"))?;
@@ -848,9 +888,30 @@ mod tests {
         fs::create_dir(&directory).unwrap();
         fs::write(directory.join("setup.exe"), b"hello").unwrap();
         let handoff = prepare_inno_handoff(&exe, &directory, InstallScope::User, "1.0.2", &config).unwrap();
+        // The worker may finish while the UI is blocked in a native dialog.
+        let (tx, rx) = std::sync::mpsc::channel();
+        tx.send(PreparedUpdate {
+            message: "ready".into(),
+            handoff: Some(handoff),
+        })
+        .ok()
+        .unwrap();
         assert!(directory.join("ready").is_file());
         assert!(!directory.join("go").exists());
-        drop(handoff);
+        drop(rx); // Closing the app before consuming the result cancels it.
+        assert!(!directory.exists());
+
+        fs::create_dir(&directory).unwrap();
+        fs::write(directory.join("setup.exe"), b"hello").unwrap();
+        let mut handoff = prepare_inno_handoff(&exe, &directory, InstallScope::User, "1.0.2", &config).unwrap();
+        let child = handoff.child.as_mut().unwrap();
+        child.kill().unwrap();
+        child.wait().unwrap();
+        let prepared = PreparedUpdate {
+            message: "ready".into(),
+            handoff: Some(handoff),
+        };
+        assert!(prepared.commit().is_err()); // A stale result must not close the app.
         assert!(!directory.exists());
 
         fs::create_dir(&directory).unwrap();

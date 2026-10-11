@@ -35,22 +35,18 @@ try {
         throw '업데이트할 프로그램 경로가 일치하지 않습니다.'
     }
     [IO.File]::WriteAllText((Join-Path $taskDirectory 'ready'), 'ready')
-    $deadline = [DateTime]::UtcNow.AddMinutes(5)
     while (-not [IO.File]::Exists((Join-Path $taskDirectory 'go'))) {
         if ($parent.HasExited) {
             # The app creates go before exiting; recheck after observing exit.
             if ([IO.File]::Exists((Join-Path $taskDirectory 'go'))) { break }
             return
         }
-        if ([DateTime]::UtcNow -gt $deadline) { return }
         Start-Sleep -Milliseconds 50
     }
     $committed = $true
-    if (-not $parent.WaitForExit(30000)) {
-        # Do not terminate the viewer or other instances.
-        $committed = $false
-        throw 'Edolview did not close. Try updating again.'
-    }
+    # UI readiness and process shutdown can be delayed. Keep the prepared
+    # installer until the actual parent exits; never terminate the viewer.
+    $parent.WaitForExit()
     # Fail before running Setup if another viewer process still has this EXE loaded.
     if ($env:EDOLVIEW_UPDATE_SCOPE -eq 'user') {
         try {

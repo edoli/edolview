@@ -163,7 +163,7 @@ pub struct ViewerApp {
     fallback_font_applied: bool,
 
     update_rx: Option<mpsc::Receiver<crate::update::UpdateCheck>>,
-    update_apply_rx: Option<mpsc::Receiver<Result<String, String>>>,
+    update_apply_rx: Option<mpsc::Receiver<Result<crate::update::PreparedUpdate, String>>>,
     update_status: UpdateStatus,
     update_toast_shown: bool,
     close_for_update: bool,
@@ -1303,28 +1303,6 @@ impl ViewerApp {
             }
         }
 
-        if let Some(rx) = &self.update_apply_rx {
-            match rx.try_recv() {
-                Ok(result) => match result {
-                    Ok(message) => {
-                        self.update_status = UpdateStatus::Applying(message);
-                        self.close_for_update = true;
-                    }
-                    Err(err) => {
-                        eprintln!("Failed to apply update: {err}");
-                        self.toasts.add_error(err.clone());
-                        self.update_status = UpdateStatus::Error(err);
-                    }
-                },
-                Err(mpsc::TryRecvError::Empty) => {}
-                Err(mpsc::TryRecvError::Disconnected) => {
-                    if matches!(self.update_status, UpdateStatus::Applying(_)) {
-                        self.update_status = UpdateStatus::Error("Update worker disconnected".to_string());
-                    }
-                }
-            }
-        }
-
         if let Some(rx) = &self.startup_path_rx {
             let mut should_clear_rx = false;
 
@@ -1354,6 +1332,30 @@ impl ViewerApp {
     }
 
     fn handle_window_commands(&mut self, ctx: &egui::Context) {
+        // Commit only when the UI can immediately request closure and return
+        // from this frame, rather than while a native dialog is blocking it.
+        if let Some(rx) = &self.update_apply_rx {
+            match rx.try_recv() {
+                Ok(result) => match result.and_then(crate::update::PreparedUpdate::commit) {
+                    Ok(message) => {
+                        self.update_status = UpdateStatus::Applying(message);
+                        self.close_for_update = true;
+                    }
+                    Err(err) => {
+                        eprintln!("Failed to apply update: {err}");
+                        self.toasts.add_error(err.clone());
+                        self.update_status = UpdateStatus::Error(err);
+                    }
+                },
+                Err(mpsc::TryRecvError::Empty) => {}
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    if matches!(self.update_status, UpdateStatus::Applying(_)) {
+                        self.update_status = UpdateStatus::Error("Update worker disconnected".to_string());
+                    }
+                }
+            }
+        }
+
         if self.close_for_update {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             return;
