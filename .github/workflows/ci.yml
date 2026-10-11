@@ -189,46 +189,15 @@ jobs:
             colormap/**
           if-no-files-found: warn
 
-      - name: Install MSI tooling
+      - name: Install Inno Setup
         if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'Windows')
         shell: pwsh
-        run: |
-          choco install -y --no-progress wixtoolset
-          $wixBin = "${env:ProgramFiles(x86)}\WiX Toolset v3.11\bin"
-          if (-not (Test-Path $wixBin)) {
-            $wixBin = "${env:ProgramFiles(x86)}\WiX Toolset v3.14\bin"
-          }
-          if (-not (Test-Path $wixBin)) {
-            throw "WiX Toolset bin directory not found"
-          }
-          Add-Content -Path $Env:GITHUB_ENV -Value "WIX=$wixBin"
-          Add-Content -Path $Env:GITHUB_ENV -Value "PATH=$wixBin;$env:PATH"
+        run: ./tools/install_inno.ps1
 
-      - name: Build MSI installer
+      - name: Build Inno Setup installer
         if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'Windows')
         shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force -Path target\wix | Out-Null
-          New-Item -ItemType Directory -Force -Path target\dist | Out-Null
-          & "$env:WIX\heat.exe" dir colormap -cg ColormapFiles -dr COLORMAPDIR -gg -scom -sreg -sfrag -srd -var var.ColormapDir -out target\wix\colormap.wxs
-          if ($env:GITHUB_REF_TYPE -eq "tag" -and $env:GITHUB_REF_NAME.StartsWith("v")) {
-            $tagVersion = $env:GITHUB_REF_NAME.Substring(1)
-          } else {
-            $cargoVersionMatch = Select-String -Path Cargo.toml -Pattern '^version = "([^"]+)"' | Select-Object -First 1
-            if (-not $cargoVersionMatch) {
-              throw "Could not determine package version from Cargo.toml"
-            }
-            $tagVersion = $cargoVersionMatch.Matches[0].Groups[1].Value
-          }
-          if ($tagVersion -match '^\d+\.\d+\.\d+$') {
-            $productVersion = "$tagVersion.0"
-          } elseif ($tagVersion -match '^\d+\.\d+\.\d+\.\d+$') {
-            $productVersion = $tagVersion
-          } else {
-            throw "Unsupported tag version for WiX: $tagVersion"
-          }
-          & "$env:WIX\candle.exe" -ext WixUIExtension -arch x64 "-dProjectDir=$env:GITHUB_WORKSPACE" "-dColormapDir=$env:GITHUB_WORKSPACE\colormap" "-dReleaseBinDir=$env:GITHUB_WORKSPACE\target\release" "-dProductVersion=$productVersion" -out target\wix\ packaging\windows\edolview.wxs target\wix\colormap.wxs
-          & "$env:WIX\light.exe" -ext WixUIExtension -out target\dist\edolview-installer-msi.msi target\wix\edolview.wixobj target\wix\colormap.wixobj
+        run: ./tools/package.ps1 -NoBuild
 
       - name: Install macOS packaging tools
         if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'macOS')
@@ -304,12 +273,12 @@ jobs:
           APPIMAGE_OUTPUT="$(find . -maxdepth 1 -type f -name '*.AppImage' ! -name 'linuxdeploy.AppImage' | head -n 1)"
           mv "$APPIMAGE_OUTPUT" target/dist/edolview-installer-appimage.AppImage
 
-      - name: Upload MSI installer artifact
+      - name: Upload Inno Setup installer artifact
         if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'Windows')
         uses: actions/upload-artifact@v4
         with:
-          name: edolview-installer-msi
-          path: target/dist/edolview-installer-msi.msi
+          name: edolview-installer-exe
+          path: target/dist/edolview-installer-exe.exe
           if-no-files-found: warn
 
       - name: Upload DMG installer artifact
@@ -374,7 +343,7 @@ jobs:
         with:
           files: |
             dist/*.zip
-            dist/**/*.msi
+            dist/**/edolview-installer-exe.exe
             dist/**/*.dmg
             dist/**/*.AppImage
             dist/**/*.deb

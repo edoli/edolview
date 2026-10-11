@@ -16,6 +16,8 @@ mod supported_image;
 mod ui;
 mod update;
 mod util;
+#[cfg(target_os = "windows")]
+mod windows_install;
 
 #[cfg(debug_assertions)]
 mod debug;

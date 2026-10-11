@@ -162,7 +162,7 @@ pub struct ViewerApp {
     font_rx: Option<mpsc::Receiver<LoadedFallbackFonts>>,
     fallback_font_applied: bool,
 
-    update_rx: Option<mpsc::Receiver<Result<Option<crate::update::AvailableUpdate>, String>>>,
+    update_rx: Option<mpsc::Receiver<crate::update::UpdateCheck>>,
     update_apply_rx: Option<mpsc::Receiver<Result<String, String>>>,
     update_status: UpdateStatus,
     update_toast_shown: bool,
@@ -811,7 +811,11 @@ impl ViewerApp {
                         ));
                         ui.add_space(8.0);
                         ui.label(
-                            "Edolview will download the update first. When the install step is ready, the app will close and a separate updater window will stay visible until the update finishes.",
+                            if cfg!(target_os = "windows") {
+                                "Edolview will download the update, close briefly, install silently, and reopen automatically."
+                            } else {
+                                "Edolview will download the update first. When the install step is ready, the app will close and a separate updater window will stay visible until the update finishes."
+                            },
                         );
                         ui.add_space(14.0);
                         ui.separator();
@@ -840,6 +844,9 @@ impl ViewerApp {
     }
 
     fn show_update_progress_dialog(&self, ctx: &egui::Context) {
+        if cfg!(target_os = "windows") {
+            return;
+        }
         let UpdateStatus::Applying(message) = &self.update_status else {
             return;
         };
@@ -888,7 +895,11 @@ impl ViewerApp {
                             crate::update::current_version()
                         ));
                     if update_button.clicked() {
-                        self.pending_update_confirmation = Some(update);
+                        if cfg!(target_os = "windows") {
+                            self.begin_update(ctx, update);
+                        } else {
+                            self.pending_update_confirmation = Some(update);
+                        }
                     }
                 }
 
@@ -1156,8 +1167,12 @@ impl ViewerApp {
 
         let update_ctx = ctx.clone();
         thread::spawn(move || {
+            let previous_failure = crate::update::take_update_failure().unwrap_or_else(|error| Some(error));
             let result = crate::update::check_for_update();
-            let _ = update_tx.send(result);
+            let _ = update_tx.send(crate::update::UpdateCheck {
+                available: result,
+                previous_failure,
+            });
             Self::request_root_repaint(&update_ctx);
         });
     }
@@ -1256,22 +1271,29 @@ impl ViewerApp {
 
         if let Some(rx) = &self.update_rx {
             match rx.try_recv() {
-                Ok(result) => match result {
-                    Ok(Some(update)) => {
-                        if !self.update_toast_shown {
-                            self.toasts.add_info(format!("Update available: {}", update.version));
-                            self.update_toast_shown = true;
+                Ok(check) => {
+                    if let Some(error) = check.previous_failure {
+                        eprintln!("{error}");
+                        self.toasts.add_error(error);
+                    }
+                    match check.available {
+                        Ok(Some(update)) => {
+                            if !self.update_toast_shown {
+                                self.toasts.add_info(format!("Update available: {}", update.version));
+                                self.update_toast_shown = true;
+                            }
+                            self.update_status = UpdateStatus::Available(update);
                         }
-                        self.update_status = UpdateStatus::Available(update);
+                        Ok(None) => {
+                            self.update_status = UpdateStatus::UpToDate;
+                        }
+                        Err(err) => {
+                            eprintln!("Failed to check for updates: {err}");
+                            self.toasts.add_error(err.clone());
+                            self.update_status = UpdateStatus::Error(err);
+                        }
                     }
-                    Ok(None) => {
-                        self.update_status = UpdateStatus::UpToDate;
-                    }
-                    Err(err) => {
-                        eprintln!("Failed to check for updates: {err}");
-                        self.update_status = UpdateStatus::Error(err);
-                    }
-                },
+                }
                 Err(mpsc::TryRecvError::Empty) => {}
                 Err(mpsc::TryRecvError::Disconnected) => {
                     if self.update_status == UpdateStatus::Checking {
@@ -1289,6 +1311,7 @@ impl ViewerApp {
                         self.close_for_update = true;
                     }
                     Err(err) => {
+                        eprintln!("Failed to apply update: {err}");
                         self.toasts.add_error(err.clone());
                         self.update_status = UpdateStatus::Error(err);
                     }

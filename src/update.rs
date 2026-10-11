@@ -2,7 +2,8 @@ use std::{
     env, fs, io,
     path::{Path, PathBuf},
     process::Command,
-    time::{SystemTime, UNIX_EPOCH},
+    sync::atomic::{AtomicU64, Ordering},
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
@@ -10,10 +11,26 @@ use std::{fs::File, io::Write};
 
 use serde::Deserialize;
 
+#[cfg(not(target_os = "windows"))]
 use crate::util::path_ext::safe_temp_dir;
+
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+#[cfg(target_os = "windows")]
+use std::time::Instant;
+
+#[cfg(target_os = "windows")]
+use crate::{
+    util::path_ext::app_config_dir,
+    windows_install::{install_scope, InstallScope, RESULT_FILE},
+};
+
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
 
 pub const RELEASES_PAGE_URL: &str = "https://github.com/edoli/edolview-rs/releases";
 const LATEST_RELEASE_API_URL: &str = "https://api.github.com/repos/edoli/edolview-rs/releases/latest";
+const WINDOWS_INSTALLER_ASSET: &str = "edolview-installer-exe.exe";
 const CURRENT_VERSION: &str = match option_env!("EDOLVIEW_BUILD_VERSION") {
     Some(version) => version,
     None => env!("CARGO_PKG_VERSION"),
@@ -32,10 +49,15 @@ pub struct AvailableUpdate {
     pub target: UpdateTarget,
 }
 
+pub struct UpdateCheck {
+    pub available: Result<Option<AvailableUpdate>, String>,
+    pub previous_failure: Option<String>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum UpdateTarget {
     PortableZip,
-    WindowsMsi,
+    WindowsInno,
     MacDmg,
     LinuxDeb,
     LinuxAppImage,
@@ -45,7 +67,7 @@ impl UpdateTarget {
     pub fn label(self) -> &'static str {
         match self {
             Self::PortableZip => "portable zip",
-            Self::WindowsMsi => "MSI installer",
+            Self::WindowsInno => "Inno Setup installer",
             Self::MacDmg => "DMG installer",
             Self::LinuxDeb => "DEB package",
             Self::LinuxAppImage => "AppImage",
@@ -76,27 +98,51 @@ pub fn check_for_update() -> Result<Option<AvailableUpdate>, String> {
     let asset_name = preferred_asset_name(target);
     let asset = release
         .assets
-        .into_iter()
+        .iter()
         .find(|asset| asset.name == asset_name)
         .ok_or_else(|| format!("No compatible update asset found for {}", target.label()))?;
 
     Ok(Some(AvailableUpdate {
         version: normalize_version_label(release.tag_name.as_str()),
         html_url: release.html_url,
-        asset_name: asset.name,
-        asset_download_url: asset.browser_download_url,
+        asset_name: asset.name.clone(),
+        asset_download_url: asset.browser_download_url.clone(),
         target,
     }))
 }
 
 pub fn start_update(update: &AvailableUpdate) -> Result<String, String> {
     let current_exe = env::current_exe().map_err(|e| format!("Failed to locate current executable: {e}"))?;
+    #[cfg(target_os = "windows")]
+    if is_legacy_machine_install(&current_exe) && install_scope(&current_exe).is_none() {
+        return Err("This copy uses the old all-users installation. Uninstall it with administrator permission, then install the new Inno Setup installer from the releases page.".to_string());
+    }
     let temp_dir = create_update_temp_dir()?;
-    let asset_path = temp_dir.join(update.asset_name.as_str());
+    let asset_path = temp_dir.join(if update.target == UpdateTarget::WindowsInno {
+        "setup.exe"
+    } else {
+        update.asset_name.as_str()
+    });
 
     download_asset(update.asset_download_url.as_str(), &asset_path)?;
+    #[cfg(target_os = "windows")]
+    if update.target == UpdateTarget::WindowsInno {
+        let scope = install_scope(&current_exe)
+            .ok_or("This copy is not registered with Inno Setup. Reinstall it using the new installer.")?;
+        prepare_inno_handoff(&current_exe, &temp_dir, scope, &update.version, &app_config_dir())?.commit()?;
+    } else {
+        launch_update_helper(update.target, &current_exe, &asset_path)?;
+    }
+    #[cfg(not(target_os = "windows"))]
     launch_update_helper(update.target, &current_exe, &asset_path)?;
 
+    #[cfg(target_os = "windows")]
+    return Ok(format!(
+        "Downloaded {}. Edolview will close, update silently, and reopen automatically.",
+        update.version
+    ));
+
+    #[cfg(not(target_os = "windows"))]
     Ok(format!(
         "Downloaded {}. Edolview will now close, and a separate updater window will stay visible while the {} is applied.",
         update.version,
@@ -104,8 +150,16 @@ pub fn start_update(update: &AvailableUpdate) -> Result<String, String> {
     ))
 }
 
+fn http_agent(seconds: u64) -> ureq::Agent {
+    ureq::Agent::config_builder()
+        .timeout_global(Some(Duration::from_secs(seconds)))
+        .build()
+        .new_agent()
+}
+
 fn fetch_latest_release() -> Result<ReleaseResponse, String> {
-    ureq::get(LATEST_RELEASE_API_URL)
+    http_agent(20)
+        .get(LATEST_RELEASE_API_URL)
         .header("User-Agent", "edolview-rs")
         .header("Accept", "application/vnd.github+json")
         .call()
@@ -120,16 +174,15 @@ fn fetch_latest_release() -> Result<ReleaseResponse, String> {
 }
 
 fn download_asset(url: &str, destination: &Path) -> Result<(), String> {
-    let mut response = ureq::get(url)
+    let mut response = http_agent(300)
+        .get(url)
         .header("User-Agent", "edolview-rs")
         .call()
         .map_err(|e| format!("Failed to download update asset: {e}"))?;
     let mut asset = fs::File::create(destination).map_err(|e| format!("Failed to create update asset: {e}"))?;
-    let mut reader = response.body_mut().as_reader();
-
-    io::copy(&mut reader, &mut asset)
-        .map(|_| ())
-        .map_err(|e| format!("Failed to save update asset: {e}"))
+    io::copy(&mut response.body_mut().as_reader(), &mut asset)
+        .map_err(|e| format!("Failed to save update asset: {e}"))?;
+    Ok(())
 }
 
 fn detect_update_target() -> Result<UpdateTarget, String> {
@@ -137,11 +190,7 @@ fn detect_update_target() -> Result<UpdateTarget, String> {
 
     #[cfg(target_os = "windows")]
     {
-        let exe_lower = exe.to_string_lossy().to_ascii_lowercase();
-        if exe_lower.contains("\\program files\\") {
-            return Ok(UpdateTarget::WindowsMsi);
-        }
-        return Ok(UpdateTarget::PortableZip);
+        return Ok(windows_update_target(&exe));
     }
 
     #[cfg(target_os = "macos")]
@@ -167,6 +216,43 @@ fn detect_update_target() -> Result<UpdateTarget, String> {
     Err("Automatic updates are not supported on this platform".to_string())
 }
 
+#[cfg(target_os = "windows")]
+fn is_legacy_machine_install(exe: &Path) -> bool {
+    // Preserve detection of existing releases while requiring a one-time migration.
+    let path = exe.to_string_lossy().replace('/', "\\").to_ascii_lowercase();
+    path.contains("\\program files\\") || path.contains("\\program files (x86)\\")
+}
+
+#[cfg(target_os = "windows")]
+fn windows_update_target(exe: &Path) -> UpdateTarget {
+    if install_scope(exe).is_some() || is_legacy_machine_install(exe) {
+        UpdateTarget::WindowsInno
+    } else {
+        UpdateTarget::PortableZip
+    }
+}
+
+pub fn take_update_failure() -> Result<Option<String>, String> {
+    #[cfg(target_os = "windows")]
+    {
+        return read_update_failure(&app_config_dir().join(RESULT_FILE));
+    }
+    #[cfg(not(target_os = "windows"))]
+    Ok(None)
+}
+
+#[cfg(target_os = "windows")]
+fn read_update_failure(path: &Path) -> Result<Option<String>, String> {
+    match fs::read_to_string(path) {
+        Ok(result) => {
+            fs::remove_file(path).map_err(|e| format!("Failed to clear update result: {e}"))?;
+            Ok(result.strip_prefix("ERROR\n").map(|error| error.trim().to_string()))
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(format!("Failed to read update result: {error}")),
+    }
+}
+
 fn preferred_asset_name(target: UpdateTarget) -> &'static str {
     match target {
         UpdateTarget::PortableZip => {
@@ -183,7 +269,7 @@ fn preferred_asset_name(target: UpdateTarget) -> &'static str {
                 "edolview-linux.zip"
             }
         }
-        UpdateTarget::WindowsMsi => "edolview-installer-msi.msi",
+        UpdateTarget::WindowsInno => WINDOWS_INSTALLER_ASSET,
         UpdateTarget::MacDmg => "edolview-installer-dmg.dmg",
         UpdateTarget::LinuxDeb => "edolview-installer-deb.deb",
         UpdateTarget::LinuxAppImage => "edolview-installer-appimage.AppImage",
@@ -191,13 +277,125 @@ fn preferred_asset_name(target: UpdateTarget) -> &'static str {
 }
 
 fn create_update_temp_dir() -> Result<PathBuf, String> {
+    static NEXT_UPDATE_ID: AtomicU64 = AtomicU64::new(0);
     let millis = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .map_err(|e| format!("Failed to compute update temp timestamp: {e}"))?
         .as_millis();
-    let dir = safe_temp_dir().join(format!("edolview-update-{}-{millis}", std::process::id()));
-    fs::create_dir_all(&dir).map_err(|e| format!("Failed to create update temp directory: {e}"))?;
+    // PowerShell supports Unicode paths; keep updates in the user's writable
+    // temporary directory rather than falling back to a system-wide ASCII path.
+    #[cfg(target_os = "windows")]
+    let temp_dir = env::temp_dir();
+    #[cfg(not(target_os = "windows"))]
+    let temp_dir = safe_temp_dir();
+    let id = NEXT_UPDATE_ID.fetch_add(1, Ordering::Relaxed);
+    let dir = temp_dir.join(format!("edolview-update-{}-{millis}-{id}", std::process::id()));
+    fs::create_dir(&dir).map_err(|e| format!("Failed to create update temp directory: {e}"))?;
     Ok(dir)
+}
+
+#[cfg(target_os = "windows")]
+struct InnoHandoff {
+    directory: PathBuf,
+    child: Option<std::process::Child>,
+    committed: bool,
+}
+
+#[cfg(target_os = "windows")]
+impl Drop for InnoHandoff {
+    fn drop(&mut self) {
+        if !self.committed {
+            if let Some(child) = self.child.as_mut() {
+                let _ = child.kill();
+                let _ = child.wait();
+            }
+            for file in ["setup.exe", "update.ps1", "ready", "go.pending", "go"] {
+                let _ = fs::remove_file(self.directory.join(file));
+            }
+            let _ = fs::remove_dir(&self.directory);
+        }
+    }
+}
+
+#[cfg(target_os = "windows")]
+impl InnoHandoff {
+    fn commit(mut self) -> Result<(), String> {
+        fs::write(self.directory.join("go.pending"), b"install")
+            .and_then(|_| fs::rename(self.directory.join("go.pending"), self.directory.join("go")))
+            .map_err(|e| format!("Failed to hand off update: {e}"))?;
+        self.committed = true;
+        Ok(())
+    }
+}
+
+#[cfg(target_os = "windows")]
+fn prepare_inno_handoff(
+    exe: &Path,
+    directory: &Path,
+    scope: InstallScope,
+    version: &str,
+    config: &Path,
+) -> Result<InnoHandoff, String> {
+    let mut handoff = InnoHandoff {
+        directory: directory.into(),
+        child: None,
+        committed: false,
+    };
+    let script = directory.join("update.ps1");
+    fs::write(&script, include_str!("../installer/update.ps1"))
+        .map_err(|e| format!("Failed to write update helper: {e}"))?;
+    let system = env::var_os("SystemRoot").ok_or("Cannot find Windows PowerShell")?;
+    let shell = PathBuf::from(system).join("System32/WindowsPowerShell/v1.0/powershell.exe");
+    // The helper is constant; paths and release data are passed as data through
+    // environment variables, including paths containing Unicode and quotes.
+    let child = Command::new(shell)
+        .args([
+            "-NoProfile",
+            "-NonInteractive",
+            "-WindowStyle",
+            "Hidden",
+            "-Command",
+            "& ([ScriptBlock]::Create([IO.File]::ReadAllText($env:EDOLVIEW_UPDATE_SCRIPT)))",
+        ])
+        .env("EDOLVIEW_UPDATE_SCRIPT", &script)
+        .env("EDOLVIEW_UPDATE_DIR", directory)
+        .env("EDOLVIEW_UPDATE_EXE", exe)
+        .env(
+            "EDOLVIEW_UPDATE_SCOPE",
+            if scope == InstallScope::Machine {
+                "machine"
+            } else {
+                "user"
+            },
+        )
+        .env("EDOLVIEW_UPDATE_VERSION", version)
+        .env("EDOLVIEW_UPDATE_PARENT", std::process::id().to_string())
+        .env("EDOLVIEW_CONFIG_DIR", config)
+        .creation_flags(CREATE_NO_WINDOW)
+        .spawn()
+        .map_err(|e| format!("Failed to start update helper: {e}"))?;
+    handoff.child = Some(child);
+    let deadline = Instant::now() + Duration::from_secs(30);
+    loop {
+        if directory.join("ready").is_file() {
+            return Ok(handoff);
+        }
+        if handoff
+            .child
+            .as_mut()
+            .unwrap()
+            .try_wait()
+            .map_err(|e| format!("Failed to read helper status: {e}"))?
+            .is_some()
+        {
+            return Err(read_update_failure(&config.join(RESULT_FILE))?
+                .unwrap_or_else(|| "Update helper exited before it was ready".into()));
+        }
+        if Instant::now() >= deadline {
+            return Err("Update helper readiness timed out".into());
+        }
+        std::thread::sleep(Duration::from_millis(50));
+    }
 }
 
 fn launch_update_helper(target: UpdateTarget, current_exe: &Path, asset_path: &Path) -> Result<(), String> {
@@ -208,6 +406,7 @@ fn launch_update_helper(target: UpdateTarget, current_exe: &Path, asset_path: &P
         Command::new("powershell")
             .args([
                 "-NoProfile",
+                "-NonInteractive",
                 "-ExecutionPolicy",
                 "Bypass",
                 "-Sta",
@@ -216,6 +415,7 @@ fn launch_update_helper(target: UpdateTarget, current_exe: &Path, asset_path: &P
                 "-File",
             ])
             .arg(&script_path)
+            .creation_flags(CREATE_NO_WINDOW)
             .spawn()
             .map_err(|e| format!("Failed to launch update helper: {e}"))?;
         return Ok(());
@@ -248,154 +448,75 @@ fn write_windows_update_script(
     current_exe: &Path,
     asset_path: &Path,
 ) -> Result<(), String> {
+    let pid = std::process::id();
+
+    let script = windows_update_script(target, current_exe, asset_path, pid, &app_config_dir().join(RESULT_FILE))?;
+
+    // Windows PowerShell 5 reads .ps1 files as the ANSI code page without a BOM.
+    fs::write(path, format!("\u{feff}{script}")).map_err(|e| format!("Failed to write update helper script: {e}"))
+}
+
+#[cfg(target_os = "windows")]
+fn windows_update_script(
+    target: UpdateTarget,
+    current_exe: &Path,
+    asset_path: &Path,
+    pid: u32,
+    error_path: &Path,
+) -> Result<String, String> {
     let current_dir = current_exe
         .parent()
         .ok_or_else(|| "Current executable has no parent directory".to_string())?;
-    let pid = std::process::id();
-
-    let script = match target {
-        UpdateTarget::PortableZip => format!(
-            r#"$ErrorActionPreference = 'Stop'
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-$form = New-Object System.Windows.Forms.Form
-$form.Text = 'Updating Edolview'
-$form.Width = 420
-$form.Height = 150
-$form.StartPosition = 'CenterScreen'
-$form.FormBorderStyle = 'FixedDialog'
-$form.ControlBox = $false
-$form.TopMost = $true
-$label = New-Object System.Windows.Forms.Label
-$label.Left = 20
-$label.Top = 16
-$label.Width = 360
-$label.Height = 44
-$label.TextAlign = 'MiddleLeft'
-$progress = New-Object System.Windows.Forms.ProgressBar
-$progress.Left = 20
-$progress.Top = 74
-$progress.Width = 360
-$progress.Height = 18
-$progress.Style = 'Marquee'
-$progress.MarqueeAnimationSpeed = 30
-$form.Controls.Add($label)
-$form.Controls.Add($progress)
-$form.Show()
-function Set-Status([string] $text) {{
-    $label.Text = $text
-    [System.Windows.Forms.Application]::DoEvents()
-}}
-Set-Status({status_waiting})
-$pidToWait = {pid}
-while (Get-Process -Id $pidToWait -ErrorAction SilentlyContinue) {{
-    [System.Windows.Forms.Application]::DoEvents()
-    Start-Sleep -Milliseconds 300
-}}
-Set-Status({status_installing})
-$assetPath = {asset_path}
-$targetDir = {target_dir}
-$extractDir = Join-Path (Split-Path $assetPath -Parent) 'portable'
-if (Test-Path $extractDir) {{
-    Remove-Item $extractDir -Recurse -Force
-}}
-Expand-Archive -Path $assetPath -DestinationPath $extractDir -Force
-Copy-Item (Join-Path $extractDir 'edolview.exe') (Join-Path $targetDir 'edolview.exe') -Force
-if (Test-Path (Join-Path $targetDir 'colormap')) {{
-    Remove-Item (Join-Path $targetDir 'colormap') -Recurse -Force
-}}
-Copy-Item (Join-Path $extractDir 'colormap') (Join-Path $targetDir 'colormap') -Recurse -Force
-Set-Status({status_restarting})
-Start-Process -FilePath (Join-Path $targetDir 'edolview.exe')
-$form.Close()
-"#,
-            status_waiting = ps_quote_string("Waiting for Edolview to close so the update can start..."),
-            status_installing = ps_quote_string("Installing the new portable build..."),
-            status_restarting = ps_quote_string("Update installed. Restarting Edolview..."),
-            asset_path = ps_quote_path(asset_path),
-            target_dir = ps_quote_path(current_dir),
-        ),
-        UpdateTarget::WindowsMsi => format!(
-            r#"$ErrorActionPreference = 'Stop'
-Add-Type -AssemblyName System.Windows.Forms
-Add-Type -AssemblyName System.Drawing
-$form = New-Object System.Windows.Forms.Form
-$form.Text = 'Updating Edolview'
-$form.Width = 420
-$form.Height = 150
-$form.StartPosition = 'CenterScreen'
-$form.FormBorderStyle = 'FixedDialog'
-$form.ControlBox = $false
-$form.TopMost = $true
-$label = New-Object System.Windows.Forms.Label
-$label.Left = 20
-$label.Top = 16
-$label.Width = 360
-$label.Height = 44
-$label.TextAlign = 'MiddleLeft'
-$progress = New-Object System.Windows.Forms.ProgressBar
-$progress.Left = 20
-$progress.Top = 74
-$progress.Width = 360
-$progress.Height = 18
-$progress.Style = 'Marquee'
-$progress.MarqueeAnimationSpeed = 30
-$form.Controls.Add($label)
-$form.Controls.Add($progress)
-$form.Show()
-function Set-Status([string] $text) {{
-    $label.Text = $text
-    [System.Windows.Forms.Application]::DoEvents()
-}}
-Set-Status({status_waiting})
-$pidToWait = {pid}
-while (Get-Process -Id $pidToWait -ErrorAction SilentlyContinue) {{
-    [System.Windows.Forms.Application]::DoEvents()
-    Start-Sleep -Milliseconds 300
-}}
-Set-Status({status_installing})
-$assetPath = {asset_path}
-$targetExe = {target_exe}
-$features = @('MainFeature')
-$desktopShortcut = Join-Path ([Environment]::GetFolderPath('Desktop')) 'Edolview.lnk'
-if (Test-Path $desktopShortcut) {{
-    $features += 'DesktopShortcutFeature'
-}}
-$startMenuDir = Join-Path ([Environment]::GetFolderPath('Programs')) 'Edolview'
-$startMenuShortcut = Join-Path $startMenuDir 'Edolview.lnk'
-if (Test-Path $startMenuShortcut) {{
-    $features += 'StartMenuShortcutsFeature'
-}}
-$installerArgs = @('/i', $assetPath, '/passive', '/norestart', 'MIGRATEFEATURESTATES=0', ('ADDLOCAL=' + ($features -join ',')))
-$installer = Start-Process -FilePath 'msiexec.exe' -ArgumentList $installerArgs -PassThru
-$installer.WaitForExit()
-if ($installer.ExitCode -ne 0) {{
-    throw "MSI installer failed with exit code $($installer.ExitCode)."
-}}
-Set-Status({status_restarting})
-for ($attempt = 0; $attempt -lt 50; $attempt++) {{
-    if (Test-Path $targetExe) {{
-        break
-    }}
-    [System.Windows.Forms.Application]::DoEvents()
-    Start-Sleep -Milliseconds 300
-}}
-if (-not (Test-Path $targetExe)) {{
-    throw "Updated Edolview executable was not found at $targetExe."
-}}
-Start-Process -FilePath $targetExe
-$form.Close()
-"#,
-            status_waiting = ps_quote_string("Waiting for Edolview to close so the installer can start..."),
-            status_installing = ps_quote_string("Installing the MSI update. Follow any prompts to finish the update."),
-            status_restarting = ps_quote_string("Update installed. Restarting Edolview..."),
-            asset_path = ps_quote_path(asset_path),
-            target_exe = ps_quote_path(current_exe),
-        ),
+    let install = match target {
+        UpdateTarget::PortableZip => {
+            r#"
+    $extractDir = Join-Path (Split-Path $assetPath -Parent) 'portable'
+    Expand-Archive -LiteralPath $assetPath -DestinationPath $extractDir -Force
+    Copy-Item -LiteralPath (Join-Path $extractDir 'edolview.exe') -Destination $targetExe -Force
+    Copy-Item -LiteralPath (Join-Path $extractDir 'colormap') -Destination $targetDir -Recurse -Force
+"#
+        }
         _ => return Err("Unsupported Windows update target".to_string()),
     };
-
-    fs::write(path, script).map_err(|e| format!("Failed to write update helper script: {e}"))
+    Ok(format!(
+        r#"$ErrorActionPreference = 'Stop'
+$assetPath = {asset_path}
+$targetExe = {target_exe}
+$targetDir = {target_dir}
+$errorPath = {error_path}
+$logPath = Join-Path (Split-Path $assetPath -Parent) 'installer.log'
+$utf8 = New-Object System.Text.UTF8Encoding($false)
+try {{
+    $pidToWait = {pid}
+    while (Get-Process -Id $pidToWait -ErrorAction SilentlyContinue) {{
+        Start-Sleep -Milliseconds 300
+    }}
+    Remove-Item -LiteralPath $errorPath -Force -ErrorAction SilentlyContinue
+{install}
+    if (-not (Test-Path -LiteralPath $targetExe)) {{
+        throw "Updated Edolview executable was not found at $targetExe."
+    }}
+}} catch {{
+    $message = "ERROR`nEdolview update failed: $($_.Exception.Message)"
+    [System.IO.File]::WriteAllText($errorPath, $message, $utf8)
+    [Console]::Error.WriteLine($message)
+}}
+# Reopen the existing app on failure too, so its normal toast flow reports the error.
+if (Test-Path -LiteralPath $targetExe) {{
+    try {{
+        Start-Process -FilePath $targetExe
+    }} catch {{
+        $message = "ERROR`nCould not reopen Edolview after updating: $($_.Exception.Message)"
+        [System.IO.File]::WriteAllText($errorPath, $message, $utf8)
+        [Console]::Error.WriteLine($message)
+    }}
+}}
+"#,
+        asset_path = ps_quote_path(asset_path),
+        target_exe = ps_quote_path(current_exe),
+        target_dir = ps_quote_string(current_dir.to_string_lossy().trim_end_matches(['\\', '/'])),
+        error_path = ps_quote_path(error_path),
+    ))
 }
 
 #[cfg(any(target_os = "macos", target_os = "linux"))]
@@ -666,8 +787,8 @@ fn sh_quote(value: &str) -> String {
 fn status_message(target: UpdateTarget) -> &'static str {
     match target {
         UpdateTarget::PortableZip => "Edolview is installing the downloaded update and will reopen automatically.",
-        UpdateTarget::WindowsMsi => {
-            "Edolview is handing the update over to the MSI installer and will reopen automatically when it finishes."
+        UpdateTarget::WindowsInno => {
+            "Edolview is installing the update silently and will reopen automatically when it finishes."
         }
         UpdateTarget::MacDmg => {
             "Edolview is replacing the installed app bundle and will reopen automatically when it finishes."
@@ -712,5 +833,31 @@ mod tests {
         assert!(!is_newer_version("v0.4.20", "0.4.20"));
         assert!(!is_newer_version("0.4.19", "0.4.20"));
         assert!(!is_newer_version("0.4", "0.4.0"));
+    }
+
+    #[cfg(target_os = "windows")]
+    #[test]
+    fn inno_helper_waits_for_handoff_and_cancels_cleanly() {
+        use super::*;
+        let root = create_update_temp_dir().unwrap();
+        let unicode = root.join("space 한글 O'Brien");
+        let config = unicode.join("config");
+        fs::create_dir_all(&config).unwrap();
+        let exe = env::current_exe().unwrap();
+        let directory = unicode.join("edolview-update-1-2-3");
+        fs::create_dir(&directory).unwrap();
+        fs::write(directory.join("setup.exe"), b"hello").unwrap();
+        let handoff = prepare_inno_handoff(&exe, &directory, InstallScope::User, "1.0.2", &config).unwrap();
+        assert!(directory.join("ready").is_file());
+        assert!(!directory.join("go").exists());
+        drop(handoff);
+        assert!(!directory.exists());
+
+        fs::create_dir(&directory).unwrap();
+        // A missing download must fail before the app closes.
+        assert!(prepare_inno_handoff(&exe, &directory, InstallScope::User, "1.0.2", &config).is_err());
+        assert!(!directory.exists());
+        assert!(exe.is_file()); // Parent remains alive; no installer was launched.
+        fs::remove_dir_all(root).unwrap();
     }
 }

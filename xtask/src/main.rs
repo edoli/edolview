@@ -13,7 +13,6 @@ mod supported_image;
 
 const APP_NAME: &str = "Edolview";
 const APP_NAME_LC: &str = "edolview";
-const WINDOWS_APP_USER_MODEL_ID: &str = "kr.edoli.edolview";
 
 fn main() -> Result<()> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
@@ -183,8 +182,7 @@ fn generate_all_icons() -> Result<()> {
     write_linux_debian_maintainer_script("packaging/linux/debian/postinst")?;
     write_linux_debian_maintainer_script("packaging/linux/debian/postrm")?;
     write_macos_info_plist_template("packaging/macos/Info.plist.in")?;
-    write_windows_license_rtf("packaging/windows/License.rtf")?;
-    write_windows_wxs("packaging/windows/edolview.wxs")?;
+    write_windows_file_associations("packaging/windows/file-associations.iss")?;
 
     println!("icons generated in ./icons");
     Ok(())
@@ -435,200 +433,20 @@ fn write_macos_info_plist_template(path: &str) -> Result<()> {
     Ok(())
 }
 
-fn write_windows_wxs(path: &str) -> Result<()> {
+fn write_windows_file_associations(path: &str) -> Result<()> {
     fs::create_dir_all(Path::new(path).parent().unwrap())?;
-
-    let formats = supported_image::supported_image_formats();
-
-    let components = formats
-        .iter()
-        .map(|format| {
-            let ext_id = format.ext.to_ascii_uppercase();
-            let prog_id = format!("Edolview.{}", ext_id);
-            let component_id = format!("cmpAssoc{}", ext_id);
-            let open_with_component_id = format!("cmpOpenWith{}", ext_id);
-            format!(
-                r#"          <Component Id="{component_id}" Guid="*">
-            <RegistryKey Root="HKLM" Key="Software\Classes\{prog_id}">
-              <RegistryValue Type="string" Value="Edolview {ext_id} file" KeyPath="yes" />
-              <RegistryKey Key="DefaultIcon">
-                <RegistryValue Type="string" Value="[INSTALLFOLDER]edolview.exe,0" />
-              </RegistryKey>
-              <RegistryKey Key="shell\open\command">
-                <RegistryValue Type="string" Value="&quot;[INSTALLFOLDER]edolview.exe&quot; &quot;%1&quot;" />
-              </RegistryKey>
-            </RegistryKey>
-          </Component>
-          <Component Id="{open_with_component_id}" Guid="*">
-            <RegistryKey Root="HKLM" Key="Software\Classes\.{ext}\OpenWithProgids">
-              <RegistryValue Name="{prog_id}" Type="string" Value="" KeyPath="yes" />
-            </RegistryKey>
-            <RegistryKey Root="HKLM" Key="Software\Classes\Applications\edolview.exe\SupportedTypes">
-              <RegistryValue Name=".{ext}" Type="string" Value="" />
-            </RegistryKey>
-          </Component>"#,
-                ext = format.ext,
-            )
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-
-    let component_refs = formats
-        .iter()
-        .map(|format| {
-            let ext_id = format.ext.to_ascii_uppercase();
-            format!("      <ComponentRef Id=\"cmpAssoc{ext_id}\" />\n      <ComponentRef Id=\"cmpOpenWith{ext_id}\" />")
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-
-    let wxs = format!(
-        r#"<?xml version="1.0" encoding="UTF-8"?>
-<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
-  <Product
-    Id="*"
-    Name="Edolview"
-    Language="1033"
-    Version="$(var.ProductVersion)"
-    Manufacturer="Daniel Jeon"
-    UpgradeCode="9B95884C-31AA-4A5C-8209-D7CE6CA9C2D8">
-    <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64" />
-    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." MigrateFeatures="no" />
-    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
-
-    <Icon Id="ProductIcon" SourceFile="$(var.ProjectDir)\icons\app.ico" />
-    <Property Id="ARPPRODUCTICON" Value="ProductIcon" />
-    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" />
-    <UIRef Id="WixUI_Mondo" />
-    <WixVariable Id="WixUILicenseRtf" Value="$(var.ProjectDir)\packaging\windows\License.rtf" />
-
-    <Directory Id="TARGETDIR" Name="SourceDir">
-      <Directory Id="ProgramFiles64Folder">
-        <Directory Id="INSTALLFOLDER" Name="Edolview">
-          <Directory Id="COLORMAPDIR" Name="colormap" />
-          <Component Id="cmpMainExe" Guid="D7781E26-5FAE-4F3F-8B92-BD40530A4628">
-            <File Id="filMainExe" Source="$(var.ReleaseBinDir)\edolview.exe" KeyPath="yes" Checksum="yes" />
-          </Component>
-        </Directory>
-      </Directory>
-      <Directory Id="ProgramMenuFolder">
-        <Directory Id="ApplicationProgramsFolder" Name="Edolview" />
-      </Directory>
-      <Directory Id="DesktopFolder" Name="Desktop" />
-    </Directory>
-
-    <Feature
-      Id="MainFeature"
-      Title="Edolview"
-      Description="Image viewer for visualization and analysis"
-      Level="1"
-      Display="expand"
-      ConfigurableDirectory="INSTALLFOLDER"
-      AllowAdvertise="no"
-      Absent="disallow">
-      <ComponentRef Id="cmpMainExe" />
-      <ComponentGroupRef Id="ColormapFiles" />
-      <ComponentGroupRef Id="FileAssociations" />
-      <Feature
-        Id="StartMenuShortcutsFeature"
-        Title="Start Menu shortcuts"
-        Description="Create Start Menu shortcuts, including an uninstall entry."
-        Level="1"
-        AllowAdvertise="no"
-        Absent="allow">
-        <ComponentRef Id="cmpStartMenuShortcut" />
-      </Feature>
-      <Feature
-        Id="DesktopShortcutFeature"
-        Title="Desktop shortcut"
-        Description="Create a shortcut on the desktop."
-        Level="1"
-        AllowAdvertise="no"
-        Absent="allow">
-        <ComponentRef Id="cmpDesktopShortcut" />
-      </Feature>
-    </Feature>
-  </Product>
-
-  <Fragment>
-    <ComponentGroup Id="FileAssociations">
-{component_refs}
-    </ComponentGroup>
-  </Fragment>
-
-  <Fragment>
-    <DirectoryRef Id="INSTALLFOLDER">
-{components}
-    </DirectoryRef>
-  </Fragment>
-
-  <Fragment>
-    <DirectoryRef Id="ApplicationProgramsFolder">
-      <Component Id="cmpStartMenuShortcut" Guid="1E489ADF-7190-4325-82D9-D756E13D54A7">
-        <Shortcut
-          Id="StartMenuShortcut"
-          Name="Edolview"
-          Description="Image viewer for visualization and analysis"
-          Target="[INSTALLFOLDER]edolview.exe"
-          WorkingDirectory="INSTALLFOLDER"
-          Icon="ProductIcon"
-          IconIndex="0">
-          <ShortcutProperty Key="System.AppUserModel.ID" Value="{WINDOWS_APP_USER_MODEL_ID}" />
-        </Shortcut>
-        <Shortcut
-          Id="UninstallShortcut"
-          Name="Uninstall Edolview"
-          Description="Remove Edolview from this computer"
-          Target="[SystemFolder]msiexec.exe"
-          Arguments="/x [ProductCode]" />
-        <RemoveFolder Id="RemoveApplicationProgramsFolder" On="uninstall" />
-        <RegistryValue Root="HKCU" Key="Software\Edolview" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
-      </Component>
-    </DirectoryRef>
-  </Fragment>
-
-  <Fragment>
-    <DirectoryRef Id="DesktopFolder">
-      <Component Id="cmpDesktopShortcut" Guid="B29D4238-BE3A-4D4D-BB0A-61D1E61C46B6">
-        <Shortcut
-          Id="DesktopShortcut"
-          Name="Edolview"
-          Description="Image viewer for visualization and analysis"
-          Target="[INSTALLFOLDER]edolview.exe"
-          WorkingDirectory="INSTALLFOLDER"
-          Icon="ProductIcon"
-          IconIndex="0">
-          <ShortcutProperty Key="System.AppUserModel.ID" Value="{WINDOWS_APP_USER_MODEL_ID}" />
-        </Shortcut>
-        <RegistryValue Root="HKCU" Key="Software\Edolview" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
-      </Component>
-    </DirectoryRef>
-  </Fragment>
-</Wix>
-"#
-    );
-    fs::write(path, wxs)?;
-    Ok(())
-}
-
-fn write_windows_license_rtf(path: &str) -> Result<()> {
-    fs::create_dir_all(Path::new(path).parent().unwrap())?;
-
-    let license_text = fs::read_to_string("LICENSE").context("failed to read LICENSE")?;
-    let escaped = license_text
-        .replace('\\', r"\\")
-        .replace('{', r"\{")
-        .replace('}', r"\}")
-        .replace('\r', "")
-        .replace(
-            '\n', r"\par
-",
-        );
-
-    let rtf = format!(
-        "{{\\rtf1\\ansi\\deff0{{\\fonttbl{{\\f0\\fnil Consolas;}}}}\\viewkind4\\uc1\\pard\\f0\\fs20 {escaped}\\par\n}}"
-    );
-    fs::write(path, rtf)?;
+    let mut entries = String::from("; Generated by cargo run -p xtask -- icons.\n");
+    for format in supported_image::supported_image_formats() {
+        let ext = format.ext;
+        let ext_id = ext.to_ascii_uppercase();
+        entries.push_str(&format!(r#"Root: HKA; Subkey: "Software\Classes\Edolview.{ext_id}"; ValueType: string; ValueName: ""; ValueData: "Edolview {ext_id} file"; Flags: uninsdeletekey
+Root: HKA; Subkey: "Software\Classes\Edolview.{ext_id}\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{{app}}\edolview.exe,0"
+Root: HKA; Subkey: "Software\Classes\Edolview.{ext_id}\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{{app}}\edolview.exe"" ""%1"""
+Root: HKA; Subkey: "Software\Classes\.{ext}\OpenWithProgids"; ValueType: string; ValueName: "Edolview.{ext_id}"; ValueData: ""; Flags: uninsdeletevalue uninsdeletekeyifempty
+Root: HKA; Subkey: "Software\Classes\Applications\edolview.exe\SupportedTypes"; ValueType: string; ValueName: ".{ext}"; ValueData: ""; Flags: uninsdeletevalue uninsdeletekeyifempty
+"#));
+    }
+    fs::write(path, entries)?;
     Ok(())
 }
 

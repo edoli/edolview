@@ -62,7 +62,7 @@ winres = "0.1"
 pollster = "0.4"
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61.2", features = ["Win32_UI_Shell"] }
+windows-sys = { version = "0.61.2", features = ["Win32_UI_Shell", "Win32_System_Registry"] }
 
 [target.'cfg(target_os = "linux")'.dependencies]
 eframe = { version = "0.35.0", default-features = false, features = ["x11"] }
