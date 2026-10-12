@@ -42,9 +42,7 @@ fn prepare_release_version(version: &str) -> Result<()> {
     ensure_tag_does_not_exist(version)?;
     update_root_cargo_version(version)?;
 
-    let metadata = Command::new("cargo")
-        .args(["metadata", "--format-version", "1", "--no-deps"])
-        .output()?;
+    let metadata = Command::new("cargo").args(["update", "--workspace"]).output()?;
     if !metadata.status.success() {
         bail!(
             "failed to synchronize Cargo.lock: {}",
