@@ -163,7 +163,7 @@ pub struct ViewerApp {
     fallback_font_applied: bool,
 
     update_rx: Option<mpsc::Receiver<Result<Option<crate::update::AvailableUpdate>, String>>>,
-    update_apply_rx: Option<mpsc::Receiver<Result<String, String>>>,
+    update_apply_rx: Option<mpsc::Receiver<Result<crate::update::PreparedUpdate, String>>>,
     update_status: UpdateStatus,
     update_toast_shown: bool,
     close_for_update: bool,
@@ -810,9 +810,11 @@ impl ViewerApp {
                             update.target.label()
                         ));
                         ui.add_space(8.0);
-                        ui.label(
-                            "Edolview will download the update first. When the install step is ready, the app will close and a separate updater window will stay visible until the update finishes.",
-                        );
+                        if update.target == crate::update::UpdateTarget::WindowsInno {
+                            ui.label("This update moves Edolview to your user account. The app will close and reopen when the update finishes. Windows will ask for administrator permission to remove the old installation for all users.");
+                        } else {
+                            ui.label("Edolview will download the update first. When the install step is ready, the app will close and a separate updater window will stay visible until the update finishes.");
+                        }
                         ui.add_space(14.0);
                         ui.separator();
                         ui.add_space(10.0);
@@ -1269,6 +1271,7 @@ impl ViewerApp {
                     }
                     Err(err) => {
                         eprintln!("Failed to check for updates: {err}");
+                        self.toasts.add_error(err.clone());
                         self.update_status = UpdateStatus::Error(err);
                     }
                 },
@@ -1276,27 +1279,6 @@ impl ViewerApp {
                 Err(mpsc::TryRecvError::Disconnected) => {
                     if self.update_status == UpdateStatus::Checking {
                         self.update_status = UpdateStatus::Error("Update check disconnected".to_string());
-                    }
-                }
-            }
-        }
-
-        if let Some(rx) = &self.update_apply_rx {
-            match rx.try_recv() {
-                Ok(result) => match result {
-                    Ok(message) => {
-                        self.update_status = UpdateStatus::Applying(message);
-                        self.close_for_update = true;
-                    }
-                    Err(err) => {
-                        self.toasts.add_error(err.clone());
-                        self.update_status = UpdateStatus::Error(err);
-                    }
-                },
-                Err(mpsc::TryRecvError::Empty) => {}
-                Err(mpsc::TryRecvError::Disconnected) => {
-                    if matches!(self.update_status, UpdateStatus::Applying(_)) {
-                        self.update_status = UpdateStatus::Error("Update worker disconnected".to_string());
                     }
                 }
             }
@@ -1331,6 +1313,27 @@ impl ViewerApp {
     }
 
     fn handle_window_commands(&mut self, ctx: &egui::Context) {
+        if let Some(rx) = &self.update_apply_rx {
+            match rx.try_recv() {
+                Ok(result) => match result.and_then(crate::update::PreparedUpdate::commit) {
+                    Ok(message) => {
+                        self.update_status = UpdateStatus::Applying(message);
+                        self.close_for_update = true;
+                    }
+                    Err(err) => {
+                        self.toasts.add_error(err.clone());
+                        self.update_status = UpdateStatus::Error(err);
+                    }
+                },
+                Err(mpsc::TryRecvError::Empty) => {}
+                Err(mpsc::TryRecvError::Disconnected) => {
+                    if matches!(self.update_status, UpdateStatus::Applying(_)) {
+                        self.update_status = UpdateStatus::Error("Update worker disconnected".to_string());
+                    }
+                }
+            }
+        }
+
         if self.close_for_update {
             ctx.send_viewport_cmd(egui::ViewportCommand::Close);
             return;

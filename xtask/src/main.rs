@@ -42,7 +42,16 @@ fn prepare_release_version(version: &str) -> Result<()> {
     ensure_tag_does_not_exist(version)?;
     update_root_cargo_version(version)?;
 
-    run_git(["add", "Cargo.toml"])?;
+    let metadata = Command::new("cargo")
+        .args(["metadata", "--format-version", "1", "--no-deps"])
+        .output()?;
+    if !metadata.status.success() {
+        bail!(
+            "failed to synchronize Cargo.lock: {}",
+            String::from_utf8_lossy(&metadata.stderr)
+        );
+    }
+    run_git(["add", "Cargo.toml", "Cargo.lock"])?;
     run_git([
         "commit",
         "-m",
