@@ -7,8 +7,9 @@ pub struct NotifierSender<T> {
 
 impl<T> NotifierSender<T> {
     pub fn send(&self, value: T) -> Result<(), mpsc::SendError<T>> {
+        self.data_tx.send(value)?;
         let _ = self.notify_tx.send(());
-        self.data_tx.send(value)
+        Ok(())
     }
 }
 

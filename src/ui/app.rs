@@ -171,7 +171,7 @@ pub struct ViewerApp {
     app_settings: crate::settings::AppSettings,
     show_settings_modal: bool,
     show_bookmarks_modal: bool,
-    control_rx: mpsc::Receiver<Vec<PathBuf>>,
+    control_rx: mpsc::Receiver<crate::control::ControlOpenEvent>,
     control_instance: Option<crate::control::ControlInstance>,
     last_control_touch: Instant,
     was_focused_last_frame: bool,
@@ -181,17 +181,16 @@ pub struct ViewerApp {
 
 impl Drop for ViewerApp {
     fn drop(&mut self) {
-        if let Some(socket_server) = self.socket_server.as_mut() {
-            if let Err(err) = socket_server.shutdown() {
-                eprintln!("Failed to stop socket listener: {err}");
-            }
-        }
-
         if let Some(mut control_instance) = self.control_instance.take() {
             if let Err(err) = control_instance.remove() {
                 eprintln!("Failed to remove active window registration: {err}");
             }
             control_instance.shutdown();
+        }
+        if let Some(socket_server) = self.socket_server.as_mut() {
+            if let Err(err) = socket_server.shutdown() {
+                eprintln!("Failed to stop socket listener: {err}");
+            }
         }
     }
 }
@@ -267,7 +266,7 @@ impl ViewerApp {
         let socket_info = state.socket_info.clone();
 
         let (statistics_tx, statistics_rx) = mpsc::channel::<Vec<StatisticsUpdate>>();
-        let (control_tx, control_rx, control_nx) = mpsc_with_notify::<Vec<PathBuf>>();
+        let (control_tx, control_rx, control_nx) = mpsc_with_notify::<crate::control::ControlOpenEvent>();
 
         let mut toasts = Vec::new();
         let socket_server = match start_server_with_retry(host, port, socket_tx, socket_state, socket_info) {
@@ -371,9 +370,8 @@ impl ViewerApp {
         self.startup_path_rx = Some(rx);
 
         let load_ctx = ctx.clone();
+        let mut seen_hashes: HashSet<_> = self.state.assets.keys().cloned().collect();
         thread::spawn(move || {
-            let mut seen_hashes = HashSet::new();
-
             for path in paths {
                 let result = match FileAsset::hash_from_path(&path) {
                     Ok(hash) => {
@@ -1223,17 +1221,22 @@ impl ViewerApp {
 
         loop {
             match self.control_rx.try_recv() {
-                Ok(paths) => {
-                    for path in paths {
-                        if let Err(err) = self.state.load_from_path(path.clone()) {
-                            Self::load_fail(
-                                &mut self.toasts,
-                                "Failed to open externally requested file",
-                                Some(&path),
-                                &err,
-                            );
-                        }
+                Ok(request) => {
+                    if self.close_for_update || ctx.input(|i| i.viewport().close_requested()) {
+                        continue;
                     }
+                    let Some(paths) = request.accept() else {
+                        continue;
+                    };
+                    // Acknowledge a responsive UI before decoding. Reuse the
+                    // background loader so a large image cannot prevent the
+                    // window from being shown or accepting the next request.
+                    self.startup_paths.extend(paths);
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(false));
+                    ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
+                    ctx.request_repaint();
+                    self.start_startup_path_loading(ctx);
                     if let Some(control_instance) = &self.control_instance {
                         if let Err(err) = control_instance.touch_active() {
                             eprintln!("Failed to update active window registry after external open: {err}");
@@ -1241,9 +1244,6 @@ impl ViewerApp {
                             self.last_control_touch = Instant::now();
                         }
                     }
-                    ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(false));
-                    ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
-                    ctx.request_repaint();
                 }
                 Err(mpsc::TryRecvError::Empty) => break,
                 Err(mpsc::TryRecvError::Disconnected) => break,
@@ -1327,6 +1327,7 @@ impl ViewerApp {
 
             if should_clear_rx {
                 self.startup_path_rx = None;
+                self.start_startup_path_loading(ctx);
             }
         }
     }
