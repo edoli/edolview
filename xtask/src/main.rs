@@ -42,15 +42,24 @@ fn prepare_release_version(version: &str) -> Result<()> {
     update_root_cargo_version(version)?;
 
     run_git(["add", "Cargo.toml"])?;
-    run_git([
-        "commit",
-        "-m",
-        &format!("Bump version to {version}"),
-        "-m",
-        &format!(
-            "Prepare the repository metadata for the v{version} release tag.\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
-        ),
-    ])?;
+    let staged_version = Command::new("git")
+        .args(["diff", "--cached", "--quiet", "--", "Cargo.toml"])
+        .status()
+        .context("failed to inspect staged version change")?;
+    match staged_version.code() {
+        // Reissuing the current version only needs a new tag at the fixed commit.
+        Some(0) => {}
+        Some(1) => run_git([
+            "commit",
+            "-m",
+            &format!("Bump version to {version}"),
+            "-m",
+            &format!(
+                "Prepare the repository metadata for the v{version} release tag.\n\nCo-authored-by: Copilot <223556219+Copilot@users.noreply.github.com>"
+            ),
+        ])?,
+        _ => bail!("git version change inspection failed"),
+    }
     run_git(["tag", "-a", &format!("v{version}"), "-m", &format!("v{version}")])?;
 
     println!("Prepared release version {version}.");
