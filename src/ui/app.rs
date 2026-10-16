@@ -2105,7 +2105,7 @@ impl eframe::App for ViewerApp {
                                     ctx.request_repaint();
                                 }
                                 let response = response.on_hover_text(format!(
-                                    "Plot Y-axis percentiles: {:.0}%–{:.0}%\nRight-click to reset to 0–100%.",
+                                    "Plot Y-axis percentiles: {:.0}%–{:.0}%",
                                     self.plot_percentiles[0], self.plot_percentiles[1],
                                 ));
                                 range_slider_context_menu(&response, |ui| {
