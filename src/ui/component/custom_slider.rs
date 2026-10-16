@@ -107,6 +107,7 @@ pub struct CustomSlider<'a> {
     move_by: Option<f64>,
 
     drag_value_speed: Option<f64>,
+    value_width: Option<f32>,
     min_decimals: usize,
     max_decimals: Option<usize>,
     custom_formatter: Option<NumFormatter<'a>>,
@@ -159,6 +160,7 @@ impl<'a> CustomSlider<'a> {
             step: None,
             move_by: None,
             drag_value_speed: None,
+            value_width: None,
             min_decimals: 0,
             max_decimals: None,
             custom_formatter: None,
@@ -177,6 +179,13 @@ impl<'a> CustomSlider<'a> {
     #[inline]
     pub fn show_value(mut self, show_value: bool) -> Self {
         self.show_value = show_value;
+        self
+    }
+
+    /// Set the width reserved for the numeric input, including its padding.
+    #[inline]
+    pub fn value_width(mut self, width: f32) -> Self {
+        self.value_width = Some(width.max(0.0));
         self
     }
 
@@ -953,8 +962,10 @@ impl CustomSlider<'_> {
         };
 
         let mut value = self.get_value();
-        let response = ui.add({
+        let response = {
             let mut dv = DragValue::new(&mut value)
+                // Scroll long input inside the editor instead of widening the layout.
+                .clip_text(true)
                 .speed(speed)
                 .min_decimals(self.min_decimals)
                 .max_decimals_opt(self.max_decimals)
@@ -980,8 +991,13 @@ impl CustomSlider<'_> {
             } else {
                 dv = dv.custom_parser(parse_number_expression);
             }
-            dv
-        });
+            if let Some(width) = self.value_width {
+                let size = vec2(width, ui.spacing().interact_size.y);
+                ui.add_sized(size, dv.min_size(size))
+            } else {
+                ui.add(dv)
+            }
+        };
         if value != self.get_value() {
             self.set_value(value);
         }

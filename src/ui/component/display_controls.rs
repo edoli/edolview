@@ -178,9 +178,23 @@ pub fn display_profile_slider(
     baseline: f64,
     text: &str,
 ) -> egui::Response {
-    ui.spacing_mut().slider_width = ui.available_width() - 128.0;
+    let value_width = 56.0;
+    let font_id = egui::TextStyle::Body.resolve(ui.style());
+    let label_width = ["Offset", "Exposure", "Gamma", text]
+        .into_iter()
+        .map(|label| {
+            ui.painter()
+                .layout_no_wrap(label.to_owned(), font_id.clone(), ui.visuals().text_color())
+                .size()
+                .x
+        })
+        .fold(0.0_f32, f32::max);
+    // Keep the fields aligned and fit the full row inside the sidebar at any font scale.
+    let reserved_width = value_width + label_width + 2.0 * ui.spacing().item_spacing.x;
+    ui.spacing_mut().slider_width = (ui.available_width() - reserved_width).max(0.0);
     let response = ui.add(
         CustomSlider::new(value, min..=max)
+            .value_width(value_width)
             .text(text)
             .step_by(0.01)
             .move_by(0.1)
