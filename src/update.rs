@@ -408,7 +408,8 @@ fn prepare_inno_handoff(
                 "user"
             },
         )
-        .env("EDOLVIEW_UPDATE_VERSION", version)
+        // Release labels include `v`; the helper and executable metadata use numeric versions.
+        .env("EDOLVIEW_UPDATE_VERSION", version.trim().trim_start_matches(['v', 'V']))
         .env("EDOLVIEW_UPDATE_PARENT", std::process::id().to_string())
         .env("EDOLVIEW_CONFIG_DIR", config)
         .creation_flags(CREATE_NO_WINDOW)
@@ -887,7 +888,9 @@ mod tests {
         let directory = unicode.join("edolview-update-1-2-3");
         fs::create_dir(&directory).unwrap();
         fs::write(directory.join("setup.exe"), b"hello").unwrap();
-        let handoff = prepare_inno_handoff(&exe, &directory, InstallScope::User, "1.0.2", &config).unwrap();
+        // Exercise the same display label that check_for_update passes to start_update.
+        let version = normalize_version_label("1.0.2");
+        let handoff = prepare_inno_handoff(&exe, &directory, InstallScope::User, &version, &config).unwrap();
         // The worker may finish while the UI is blocked in a native dialog.
         let (tx, rx) = std::sync::mpsc::channel();
         tx.send(PreparedUpdate {
