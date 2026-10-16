@@ -28,7 +28,8 @@ use crate::{
         component::{
             channel_toggle_ui, display_controls_ui, display_profile_slider, draw_histogram, draw_multi_line_plot,
             egui_ext::{ComboBoxExt, ResponseExt, Size, UiExt},
-            show_bookmark_window, BookmarkJumpMode, CopyExport, ExportAction, SaveExport, Toast, ToastUi, ToastsExt,
+            range_slider_context_menu, range_slider_ui, show_bookmark_window, BookmarkJumpMode, CopyExport,
+            ExportAction, SaveExport, Toast, ToastUi, ToastsExt,
         },
         fonts::{apply_fallback_fonts, spawn_fallback_font_loader, LoadedFallbackFonts},
         ImageViewer,
@@ -133,6 +134,7 @@ pub struct ViewerApp {
     bookmark_jump_mode: BookmarkJumpMode,
 
     show_plot_channels: [bool; 4],
+    plot_percentiles: [f64; 2],
 
     show_histogram: bool,
     show_histogram_channels: [bool; 4],
@@ -307,6 +309,7 @@ impl ViewerApp {
             bookmark_jump_mode: BookmarkJumpMode::Center,
 
             show_plot_channels: [true, true, true, false],
+            plot_percentiles: [0.0, 100.0],
 
             show_histogram: false,
             show_histogram_channels: [true, true, true, false],
@@ -2025,6 +2028,7 @@ impl eframe::App for ViewerApp {
                                 desired_size_plot,
                                 SeriesRef::new(&plot_refs),
                                 &self.show_plot_channels,
+                                self.plot_percentiles,
                                 asset.image().spec().dtype.alpha(),
                                 position_label,
                                 position_offset,
@@ -2038,6 +2042,7 @@ impl eframe::App for ViewerApp {
                                 desired_size_plot,
                                 SeriesRef::new(&plot_refs),
                                 &[true],
+                                self.plot_percentiles,
                                 asset.image().spec().dtype.alpha(),
                                 position_label,
                                 position_offset,
@@ -2046,34 +2051,58 @@ impl eframe::App for ViewerApp {
                             }
                         }
 
-                        ui.horizontal(|ui| {
+                        ui.scope(|ui| {
                             let mut style: egui::Style = ui.style().as_ref().clone();
                             egui::containers::menu::menu_style(&mut style);
+                            style.spacing.item_spacing.x = 4.0;
                             ui.set_style(std::sync::Arc::new(style));
 
-                            ui.radio_icon(
-                                &mut self.plot_dim,
-                                PlotDim::Auto,
-                                self.icons.get_reduce_auto(&ctx),
-                                "Auto (Mean Shorter Side)",
-                            );
-                            ui.radio_icon(
-                                &mut self.plot_dim,
-                                PlotDim::Column,
-                                self.icons.get_reduce_column(&ctx),
-                                "Mean Column",
-                            );
-                            ui.radio_icon(
-                                &mut self.plot_dim,
-                                PlotDim::Row,
-                                self.icons.get_reduce_row(&ctx),
-                                "Mean Row",
-                            );
+                            ui.columns_sized([Size::exact(68.0), Size::remainder(1.0)], |[axis_ui, range_ui]| {
+                                axis_ui.horizontal(|ui| {
+                                    ui.radio_icon(
+                                        &mut self.plot_dim,
+                                        PlotDim::Auto,
+                                        self.icons.get_reduce_auto(&ctx),
+                                        "Auto (Mean Shorter Side)",
+                                    );
+                                    ui.radio_icon(
+                                        &mut self.plot_dim,
+                                        PlotDim::Column,
+                                        self.icons.get_reduce_column(&ctx),
+                                        "Mean Column",
+                                    );
+                                    ui.radio_icon(
+                                        &mut self.plot_dim,
+                                        PlotDim::Row,
+                                        self.icons.get_reduce_row(&ctx),
+                                        "Mean Row",
+                                    );
+                                });
 
-                            if channels > 1 {
-                                channel_toggle_ui(ui, &mut self.show_plot_channels, channels);
-                            }
+                                range_ui.spacing_mut().slider_width = range_ui.available_width();
+                                let [low, high] = &mut self.plot_percentiles;
+                                let response = range_slider_ui(range_ui, low, high, 0.0..=100.0, |slider| {
+                                    slider.show_value(false).step_by(1.0).smart_aim(false)
+                                });
+                                if response.changed() {
+                                    ctx.request_repaint();
+                                }
+                                let response = response.on_hover_text(format!(
+                                    "Plot Y-axis percentiles: {:.0}%–{:.0}%\nRight-click to reset to 0–100%.",
+                                    self.plot_percentiles[0], self.plot_percentiles[1],
+                                ));
+                                range_slider_context_menu(&response, |ui| {
+                                    if ui.button("Reset (0–100%)").clicked() {
+                                        self.plot_percentiles = [0.0, 100.0];
+                                        ctx.request_repaint();
+                                        ui.close();
+                                    }
+                                });
+                            });
                         });
+                        if channels > 1 {
+                            channel_toggle_ui(ui, &mut self.show_plot_channels, channels);
+                        }
                     } else {
                         ui.allocate_ui_with_layout(
                             desired_size_plot,

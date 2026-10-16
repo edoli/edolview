@@ -39,11 +39,53 @@ fn downsample_avg(xs: &[f64], step: usize) -> Vec<f64> {
     out
 }
 
+fn percentile(values: &mut [f64], percent: f64) -> f64 {
+    let rank = percent.clamp(0.0, 100.0) / 100.0 * (values.len() - 1) as f64;
+    let index = rank.floor() as usize;
+    let (_, lower, upper) = values.select_nth_unstable_by(index, f64::total_cmp);
+    let fraction = rank.fract();
+    if fraction == 0.0 {
+        *lower
+    } else {
+        let next = upper.iter().copied().min_by(f64::total_cmp).unwrap();
+        *lower * (1.0 - fraction) + next * fraction
+    }
+}
+
+fn plot_y_bounds(series: &[Option<Vec<f64>>], percentiles: [f64; 2]) -> (f64, f64) {
+    let (mut y_min, mut y_max) = (f64::INFINITY, f64::NEG_INFINITY);
+    if percentiles == [0.0, 100.0] {
+        // Keep the original autoscale exactly, including its non-finite fallback.
+        for &value in series.iter().flatten().flatten() {
+            y_min = y_min.min(value);
+            y_max = y_max.max(value);
+        }
+    } else {
+        // Work on visible plot samples, already bounded by the plot's pixel width.
+        // Rank selection avoids sorting full image rows/columns on every drag.
+        let mut values: Vec<_> = series.iter().flatten().flatten().copied().filter(|v| v.is_finite()).collect();
+        if !values.is_empty() {
+            y_min = percentile(&mut values, percentiles[0]);
+            y_max = percentile(&mut values, percentiles[1]);
+        }
+    }
+    if !y_min.is_finite() || !y_max.is_finite() {
+        y_min = 0.0;
+        y_max = 1.0;
+    }
+    if (y_max - y_min).abs() < f64::EPSILON {
+        y_max += 1.0;
+    }
+    let padding = 0.02 * (y_max - y_min);
+    (y_min - padding, y_max + padding)
+}
+
 pub fn draw_multi_line_plot(
     ui: &mut Ui,
     desired_size: Vec2,
     series: SeriesRef<'_, f64>,
     mask: &[bool],
+    percentiles: [f64; 2],
     alpha_scale: f64,
     position_label: &'static str,
     position_offset: i32,
@@ -108,24 +150,7 @@ pub fn draw_multi_line_plot(
 
     let painter = ui.painter_at(rect);
 
-    let mut y_min = f64::INFINITY;
-    let mut y_max = f64::NEG_INFINITY;
-    for ys in ds_series.iter().flatten() {
-        for &y in ys {
-            y_min = y_min.min(y);
-            y_max = y_max.max(y);
-        }
-    }
-    if !y_min.is_finite() || !y_max.is_finite() {
-        y_min = 0.0;
-        y_max = 1.0;
-    }
-    if (y_max - y_min).abs() < f64::EPSILON {
-        y_max += 1.0;
-    }
-    let diff = y_max - y_min;
-    y_min -= 0.02 * diff;
-    y_max += 0.02 * diff;
+    let (y_min, y_max) = plot_y_bounds(&ds_series, percentiles);
 
     let to_screen = |i: usize, y: f64| -> Pos2 {
         let x = i as f32 / (ds_len - 1) as f32;
@@ -417,4 +442,46 @@ pub fn draw_multi_line_plot(
     });
 
     export_action
+}
+
+#[cfg(test)]
+mod percentile_tests {
+    use super::plot_y_bounds;
+
+    fn assert_bounds(actual: (f64, f64), expected: (f64, f64)) {
+        assert!((actual.0 - expected.0).abs() < 1e-10, "{actual:?} != {expected:?}");
+        assert!((actual.1 - expected.1).abs() < 1e-10, "{actual:?} != {expected:?}");
+    }
+
+    #[test]
+    fn full_range_preserves_original_minmax_and_padding() {
+        let data = [Some(vec![100.0, 0.0, 10.0, 20.0]), None];
+        assert_bounds(plot_y_bounds(&data, [0.0, 100.0]), (-2.0, 102.0));
+    }
+
+    #[test]
+    fn upper_handle_at_fifty_percent_uses_median() {
+        let data = [Some(vec![100.0, 0.0]), None, Some(vec![10.0, 20.0])];
+        assert_bounds(plot_y_bounds(&data, [0.0, 50.0]), (-0.3, 15.3));
+    }
+
+    #[test]
+    fn both_handles_interpolate_percentiles_across_visible_channels() {
+        let data = [Some(vec![100.0, 0.0]), None, Some(vec![10.0, 20.0])];
+        assert_bounds(plot_y_bounds(&data, [25.0, 75.0]), (6.85, 40.65));
+    }
+
+    #[test]
+    fn trimmed_range_ignores_nonfinite_samples_and_handles_empty_data() {
+        let data = [Some(vec![f64::NAN, f64::NEG_INFINITY, 0.0, 10.0, f64::INFINITY])];
+        assert_bounds(plot_y_bounds(&data, [10.0, 90.0]), (0.84, 9.16));
+        assert_bounds(plot_y_bounds(&data, [0.0, 100.0]), (-0.02, 1.02));
+        assert_bounds(plot_y_bounds(&[None, Some(vec![])], [10.0, 90.0]), (-0.02, 1.02));
+    }
+
+    #[test]
+    fn coincident_handles_and_constant_data_keep_a_nonzero_scale() {
+        assert_bounds(plot_y_bounds(&[Some(vec![5.0, 5.0])], [50.0, 50.0]), (4.98, 6.02));
+        assert_bounds(plot_y_bounds(&[Some(vec![5.0])], [0.0, 100.0]), (4.98, 6.02));
+    }
 }

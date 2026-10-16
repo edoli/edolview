@@ -6,6 +6,7 @@ pub mod egui_ext;
 mod export_action;
 mod histogram_plot;
 mod multi_line_plot;
+mod range_slider;
 mod toast;
 
 pub use bookmark_window::*;
@@ -15,4 +16,5 @@ pub use display_controls::*;
 pub use export_action::*;
 pub use histogram_plot::*;
 pub use multi_line_plot::*;
+pub use range_slider::*;
 pub use toast::*;
