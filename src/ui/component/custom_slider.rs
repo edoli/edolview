@@ -810,7 +810,7 @@ impl CustomSlider<'_> {
                 // The trailing rect has to be drawn differently depending on the orientation.
                 match self.orientation {
                     SliderOrientation::Horizontal => {
-                        trailing_rail_rect.max.x = center.x + corner_radius.nw as f32;
+                        trailing_rail_rect.max.x = center.x;
                         if let Some(trailing_start) = self.trailing_start {
                             let trailing_start_pos = self.position_from_value(trailing_start, position_range);
                             trailing_rail_rect.min.x = trailing_start_pos;
@@ -819,10 +819,12 @@ impl CustomSlider<'_> {
                                 mem::swap(&mut trailing_rail_rect.min.x, &mut trailing_rail_rect.max.x);
                                 is_positive = false;
                             }
+                        } else {
+                            trailing_rail_rect.max.x += corner_radius.nw as f32;
                         }
                     }
                     SliderOrientation::Vertical => {
-                        trailing_rail_rect.min.y = center.y - corner_radius.se as f32;
+                        trailing_rail_rect.min.y = center.y;
                         if let Some(trailing_start) = self.trailing_start {
                             let trailing_start_pos = self.position_from_value(trailing_start, position_range);
                             trailing_rail_rect.max.y = trailing_start_pos;
@@ -831,20 +833,27 @@ impl CustomSlider<'_> {
                                 mem::swap(&mut trailing_rail_rect.min.y, &mut trailing_rail_rect.max.y);
                                 is_positive = false;
                             }
+                        } else {
+                            trailing_rail_rect.min.y -= corner_radius.se as f32;
                         }
                     }
                 };
 
-                ui.painter().rect_filled(
-                    trailing_rail_rect,
-                    corner_radius,
-                    if is_positive {
-                        self.trailing_color_pos
-                    } else {
-                        self.trailing_color_neg
-                    }
-                    .unwrap_or_else(|| ui.visuals().selection.bg_fill),
-                );
+                // A baseline fill spans exactly between the two marker centers.
+                // Adding the rail corner radius shifts negative fills and paints
+                // a visible sliver even when the value equals the baseline.
+                if trailing_rail_rect.is_positive() {
+                    ui.painter().rect_filled(
+                        trailing_rail_rect,
+                        corner_radius,
+                        if is_positive {
+                            self.trailing_color_pos
+                        } else {
+                            self.trailing_color_neg
+                        }
+                        .unwrap_or_else(|| ui.visuals().selection.bg_fill),
+                    );
+                }
             }
 
             let radius = self.handle_radius(rect);
@@ -902,7 +911,7 @@ impl CustomSlider<'_> {
             SliderOrientation::Horizontal => rect.x_range().shrink(handle_radius),
             // The vertical case has to be flipped because the largest slider value maps to the
             // lowest y value (which is at the top)
-            SliderOrientation::Vertical => rect.y_range().shrink(handle_radius).flip(),
+            SliderOrientation::Vertical => rect.y_range().shrink(handle_radius).flipped(),
         }
     }
 

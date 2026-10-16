@@ -451,7 +451,7 @@ pub trait ComboBoxExt {
     ) -> InnerResponse<Option<()>>;
 }
 
-impl ComboBoxExt for ComboBox {
+impl ComboBoxExt for ComboBox<'_> {
     fn combo(self, ui: &mut Ui, selected_text: &mut String, list: &[String]) -> InnerResponse<Option<()>> {
         self.selected_text(selected_text.as_str())
             .show_ui(ui, |ui| {

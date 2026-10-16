@@ -1032,7 +1032,9 @@ impl GpuComputeContext {
             .poll(wgpu::PollType::wait_indefinitely())
             .map_err(|error| eyre!("GPU compute poll failed: {error}"))?;
         rx.recv().map_err(|_| eyre!("GPU readback callback disconnected"))??;
-        let mapped = slice.get_mapped_range();
+        let mapped = slice
+            .get_mapped_range()
+            .map_err(|error| eyre!("GPU compute readback failed: {error}"))?;
         let result = decode(&mapped);
         drop(mapped);
         readback.unmap();
@@ -1740,6 +1742,7 @@ mod tests {
                 power_preference: wgpu::PowerPreference::HighPerformance,
                 force_fallback_adapter: false,
                 compatible_surface: None,
+                ..Default::default()
             }))
             .expect("GPU adapter");
             let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor {

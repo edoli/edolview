@@ -126,7 +126,7 @@ impl<'a> ToastUi<'a> {
 impl Widget for ToastUi<'_> {
     fn ui(self, ui: &mut Ui) -> Response {
         let style = &self.style;
-        egui::Area::new("toasts_area".into())
+        egui::Area::new(egui::Id::unique("toasts_area"))
             .anchor(egui::Align2::LEFT_TOP, egui::vec2(10.0, 32.0))
             .show(ui.ctx(), |ui| {
                 ui.vertical(|ui| {

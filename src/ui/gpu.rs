@@ -286,7 +286,14 @@ impl ExportReadback {
             .map_async(wgpu::MapMode::Read, move |result| match result {
                 Ok(()) => {
                     std::thread::spawn(move || {
-                        let mapped = callback_buffer.slice(..).get_mapped_range();
+                        let mapped = match callback_buffer.slice(..).get_mapped_range() {
+                            Ok(mapped) => mapped,
+                            Err(error) => {
+                                callback_buffer.unmap();
+                                (self.completion)(Err(format!("GPU export readback failed: {error}")));
+                                return;
+                            }
+                        };
                         let mut pixels = Vec::with_capacity(self.row_bytes as usize * self.height as usize);
                         for row in mapped.chunks(self.padded_row_bytes as usize).take(self.height as usize) {
                             pixels.extend_from_slice(&row[..self.row_bytes as usize]);

@@ -91,19 +91,18 @@ fn statistics_overlay_toggle(
     active_fill: Color32,
     hover_text: String,
 ) -> egui::Response {
+    let mut text = egui::RichText::new(format!("{value:.4}"));
+    if *selected {
+        text = text.background_color(active_fill).color(Color32::WHITE);
+    }
+    // Clickable text keeps all four channels compact without button padding.
     let response = ui
-        .scope(|ui| {
-            if *selected {
-                let visuals = ui.visuals_mut();
-                visuals.selection.bg_fill = active_fill;
-                visuals.selection.stroke.color = active_fill;
-                visuals.override_text_color = Some(Color32::WHITE);
-            }
-
-            ui.selectable_label(*selected, format!("{:.4}", value))
-                .on_hover_text(hover_text)
-        })
-        .inner;
+        .add(egui::Label::new(text).truncate().selectable(false).sense(egui::Sense::click()))
+        .on_hover_cursor(egui::CursorIcon::PointingHand)
+        .on_hover_text(format!("{value}\n{hover_text}"));
+    response.widget_info(|| {
+        egui::WidgetInfo::selected(egui::Role::Button, ui.is_enabled(), *selected, format!("{value:.4}"))
+    });
     response.context_menu(|ui| {
         if ui.button("Copy Value").clicked() {
             ui.ctx().copy_text(value.to_string());
@@ -784,11 +783,11 @@ impl ViewerApp {
         };
 
         let screen_rect = ctx.input(|i| i.viewport_rect());
-        let overlay_layer = egui::LayerId::new(egui::Order::Middle, egui::Id::new("confirm_update_overlay"));
+        let overlay_layer = egui::LayerId::new(egui::Order::Middle, egui::Id::unique("confirm_update_overlay"));
         ctx.layer_painter(overlay_layer)
             .rect_filled(screen_rect, 0.0, Color32::from_black_alpha(180));
 
-        egui::Area::new(egui::Id::new("confirm_update_modal"))
+        egui::Area::new(egui::Id::unique("confirm_update_modal"))
             .order(egui::Order::Foreground)
             .anchor(egui::Align2::CENTER_CENTER, egui::Vec2::ZERO)
             .interactable(true)
@@ -1480,12 +1479,11 @@ impl ViewerApp {
         }
 
         for f in dropped_files {
-            if let Some(path) = f.path {
-                match self.state.load_from_path(path.clone()) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        Self::load_fail(&mut self.toasts, "Failed to load dropped file", Some(&path), &e);
-                    }
+            let path = f.path().to_path_buf();
+            match self.state.load_from_path(path.clone()) {
+                Ok(_) => {}
+                Err(e) => {
+                    Self::load_fail(&mut self.toasts, "Failed to load dropped file", Some(&path), &e);
                 }
             }
         }
@@ -1531,7 +1529,7 @@ impl ViewerApp {
             return;
         };
 
-        egui::Area::new(egui::Id::new("asset_drag_preview"))
+        egui::Area::new(egui::Id::unique("asset_drag_preview"))
             .order(egui::Order::Tooltip)
             .interactable(false)
             .fixed_pos(pointer_pos + vec2(16.0, 16.0))
@@ -1569,7 +1567,7 @@ impl eframe::App for ViewerApp {
         // Handle drag & drop events (files) at the start of frame
         // Show a visual hint while hovering
         if !ctx.input(|i| i.raw.hovered_files.is_empty()) {
-            egui::Area::new(egui::Id::new("file_hover_overlay"))
+            egui::Area::new(egui::Id::unique("file_hover_overlay"))
                 .fixed_pos(egui::pos2(16.0, 16.0))
                 .show(&ctx, |ui| {
                     egui::Frame::popup(ui.style()).show(ui, |ui| {
@@ -1726,6 +1724,7 @@ impl eframe::App for ViewerApp {
                         ui.painter().circle_filled(indicator_center, 2.0, UPDATE_ACCENT_TEXT);
                     }
 
+                    ui.spacing_mut().button_padding.x = 4.0;
                     ui.toggle_value(&mut self.state.is_show_statusbar, "Status Bar");
                     ui.toggle_value(&mut self.state.is_show_sidebar, "Sidebar");
                     ui.toggle_value(&mut self.show_bookmarks_modal, "Bookmarks")
@@ -1869,20 +1868,19 @@ impl eframe::App for ViewerApp {
                     let channels = self.state.asset.as_ref().map(|a| a.image().spec().channels).unwrap_or(0);
                     let is_mono = self.state.channel_index != -1 || channels == 1;
 
-                    ui.horizontal(|ui| {
-                        let sizes = if is_mono {
-                            ui.calc_sizes([Size::exact(58.0), Size::remainder(1.0), Size::exact(0.0)])
-                        } else {
-                            ui.calc_sizes([Size::exact(58.0), Size::remainder(1.0), Size::exact(54.0)])
-                        };
-                        ui.spacing_mut().combo_width = sizes[0];
+                    // ComboBox widths are minimums. Bound each control to its own column
+                    // so its natural text width cannot grow the panel on every frame.
+                    let sizes = [Size::exact(68.0), Size::remainder(1.0), Size::exact(if is_mono { 0.0 } else { 54.0 })];
+                    ui.columns_sized(sizes, |[channel_ui, colormap_ui, alpha_ui]| {
                         let channel_values: Vec<i32> = if channels > 1 {
                             (-1..channels).collect()
                         } else {
                             vec![-1]
                         };
-                        ui.add_enabled_ui(channels > 1, |ui| {
+                        channel_ui.add_enabled_ui(channels > 1, |ui| {
                             egui::ComboBox::from_id_salt("channel_index")
+                                .width(ui.available_width())
+                                .truncate()
                                 .combo_i32_with(ui, &mut self.state.channel_index, &channel_values, |v| match v {
                                     -1 => {
                                         if channels > 1 {
@@ -1901,16 +1899,18 @@ impl eframe::App for ViewerApp {
                                 .on_hover_text("Channel to display");
                         });
 
-                        ui.spacing_mut().combo_width = sizes[1];
+                        let colormap_combo = egui::ComboBox::from_id_salt(if is_mono { "colormap_mono" } else { "colormap_rgb" })
+                            .width(colormap_ui.available_width())
+                            .truncate();
                         if is_mono {
-                            egui::ComboBox::from_id_salt("colormap_mono").combo(
-                                ui,
+                            colormap_combo.combo(
+                                colormap_ui,
                                 &mut self.state.colormap_mono,
                                 &self.state.colormap_mono_list,
                             )
                         } else {
-                            egui::ComboBox::from_id_salt("colormap_rgb").combo(
-                                ui,
+                            colormap_combo.combo(
+                                colormap_ui,
                                 &mut self.state.colormap_rgb,
                                 &self.state.colormap_rgb_list,
                             )
@@ -1919,9 +1919,7 @@ impl eframe::App for ViewerApp {
                         .on_hover_text("Colormap");
 
                         if !is_mono {
-                            ui.allocate_ui(vec2(sizes[2], ui.spacing().interact_size.y), |ui| {
-                                ui.checkbox(&mut self.state.shader_params.use_alpha, "Alpha");
-                            });
+                            alpha_ui.checkbox(&mut self.state.shader_params.use_alpha, "Alpha");
                         }
                     });
 
@@ -2146,8 +2144,15 @@ impl eframe::App for ViewerApp {
                         let num_channels = min_values.len().min(max_values.len()).min(4);
 
                         if num_channels > 0 {
+                            let gap = 4.0;
+                            let label_width = 32.0;
+                            let value_width = ((ui.available_width() - label_width - gap * num_channels as f32)
+                                / num_channels as f32).max(0.0);
                             egui::Grid::new("statistics_min_max_grid")
                                 .num_columns(num_channels + 1)
+                                .min_col_width(0.0)
+                                .max_col_width(value_width)
+                                .spacing(vec2(gap, 2.0))
                                 .striped(true)
                                 .show(ui, |ui| {
                                     ui.label("Min:").on_hover_text("Minimum value per channel.");
@@ -2567,7 +2572,7 @@ impl eframe::App for ViewerApp {
 
                 // Comparison notice overlay
                 if let Some(message) = &self.state.comparison_notice {
-                    egui::Area::new(egui::Id::new("comparison_notice_overlay"))
+                    egui::Area::new(egui::Id::unique("comparison_notice_overlay"))
                         .order(egui::Order::Foreground)
                         .anchor(egui::Align2::LEFT_TOP, egui::vec2(6.0, 30.0))
                         .interactable(false)
@@ -2586,7 +2591,7 @@ impl eframe::App for ViewerApp {
 
                 #[cfg(debug_assertions)]
                 if let Some(message) = self.statistics_rect_mismatch_message() {
-                    egui::Area::new(egui::Id::new("statistics_rect_mismatch_overlay"))
+                    egui::Area::new(egui::Id::unique("statistics_rect_mismatch_overlay"))
                         .order(egui::Order::Foreground)
                         .anchor(egui::Align2::LEFT_TOP, egui::vec2(6.0, 54.0))
                         .interactable(false)

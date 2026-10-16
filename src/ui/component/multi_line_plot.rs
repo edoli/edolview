@@ -184,11 +184,10 @@ pub fn draw_multi_line_plot(
         if let Some(ys) = opt.as_ref() {
             let color = colors[i % colors.len()];
             let stroke = Stroke::new(1.0, color);
-            for x in 1..ds_len {
-                let p1 = to_screen(x - 1, ys[x - 1]);
-                let p2 = to_screen(x, ys[x]);
-                painter.line_segment([p1, p2], stroke);
-            }
+            // Tessellate one continuous path so fractional DPI does not expose
+            // anti-aliased seams between independently rounded short segments.
+            let points = ys.iter().enumerate().map(|(x, &y)| to_screen(x, y)).collect();
+            painter.add(Shape::line(points, stroke));
         }
     }
 
