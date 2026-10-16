@@ -83,7 +83,7 @@ pub trait UiExt {
     fn raw_scroll_delta_y(&self) -> f32;
     fn colored_label(&mut self, color: impl Into<Color32>, text: impl ToString) -> Response;
     fn data_label(&mut self, text: impl Into<WidgetText>) -> Response;
-    fn label_with_colored_rect(&mut self, color: Vec<f32>, dtype: PixelType) -> Response;
+    fn label_with_colored_rect(&mut self, color: Vec<f32>, dtype: PixelType, row_height: f32) -> Response;
     fn text_edit_t<T: std::fmt::Display + std::str::FromStr>(&mut self, value: &mut T) -> Response;
     fn text_edit_value<T: std::fmt::Display + std::str::FromStr>(
         &mut self,
@@ -146,33 +146,43 @@ impl UiExt for Ui {
     }
 
     #[inline]
-    fn label_with_colored_rect(&mut self, color: Vec<f32>, dtype: PixelType) -> Response {
+    fn label_with_colored_rect(&mut self, color: Vec<f32>, dtype: PixelType, row_height: f32) -> Response {
         let color32 = color.to_color32();
 
-        self.horizontal(|ui| {
-            let rect_size = ui.available_height();
-            let (rect, resp) = ui.allocate_exact_size(egui::vec2(rect_size, rect_size), egui::Sense::click());
-            ui.painter().rect_filled(rect, 4.0, color32);
+        let text_height = self.text_style_height(&egui::TextStyle::Body);
+        let row_height = row_height.max(text_height);
+        // Use the space between text rows for a larger swatch without changing their height.
+        let rect_size = text_height + self.spacing().item_spacing.y;
+        self.allocate_ui_with_layout(
+            egui::vec2(self.available_width(), row_height),
+            egui::Layout::left_to_right(egui::Align::Center),
+            |ui| {
+                ui.spacing_mut().item_spacing.x *= 0.5;
+                let (id, row_rect) = ui.allocate_space(egui::vec2(rect_size, row_height));
+                let rect = egui::Rect::from_center_size(row_rect.center(), egui::Vec2::splat(rect_size));
+                let resp = ui.interact(rect, id, egui::Sense::click());
+                ui.painter().rect_filled(rect, 4.0, color32);
 
-            let color_text = if dtype.is_floating() {
-                color.to_rgba_string()
-            } else {
-                color.to_rgba_int_string(dtype.alpha())
-            };
+                let color_text = if dtype.is_floating() {
+                    color.to_rgba_string()
+                } else {
+                    color.to_rgba_int_string(dtype.alpha())
+                };
 
-            resp.context_menu(|ui| {
-                if ui.button("Copy #hex").clicked() {
-                    ui.ctx().copy_text(color.to_hex_string());
-                    ui.close();
-                }
-                if ui.button("Copy rgba() ").clicked() {
-                    ui.ctx().copy_text(color_text.clone());
-                    ui.close();
-                }
-            });
+                resp.context_menu(|ui| {
+                    if ui.button("Copy #hex").clicked() {
+                        ui.ctx().copy_text(color.to_hex_string());
+                        ui.close();
+                    }
+                    if ui.button("Copy rgba() ").clicked() {
+                        ui.ctx().copy_text(color_text.clone());
+                        ui.close();
+                    }
+                });
 
-            ui.label(&color_text);
-        })
+                ui.label(&color_text);
+            },
+        )
         .response
     }
 

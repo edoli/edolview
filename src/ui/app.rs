@@ -1745,7 +1745,9 @@ impl eframe::App for ViewerApp {
         self.show_bookmarks_dialog(&ctx);
 
         if self.state.is_show_statusbar {
-            egui::Panel::bottom("bottom").show(ui, |ui| {
+            let mut frame = egui::Frame::side_top_panel(ui.style());
+            frame.inner_margin.bottom = 0;
+            egui::Panel::bottom("bottom").frame(frame).show(ui, |ui| {
                 ui.columns_sized(
                     [
                         Size::exact(400.0),
@@ -1755,6 +1757,50 @@ impl eframe::App for ViewerApp {
                         Size::exact(108.0),
                     ],
                     |columns| {
+                        let (cursor_row_height, selection_row_height) = columns[1]
+                            .vertical(|ui| {
+                                let cursor_response = if let Some(cursor_pos) = self.state.cursor_pos {
+                                    ui.label(format!("Cursor: {}, {}", cursor_pos.x, cursor_pos.y))
+                                } else {
+                                    ui.label("Cursor: -, -")
+                                };
+
+                                let response = ui
+                                    .text_edit_value_capture(
+                                        &mut self.marquee_rect_text,
+                                        &mut self.state.marquee_rect,
+                                        &mut self.tmp_marquee_rect,
+                                    )
+                                    .on_hover_text("Selected marquee rectangle bounds (x, y, width, height)");
+                                let row_heights = (cursor_response.rect.height(), response.rect.height());
+                                response.context_menu(|ui| {
+                                    if ui.button("Copy Numpy Indexing").clicked() {
+                                        let rect = self.state.marquee_rect.validate();
+                                        let np_indexing =
+                                            format!("{}:{}, {}:{}", rect.min.y, rect.max.y, rect.min.x, rect.max.x,);
+                                        arboard::Clipboard::new()
+                                            .and_then(|mut cb| cb.set_text(np_indexing))
+                                            .unwrap_or_else(|e| {
+                                                eprintln!("Failed to copy numpy indexing to clipboard: {e}");
+                                            });
+                                        ui.close();
+                                    }
+                                    if ui.button("Copy x1, y1, x2, y2").clicked() {
+                                        let rect = self.state.marquee_rect.validate();
+                                        let rect_str =
+                                            format!("{}, {}, {}, {}", rect.min.x, rect.min.y, rect.max.x, rect.max.y);
+                                        arboard::Clipboard::new()
+                                            .and_then(|mut cb| cb.set_text(rect_str))
+                                            .unwrap_or_else(|e| {
+                                                eprintln!("Failed to copy rect to clipboard: {e}");
+                                            });
+                                        ui.close();
+                                    }
+                                });
+                                row_heights
+                            })
+                            .inner;
+
                         columns[0].vertical(|ui| {
                             if let Some(asset) = self.active_display_asset() {
                                 let cursor_image = asset.image();
@@ -1769,7 +1815,7 @@ impl eframe::App for ViewerApp {
                                 } else {
                                     vec![0.0; spec.channels as usize]
                                 };
-                                ui.label_with_colored_rect(cursor_color, dtype);
+                                ui.label_with_colored_rect(cursor_color, dtype, cursor_row_height);
 
                                 let rect = self.state.marquee_rect;
                                 let rect_image = asset.image();
@@ -1778,47 +1824,8 @@ impl eframe::App for ViewerApp {
                                 } else {
                                     vec![0.0; rect_image.spec().channels as usize]
                                 };
-                                ui.label_with_colored_rect(mean_color, dtype);
+                                ui.label_with_colored_rect(mean_color, dtype, selection_row_height);
                             }
-                        });
-
-                        columns[1].vertical(|ui| {
-                            if let Some(cursor_pos) = self.state.cursor_pos {
-                                ui.label(format!("Cursor: {}, {}", cursor_pos.x, cursor_pos.y));
-                            } else {
-                                ui.label("Cursor: -, -");
-                            }
-
-                            ui.text_edit_value_capture(
-                                &mut self.marquee_rect_text,
-                                &mut self.state.marquee_rect,
-                                &mut self.tmp_marquee_rect,
-                            )
-                            .on_hover_text("Selected marquee rectangle bounds (x, y, width, height)")
-                            .context_menu(|ui| {
-                                if ui.button("Copy Numpy Indexing").clicked() {
-                                    let rect = self.state.marquee_rect.validate();
-                                    let np_indexing =
-                                        format!("{}:{}, {}:{}", rect.min.y, rect.max.y, rect.min.x, rect.max.x,);
-                                    arboard::Clipboard::new()
-                                        .and_then(|mut cb| cb.set_text(np_indexing))
-                                        .unwrap_or_else(|e| {
-                                            eprintln!("Failed to copy numpy indexing to clipboard: {e}");
-                                        });
-                                    ui.close();
-                                }
-                                if ui.button("Copy x1, y1, x2, y2").clicked() {
-                                    let rect = self.state.marquee_rect.validate();
-                                    let rect_str =
-                                        format!("{}, {}, {}, {}", rect.min.x, rect.min.y, rect.max.x, rect.max.y);
-                                    arboard::Clipboard::new()
-                                        .and_then(|mut cb| cb.set_text(rect_str))
-                                        .unwrap_or_else(|e| {
-                                            eprintln!("Failed to copy rect to clipboard: {e}");
-                                        });
-                                    ui.close();
-                                }
-                            });
                         });
 
                         columns[2].vertical(|ui| {
@@ -1827,18 +1834,24 @@ impl eframe::App for ViewerApp {
                             let angle = marquee_angle(self.state.marquee_rect, unit);
                             let angle_label = format_marquee_angle(angle);
                             let mut show_radians = unit == crate::settings::AngleDisplayUnit::Radians;
-                            ui.label(angle_label)
-                                .on_hover_text(marquee_angle_tooltip(unit))
-                                .context_menu(|ui| {
-                                    if ui.checkbox(&mut show_radians, "Show in radians").changed() {
-                                        self.app_settings.ui_state.angle_display_unit = if show_radians {
-                                            crate::settings::AngleDisplayUnit::Radians
-                                        } else {
-                                            crate::settings::AngleDisplayUnit::Degrees
-                                        };
-                                        ui.close();
-                                    }
-                                });
+                            ui.allocate_ui_with_layout(
+                                egui::vec2(ui.available_width(), selection_row_height),
+                                egui::Layout::left_to_right(egui::Align::Center),
+                                |ui| {
+                                    ui.label(angle_label).on_hover_text(marquee_angle_tooltip(unit)).context_menu(
+                                        |ui| {
+                                            if ui.checkbox(&mut show_radians, "Show in radians").changed() {
+                                                self.app_settings.ui_state.angle_display_unit = if show_radians {
+                                                    crate::settings::AngleDisplayUnit::Radians
+                                                } else {
+                                                    crate::settings::AngleDisplayUnit::Degrees
+                                                };
+                                                ui.close();
+                                            }
+                                        },
+                                    );
+                                },
+                            );
                         });
 
                         columns[4].with_layout(egui::Layout::top_down(egui::Align::RIGHT), |ui| {
@@ -1851,7 +1864,11 @@ impl eframe::App for ViewerApp {
                             } else {
                                 ui.label("No image loaded");
                             }
-                            ui.label(format!("Zoom: {:.2}x", self.viewer.zoom()));
+                            ui.allocate_ui_with_layout(
+                                egui::vec2(ui.available_width(), selection_row_height),
+                                egui::Layout::right_to_left(egui::Align::Center),
+                                |ui| ui.label(format!("Zoom: {:.2}x", self.viewer.zoom())),
+                            );
                         });
                     },
                 );
