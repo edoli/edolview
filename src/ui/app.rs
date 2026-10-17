@@ -1,6 +1,6 @@
 use color_eyre::eyre::Report;
 use core::f32;
-use eframe::egui::{self, pos2, vec2, Color32, Rangef, Visuals};
+use eframe::egui::{self, pos2, vec2, Color32, Rangef};
 use rfd::FileDialog;
 use std::{
     collections::HashSet,
@@ -1498,7 +1498,7 @@ impl ViewerApp {
 
         self.poll_pending_image_save_dialog(ctx);
 
-        ctx.set_visuals(Visuals::dark());
+        super::style::apply(ctx);
 
         if !self.is_start_background_event_handlers_called {
             self.start_background_event_handlers(ctx);
