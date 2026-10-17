@@ -7,7 +7,7 @@ use crate::{
 };
 
 #[derive(Default)]
-pub struct BookmarkWindowActions {
+pub struct RoiWindowActions {
     pub add_current: bool,
     pub clear_all: bool,
     pub jump_to: Option<usize>,
@@ -17,14 +17,14 @@ pub struct BookmarkWindowActions {
 }
 
 #[derive(Clone, Copy, PartialEq, Eq, Default)]
-pub enum BookmarkJumpMode {
+pub enum RoiJumpMode {
     None,
     #[default]
     Center,
     Fit,
 }
 
-impl BookmarkJumpMode {
+impl RoiJumpMode {
     fn label(self) -> &'static str {
         match self {
             Self::None => "Do Nothing",
@@ -34,22 +34,22 @@ impl BookmarkJumpMode {
     }
 }
 
-pub fn show_bookmark_window(
+pub fn show_roi_window(
     ctx: &egui::Context,
     icons: &Icons,
     open: &mut bool,
-    bookmarks: &[Recti],
-    active_bookmark_index: Option<usize>,
-    jump_mode: &mut BookmarkJumpMode,
+    rois: &[Recti],
+    active_roi_index: Option<usize>,
+    jump_mode: &mut RoiJumpMode,
     add_shortcut_label: &str,
-) -> BookmarkWindowActions {
+) -> RoiWindowActions {
     if !*open {
-        return BookmarkWindowActions::default();
+        return RoiWindowActions::default();
     }
 
-    let mut actions = BookmarkWindowActions::default();
+    let mut actions = RoiWindowActions::default();
 
-    egui::Window::new("Bookmarks")
+    egui::Window::new("ROIs")
         .default_pos(egui::pos2(1024.0, 72.0))
         .collapsible(false)
         .resizable(true)
@@ -59,34 +59,34 @@ pub fn show_bookmark_window(
             ui.horizontal(|ui| {
                 let add_clicked = ui
                     .button("Add Current")
-                    .on_hover_text(format!("Add current selection as bookmark ({add_shortcut_label})"))
+                    .on_hover_text(format!("Add current selection as ROI ({add_shortcut_label})"))
                     .clicked();
                 if add_clicked {
                     actions.add_current = true;
                 }
 
-                if ui.add_enabled(!bookmarks.is_empty(), egui::Button::new("Clear All")).clicked() {
+                if ui.add_enabled(!rois.is_empty(), egui::Button::new("Clear All")).clicked() {
                     actions.clear_all = true;
                 }
                 ui.label("Jump:");
-                egui::ComboBox::from_id_salt("bookmark_jump_mode")
+                egui::ComboBox::from_id_salt("roi_jump_mode")
                     .selected_text(jump_mode.label())
                     .show_ui(ui, |ui| {
-                        ui.selectable_value(jump_mode, BookmarkJumpMode::None, BookmarkJumpMode::None.label());
-                        ui.selectable_value(jump_mode, BookmarkJumpMode::Center, BookmarkJumpMode::Center.label());
-                        ui.selectable_value(jump_mode, BookmarkJumpMode::Fit, BookmarkJumpMode::Fit.label());
+                        ui.selectable_value(jump_mode, RoiJumpMode::None, RoiJumpMode::None.label());
+                        ui.selectable_value(jump_mode, RoiJumpMode::Center, RoiJumpMode::Center.label());
+                        ui.selectable_value(jump_mode, RoiJumpMode::Fit, RoiJumpMode::Fit.label());
                     });
             });
             ui.separator();
 
-            if bookmarks.is_empty() {
-                ui.label("No bookmarks");
+            if rois.is_empty() {
+                ui.label("No ROIs");
                 return;
             }
 
             egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-                for (index, rect) in bookmarks.iter().enumerate() {
-                    let selected = active_bookmark_index == Some(index);
+                for (index, rect) in rois.iter().enumerate() {
+                    let selected = active_roi_index == Some(index);
 
                     ui.scope(|ui| {
                         let mut style = (**ui.style()).clone();
@@ -130,17 +130,11 @@ pub fn show_bookmark_window(
                                     };
 
                                 let is_first = index == 0;
-                                let is_last = index + 1 == bookmarks.len();
+                                let is_last = index + 1 == rois.len();
 
-                                add_button(1, !is_first, Icons::get_arrow_up, "Move bookmark up", &mut actions.move_up);
-                                add_button(
-                                    2,
-                                    !is_last,
-                                    Icons::get_arrow_down,
-                                    "Move bookmark down",
-                                    &mut actions.move_down,
-                                );
-                                add_button(3, true, Icons::get_delete, "Delete bookmark", &mut actions.remove_index);
+                                add_button(1, !is_first, Icons::get_arrow_up, "Move ROI up", &mut actions.move_up);
+                                add_button(2, !is_last, Icons::get_arrow_down, "Move ROI down", &mut actions.move_down);
+                                add_button(3, true, Icons::get_delete, "Delete ROI", &mut actions.remove_index);
                             },
                         );
                     });

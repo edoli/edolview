@@ -1,4 +1,3 @@
-mod bookmark_window;
 mod channel_toggle;
 mod colormap_combo;
 mod custom_slider;
@@ -9,10 +8,10 @@ mod histogram_plot;
 mod image_context_info;
 mod multi_line_plot;
 mod range_slider;
+mod roi_window;
 mod toast;
 mod viewport_minimap;
 
-pub use bookmark_window::*;
 pub use channel_toggle::*;
 pub use colormap_combo::*;
 pub use custom_slider::*;
@@ -22,5 +21,6 @@ pub use histogram_plot::*;
 pub use image_context_info::*;
 pub use multi_line_plot::*;
 pub use range_slider::*;
+pub use roi_window::*;
 pub use toast::*;
 pub use viewport_minimap::*;

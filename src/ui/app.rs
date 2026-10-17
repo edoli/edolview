@@ -29,8 +29,8 @@ use crate::{
             channel_toggle_ui, colormap_popup_contents, display_controls_ui, display_profile_slider, draw_histogram,
             draw_multi_line_plot,
             egui_ext::{ComboBoxExt, ResponseExt, Size, UiExt},
-            range_slider_context_menu, range_slider_tooltip, range_slider_ui, show_bookmark_window, BookmarkJumpMode,
-            CopyExport, ExportAction, MonoColormapPreviews, SaveExport, Toast, ToastUi, ToastsExt,
+            range_slider_context_menu, range_slider_tooltip, range_slider_ui, show_roi_window, CopyExport,
+            ExportAction, MonoColormapPreviews, RoiJumpMode, SaveExport, Toast, ToastUi, ToastsExt,
         },
         fonts::{apply_fallback_fonts, spawn_fallback_font_loader, LoadedFallbackFonts},
         ImageViewer,
@@ -46,7 +46,7 @@ enum PlotDim {
 }
 
 #[derive(Clone, PartialEq, Eq)]
-struct Bookmark {
+struct Roi {
     rect: Recti,
 }
 
@@ -131,9 +131,9 @@ pub struct ViewerApp {
     // Marquee change callbacks
     last_marquee_rect_for_cb: Recti,
     last_marquee_asset_hash: Option<String>,
-    bookmarks: Vec<Bookmark>,
-    active_bookmark_index: Option<usize>,
-    bookmark_jump_mode: BookmarkJumpMode,
+    rois: Vec<Roi>,
+    active_roi_index: Option<usize>,
+    roi_jump_mode: RoiJumpMode,
 
     show_plot_channels: [bool; 4],
     plot_percentiles: [f64; 2],
@@ -173,7 +173,7 @@ pub struct ViewerApp {
     pending_update_confirmation: Option<crate::update::AvailableUpdate>,
     app_settings: crate::settings::AppSettings,
     show_settings_modal: bool,
-    show_bookmarks_modal: bool,
+    show_rois_modal: bool,
     control_rx: mpsc::Receiver<crate::control::ControlOpenEvent>,
     control_instance: Option<crate::control::ControlInstance>,
     last_control_touch: Instant,
@@ -309,9 +309,9 @@ impl ViewerApp {
 
             last_marquee_rect_for_cb: marquee_rect,
             last_marquee_asset_hash: None,
-            bookmarks: Vec::new(),
-            active_bookmark_index: None,
-            bookmark_jump_mode: BookmarkJumpMode::Center,
+            rois: Vec::new(),
+            active_roi_index: None,
+            roi_jump_mode: RoiJumpMode::Center,
 
             show_plot_channels: [true, true, true, false],
             plot_percentiles: [0.0, 100.0],
@@ -351,7 +351,7 @@ impl ViewerApp {
             pending_update_confirmation: None,
             app_settings,
             show_settings_modal: false,
-            show_bookmarks_modal: false,
+            show_rois_modal: false,
             control_rx,
             control_instance,
             last_control_touch: Instant::now(),
@@ -675,7 +675,7 @@ impl ViewerApp {
         }
     }
 
-    fn current_bookmark_rect(&self) -> Option<Recti> {
+    fn current_roi_rect(&self) -> Option<Recti> {
         let rect = self.state.marquee_rect.validate();
         if !rect.empty() {
             return Some(rect);
@@ -683,59 +683,59 @@ impl ViewerApp {
         None
     }
 
-    fn toggle_bookmark(&mut self) {
-        let Some(rect) = self.current_bookmark_rect() else {
-            self.toasts.add_info("No selection to bookmark".to_string());
+    fn toggle_roi(&mut self) {
+        let Some(rect) = self.current_roi_rect() else {
+            self.toasts.add_info("No selection to add as ROI".to_string());
             return;
         };
 
-        let bookmark = Bookmark { rect };
-        if let Some(index) = self.bookmarks.iter().position(|entry| entry == &bookmark) {
-            self.bookmarks.remove(index);
-            self.active_bookmark_index = match self.active_bookmark_index {
+        let roi = Roi { rect };
+        if let Some(index) = self.rois.iter().position(|entry| entry == &roi) {
+            self.rois.remove(index);
+            self.active_roi_index = match self.active_roi_index {
                 Some(active) if active == index => None,
                 Some(active) if active > index => Some(active - 1),
                 active => active,
             };
-            self.toasts.add_success("Removed bookmark".to_string());
+            self.toasts.add_success("Removed ROI".to_string());
             return;
         }
 
-        self.bookmarks.push(bookmark);
-        self.active_bookmark_index = Some(self.bookmarks.len() - 1);
-        self.toasts.add_success(format!("Added bookmark {}", self.bookmarks.len()));
+        self.rois.push(roi);
+        self.active_roi_index = Some(self.rois.len() - 1);
+        self.toasts.add_success(format!("Added ROI {}", self.rois.len()));
     }
 
-    fn remove_bookmark(&mut self, index: usize) {
-        if index >= self.bookmarks.len() {
+    fn remove_roi(&mut self, index: usize) {
+        if index >= self.rois.len() {
             return;
         }
 
-        self.bookmarks.remove(index);
-        self.active_bookmark_index = match self.active_bookmark_index {
+        self.rois.remove(index);
+        self.active_roi_index = match self.active_roi_index {
             Some(active) if active == index => None,
             Some(active) if active > index => Some(active - 1),
             active => active,
         };
     }
 
-    fn move_bookmark(&mut self, index: usize, direction: i32) {
-        if index >= self.bookmarks.len() {
+    fn move_roi(&mut self, index: usize, direction: i32) {
+        if index >= self.rois.len() {
             return;
         }
 
         let target = if direction < 0 {
             index.saturating_sub(1)
         } else {
-            (index + 1).min(self.bookmarks.len().saturating_sub(1))
+            (index + 1).min(self.rois.len().saturating_sub(1))
         };
 
         if target == index {
             return;
         }
 
-        self.bookmarks.swap(index, target);
-        self.active_bookmark_index = self.active_bookmark_index.map(|active| {
+        self.rois.swap(index, target);
+        self.active_roi_index = self.active_roi_index.map(|active| {
             if active == index {
                 target
             } else if active == target {
@@ -746,19 +746,19 @@ impl ViewerApp {
         });
     }
 
-    fn clear_bookmarks(&mut self) {
-        self.bookmarks.clear();
-        self.active_bookmark_index = None;
+    fn clear_rois(&mut self) {
+        self.rois.clear();
+        self.active_roi_index = None;
     }
 
-    fn navigate_bookmark(&mut self, direction: i32, ctx: &egui::Context) {
-        if self.bookmarks.is_empty() {
-            self.toasts.add_info("No bookmarks".to_string());
+    fn navigate_roi(&mut self, direction: i32, ctx: &egui::Context) {
+        if self.rois.is_empty() {
+            self.toasts.add_info("No ROIs".to_string());
             return;
         }
 
-        let len = self.bookmarks.len();
-        let current = match self.active_bookmark_index {
+        let len = self.rois.len();
+        let current = match self.active_roi_index {
             Some(index) => index,
             None if direction >= 0 => len - 1,
             None => 0,
@@ -771,11 +771,11 @@ impl ViewerApp {
             current - 1
         };
 
-        self.apply_bookmark(next, ctx);
+        self.apply_roi(next, ctx);
     }
 
-    fn apply_bookmark(&mut self, index: usize, ctx: &egui::Context) {
-        let Some(bookmark) = self.bookmarks.get(index).cloned() else {
+    fn apply_roi(&mut self, index: usize, ctx: &egui::Context) {
+        let Some(roi) = self.rois.get(index).cloned() else {
             return;
         };
         let Some(asset) = &self.state.asset else {
@@ -784,7 +784,7 @@ impl ViewerApp {
         };
         let spec = asset.image().spec();
         let image_rect = Recti::from_min_size(vec2i(0, 0), vec2i(spec.width, spec.height));
-        let requested_rect = bookmark.rect.validate();
+        let requested_rect = roi.rect.validate();
         let clipped_rect = requested_rect.intersect(image_rect);
 
         self.state.set_marquee_rect(requested_rect);
@@ -792,21 +792,20 @@ impl ViewerApp {
         self.marquee_rect_text = self.state.marquee_rect.to_string();
         if clipped_rect.empty() {
         } else {
-            match self.bookmark_jump_mode {
-                BookmarkJumpMode::None => {}
-                BookmarkJumpMode::Center => self.viewer.center_rect(self.state.marquee_rect),
-                BookmarkJumpMode::Fit => self.viewer.fit_rect(self.state.marquee_rect),
+            match self.roi_jump_mode {
+                RoiJumpMode::None => {}
+                RoiJumpMode::Center => self.viewer.center_rect(self.state.marquee_rect),
+                RoiJumpMode::Fit => self.viewer.fit_rect(self.state.marquee_rect),
             }
         }
 
-        self.active_bookmark_index = Some(index);
+        self.active_roi_index = Some(index);
         ctx.request_repaint();
         if clipped_rect.empty() {
-            self.toasts
-                .add_info("The bookmarked area is outside the current image bounds".to_string());
+            self.toasts.add_info("The ROI is outside the current image bounds".to_string());
         } else if clipped_rect != requested_rect {
             self.toasts
-                .add_info("The bookmarked area is clipped to the current image bounds".to_string());
+                .add_info("The ROI is clipped to the current image bounds".to_string());
         }
     }
 
@@ -1035,38 +1034,38 @@ impl ViewerApp {
         self.show_settings_modal = keep_open;
     }
 
-    fn show_bookmarks_dialog(&mut self, ctx: &egui::Context) {
-        let bookmark_rects: Vec<_> = self.bookmarks.iter().map(|bookmark| bookmark.rect).collect();
-        let actions = show_bookmark_window(
+    fn show_rois_dialog(&mut self, ctx: &egui::Context) {
+        let roi_rects: Vec<_> = self.rois.iter().map(|roi| roi.rect).collect();
+        let actions = show_roi_window(
             ctx,
             &self.icons,
-            &mut self.show_bookmarks_modal,
-            &bookmark_rects,
-            self.active_bookmark_index,
-            &mut self.bookmark_jump_mode,
-            &crate::res::BOOKMARK_ADD.format_sys(),
+            &mut self.show_rois_modal,
+            &roi_rects,
+            self.active_roi_index,
+            &mut self.roi_jump_mode,
+            &crate::res::ROI_ADD.format_sys(),
         );
 
         if let Some(index) = actions.move_up {
-            self.move_bookmark(index, -1);
+            self.move_roi(index, -1);
         } else if let Some(index) = actions.move_down {
-            self.move_bookmark(index, 1);
+            self.move_roi(index, 1);
         }
 
         if let Some(index) = actions.remove_index {
-            self.remove_bookmark(index);
+            self.remove_roi(index);
         }
 
         if actions.clear_all {
-            self.clear_bookmarks();
+            self.clear_rois();
         }
 
         if actions.add_current {
-            self.toggle_bookmark();
+            self.toggle_roi();
         }
 
         if let Some(index) = actions.jump_to {
-            self.apply_bookmark(index, ctx);
+            self.apply_roi(index, ctx);
         }
     }
 
@@ -1434,10 +1433,10 @@ impl ViewerApp {
         let mut request_save = false;
         let mut apply_view_preset = None;
         let mut save_view_preset = None;
-        let mut toggle_bookmark_panel = false;
-        let mut add_bookmark = false;
-        let mut navigate_prev_bookmark = false;
-        let mut navigate_next_bookmark = false;
+        let mut toggle_roi_panel = false;
+        let mut add_roi = false;
+        let mut navigate_prev_roi = false;
+        let mut navigate_next_roi = false;
         let mut open_from_clipboard = false;
         ctx.input_mut(|i| {
             for slot in 0..crate::settings::VIEW_PRESET_COUNT {
@@ -1463,10 +1462,10 @@ impl ViewerApp {
                 self.state.reset_marquee_rect();
             }
             request_save |= i.consume_shortcut(&crate::res::SAVE_IMAGE_SC);
-            toggle_bookmark_panel |= i.consume_shortcut(&crate::res::BOOKMARK_PANEL_TOGGLE);
-            add_bookmark |= i.consume_shortcut(&crate::res::BOOKMARK_ADD);
-            navigate_prev_bookmark |= i.consume_shortcut(&crate::res::BOOKMARK_PREV);
-            navigate_next_bookmark |= i.consume_shortcut(&crate::res::BOOKMARK_NEXT);
+            toggle_roi_panel |= i.consume_shortcut(&crate::res::ROI_PANEL_TOGGLE);
+            add_roi |= i.consume_shortcut(&crate::res::ROI_ADD);
+            navigate_prev_roi |= i.consume_shortcut(&crate::res::ROI_PREV);
+            navigate_next_roi |= i.consume_shortcut(&crate::res::ROI_NEXT);
             open_from_clipboard |= i.consume_shortcut(&crate::res::OPEN_FROM_CLIPBOARD_SC)
                 || Self::open_from_clipboard_shortcut_released(i);
             if i.consume_shortcut(&crate::res::NAVIGATE_PREV) {
@@ -1510,16 +1509,16 @@ impl ViewerApp {
         } else if let Some(slot) = apply_view_preset {
             self.apply_view_preset(slot, ctx);
         }
-        if toggle_bookmark_panel {
-            self.show_bookmarks_modal = !self.show_bookmarks_modal;
+        if toggle_roi_panel {
+            self.show_rois_modal = !self.show_rois_modal;
             ctx.request_repaint();
-        } else if add_bookmark {
-            self.toggle_bookmark();
+        } else if add_roi {
+            self.toggle_roi();
             ctx.request_repaint();
-        } else if navigate_prev_bookmark {
-            self.navigate_bookmark(-1, ctx);
-        } else if navigate_next_bookmark {
-            self.navigate_bookmark(1, ctx);
+        } else if navigate_prev_roi {
+            self.navigate_roi(-1, ctx);
+        } else if navigate_next_roi {
+            self.navigate_roi(1, ctx);
         }
         if open_from_clipboard {
             self.open_from_clipboard();
@@ -1791,11 +1790,8 @@ impl eframe::App for ViewerApp {
                     ui.spacing_mut().button_padding.x = 4.0;
                     ui.toggle_value(&mut self.state.is_show_statusbar, "Status Bar");
                     ui.toggle_value(&mut self.state.is_show_sidebar, "Sidebar");
-                    ui.toggle_value(&mut self.show_bookmarks_modal, "Bookmarks")
-                        .on_hover_text(format!(
-                            "Show bookmark panel ({})",
-                            crate::res::BOOKMARK_PANEL_TOGGLE.format_sys()
-                        ));
+                    ui.toggle_value(&mut self.show_rois_modal, "ROIs")
+                        .on_hover_text(format!("Show ROIs panel ({})", crate::res::ROI_PANEL_TOGGLE.format_sys()));
                 });
             });
         });
@@ -1803,7 +1799,7 @@ impl eframe::App for ViewerApp {
         self.show_update_confirmation_dialog(&ctx);
         self.show_update_progress_dialog(&ctx);
         self.show_settings_dialog(&ctx);
-        self.show_bookmarks_dialog(&ctx);
+        self.show_rois_dialog(&ctx);
 
         if self.state.is_show_statusbar {
             let mut frame = egui::Frame::side_top_panel(ui.style());

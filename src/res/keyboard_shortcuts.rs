@@ -9,10 +9,10 @@ pub const SELECT_NONE_SC: Ksc = Ksc::new(Modifiers::NONE, Key::Escape);
 pub const COPY_SC: Ksc = Ksc::new(Modifiers::COMMAND, Key::C);
 pub const OPEN_FROM_CLIPBOARD_SC: Ksc = Ksc::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::V);
 pub const SAVE_IMAGE_SC: Ksc = Ksc::new(Modifiers::COMMAND, Key::S);
-pub const BOOKMARK_PANEL_TOGGLE: Ksc = Ksc::new(Modifiers::NONE, Key::B);
-pub const BOOKMARK_ADD: Ksc = Ksc::new(Modifiers::COMMAND, Key::B);
-pub const BOOKMARK_PREV: Ksc = Ksc::new(Modifiers::NONE, Key::OpenBracket);
-pub const BOOKMARK_NEXT: Ksc = Ksc::new(Modifiers::NONE, Key::CloseBracket);
+pub const ROI_PANEL_TOGGLE: Ksc = Ksc::new(Modifiers::NONE, Key::B);
+pub const ROI_ADD: Ksc = Ksc::new(Modifiers::COMMAND, Key::B);
+pub const ROI_PREV: Ksc = Ksc::new(Modifiers::NONE, Key::OpenBracket);
+pub const ROI_NEXT: Ksc = Ksc::new(Modifiers::NONE, Key::CloseBracket);
 
 pub const RESET_VIEW: Ksc = Ksc::new(Modifiers::NONE, Key::R);
 
