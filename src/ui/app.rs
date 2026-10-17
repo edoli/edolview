@@ -29,8 +29,8 @@ use crate::{
             channel_toggle_ui, colormap_popup_contents, display_controls_ui, display_profile_slider, draw_histogram,
             draw_multi_line_plot,
             egui_ext::{ComboBoxExt, ResponseExt, Size, UiExt},
-            range_slider_context_menu, range_slider_ui, show_bookmark_window, BookmarkJumpMode, CopyExport,
-            ExportAction, MonoColormapPreviews, SaveExport, Toast, ToastUi, ToastsExt,
+            range_slider_context_menu, range_slider_tooltip, range_slider_ui, show_bookmark_window, BookmarkJumpMode,
+            CopyExport, ExportAction, MonoColormapPreviews, SaveExport, Toast, ToastUi, ToastsExt,
         },
         fonts::{apply_fallback_fonts, spawn_fallback_font_loader, LoadedFallbackFonts},
         ImageViewer,
@@ -2192,10 +2192,12 @@ impl eframe::App for ViewerApp {
                             if response.changed() {
                                 ctx.request_repaint();
                             }
-                            let response = response.on_hover_text(format!(
-                                "Plot Y-axis percentiles: {:.0}%–{:.0}%",
-                                self.plot_percentiles[0], self.plot_percentiles[1],
-                            ));
+                            range_slider_tooltip(
+                                ui,
+                                &response,
+                                "Adjust the plot's Y-axis limits using lower and upper percentiles.",
+                                self.plot_percentiles.map(|value| format!("{value:.0}%")),
+                            );
                             range_slider_context_menu(&response, |ui| {
                                 if ui.button("Reset (0–100%)").clicked() {
                                     self.plot_percentiles = [0.0, 100.0];

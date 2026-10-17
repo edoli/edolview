@@ -123,3 +123,88 @@ pub fn range_slider_context_menu(response: &egui::Response, contents: impl FnOnc
         .then_some(egui::SetOpenCommand::Bool(true));
     egui::Popup::context_menu(response).open_memory(open_menu).show(contents);
 }
+
+/// Show help on hover and separate handle values while dragging or scrolling.
+pub fn range_slider_tooltip(ui: &egui::Ui, response: &egui::Response, description: &str, value_text: [String; 2]) {
+    let dragging = response.is_pointer_button_down_on() && ui.input(|i| i.pointer.primary_down());
+    let scrolling = response.hovered() && ui.raw_scroll_delta_y() != 0.0;
+    let now = ui.input(|i| i.time);
+    let expiry_id = response.id.with("scroll_value_until");
+    let expiry = ui.data_mut(|data| {
+        if scrolling {
+            // Keep wheel feedback readable between individual wheel events.
+            data.insert_temp(expiry_id, now + 0.6);
+        }
+        data.get_temp::<f64>(expiry_id).unwrap_or(f64::NEG_INFINITY)
+    });
+    if dragging || (response.hovered() && now < expiry) {
+        range_slider_value_labels(ui, response, value_text);
+        if now < expiry {
+            ui.ctx().request_repaint_after(std::time::Duration::from_secs_f64(expiry - now));
+        }
+    } else if !ui.input(|i| i.pointer.any_down() || i.pointer.any_released()) {
+        response.clone().on_hover_text(description);
+    }
+}
+
+fn range_slider_value_labels(ui: &egui::Ui, response: &egui::Response, values: [String; 2]) {
+    let (Some(low), Some(high)) = (
+        ui.ctx().read_response(response.id.with("low")),
+        ui.ctx().read_response(response.id.with("high")),
+    ) else {
+        return;
+    };
+    // Paint above the UI without allocating space or intercepting handle input.
+    let painter = ui
+        .ctx()
+        .layer_painter(egui::LayerId::new(egui::Order::Tooltip, response.id.with("handle_values")));
+    let frame = egui::Frame::popup(ui.style());
+    let margin = frame.total_margin();
+    let bounds = ui.ctx().content_rect().shrink(8.0);
+    let font = egui::TextStyle::Body.resolve(ui.style());
+    let text = values.map(|value| painter.layout_no_wrap(value, font.clone(), ui.visuals().text_color()));
+    let handles = [low.rect, high.rect];
+    let mut labels = std::array::from_fn::<_, 2, _>(|index| {
+        let size = text[index].size() + margin.sum();
+        let handle = handles[index];
+        let left = (handle.center().x - size.x / 2.0).clamp(bounds.left(), bounds.right() - size.x);
+        let top = if handle.top() - 6.0 - size.y >= bounds.top() {
+            handle.top() - 6.0 - size.y
+        } else {
+            handle.bottom() + 6.0
+        };
+        egui::Rect::from_min_size(egui::pos2(left, top), size)
+    });
+    let gap = 8.0;
+    if labels[0].expand(gap / 2.0).intersects(labels[1].expand(gap / 2.0)) {
+        // Move both bubbles as a group so equal/nearby values remain readable,
+        // including at the screen edge. Keep low on the left and high on the right.
+        let width = labels[0].width() + gap + labels[1].width();
+        let center = (handles[0].center().x + handles[1].center().x) / 2.0;
+        let left = (center - width / 2.0).clamp(bounds.left(), bounds.right() - width);
+        labels[0] = egui::Rect::from_min_size(egui::pos2(left, labels[0].top()), labels[0].size());
+        labels[1] = egui::Rect::from_min_size(egui::pos2(labels[0].right() + gap, labels[1].top()), labels[1].size());
+    }
+    for (index, label) in labels.into_iter().enumerate() {
+        let handle = handles[index];
+        let below = label.top() >= handle.bottom();
+        painter.line_segment(
+            [
+                if below {
+                    handle.center_bottom()
+                } else {
+                    handle.center_top()
+                },
+                if below {
+                    label.center_top()
+                } else {
+                    label.center_bottom()
+                },
+            ],
+            ui.visuals().window_stroke(),
+        );
+        let content = label - margin;
+        painter.add(frame.paint(content));
+        painter.galley(content.min, text[index].clone(), ui.visuals().text_color());
+    }
+}
