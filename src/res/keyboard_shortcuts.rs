@@ -25,6 +25,8 @@ pub const NAVIGATE_PREV: Ksc = Ksc::new(Modifiers::NONE, Key::ArrowLeft);
 pub const NAVIGATE_NEXT: Ksc = Ksc::new(Modifiers::NONE, Key::ArrowRight);
 pub const NAVIGATE_ASSET_PREV: Ksc = Ksc::new(Modifiers::NONE, Key::PageUp);
 pub const NAVIGATE_ASSET_NEXT: Ksc = Ksc::new(Modifiers::NONE, Key::PageDown);
+pub const NAVIGATE_ASSET_PREV_TAB: Ksc = Ksc::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::Tab);
+pub const NAVIGATE_ASSET_NEXT_TAB: Ksc = Ksc::new(Modifiers::CTRL, Key::Tab);
 
 pub const PRESET_KEYS: [Key; 9] = [
     Key::Num1,

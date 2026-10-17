@@ -1434,10 +1434,14 @@ impl ViewerApp {
                     Self::load_fail(&mut self.toasts, "Failed to load navigated file", path.as_ref(), &e);
                 }
             }
-            if i.consume_shortcut(&crate::res::NAVIGATE_ASSET_PREV) {
+            if i.consume_shortcut(&crate::res::NAVIGATE_ASSET_PREV)
+                || i.consume_shortcut(&crate::res::NAVIGATE_ASSET_PREV_TAB)
+            {
                 self.state.navigate_asset_prev();
             }
-            if i.consume_shortcut(&crate::res::NAVIGATE_ASSET_NEXT) {
+            if i.consume_shortcut(&crate::res::NAVIGATE_ASSET_NEXT)
+                || i.consume_shortcut(&crate::res::NAVIGATE_ASSET_NEXT_TAB)
+            {
                 self.state.navigate_asset_next();
             }
             if i.consume_shortcut(&crate::res::RESET_VIEW) {
