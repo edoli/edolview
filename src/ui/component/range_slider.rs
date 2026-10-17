@@ -168,10 +168,10 @@ fn range_slider_value_labels(ui: &egui::Ui, response: &egui::Response, values: [
         let size = text[index].size() + margin.sum();
         let handle = handles[index];
         let left = (handle.center().x - size.x / 2.0).clamp(bounds.left(), bounds.right() - size.x);
-        let top = if handle.top() - 6.0 - size.y >= bounds.top() {
-            handle.top() - 6.0 - size.y
-        } else {
+        let top = if handle.bottom() + 6.0 + size.y <= bounds.bottom() {
             handle.bottom() + 6.0
+        } else {
+            handle.top() - 6.0 - size.y
         };
         egui::Rect::from_min_size(egui::pos2(left, top), size)
     });
