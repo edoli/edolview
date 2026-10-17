@@ -4,6 +4,7 @@ pub mod gpu;
 pub mod icon;
 
 mod app;
+mod asset_list_selection;
 mod field_input;
 mod image_viewer;
 mod style;

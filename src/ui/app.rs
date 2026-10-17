@@ -12,6 +12,7 @@ use std::{
     vec,
 };
 
+use super::asset_list_selection::AssetListSelection;
 #[cfg(debug_assertions)]
 use crate::util::timer::ScopedTimer;
 use crate::{
@@ -20,8 +21,9 @@ use crate::{
         SocketAsset, StatisticsScope, StatisticsType, StatisticsUpdate, StatisticsWorker,
     },
     res::{
-        icons::Icons, KeyboardShortcutExt, ASSET_SECONDARY_SELECTION_FILL, CONTROL_LISTENER_UNAVAILABLE_TEXT,
-        DANGER_TEXT, NOTICE_ERROR_TEXT, NOTICE_WARNING_TEXT, RGB_CHANNEL_LABEL_COLORS, STATISTICS_MAX_TOGGLE_FILL,
+        icons::Icons, KeyboardShortcutExt, ASSET_MULTI_SELECTION_FILL, ASSET_MULTI_SELECTION_HOVER_STROKE,
+        ASSET_MULTI_SELECTION_STROKE, ASSET_SECONDARY_SELECTION_FILL, CONTROL_LISTENER_UNAVAILABLE_TEXT, DANGER_TEXT,
+        NOTICE_ERROR_TEXT, NOTICE_WARNING_TEXT, RGB_CHANNEL_LABEL_COLORS, STATISTICS_MAX_TOGGLE_FILL,
         STATISTICS_MIN_TOGGLE_FILL, UPDATE_ACCENT_FILL, UPDATE_ACCENT_TEXT,
     },
     ui::{
@@ -121,6 +123,7 @@ pub struct ViewerApp {
     state: AppState,
     viewer: ImageViewer,
     mono_colormap_previews: MonoColormapPreviews,
+    asset_list_selection: AssetListSelection,
     last_path: Option<PathBuf>,
     startup_paths: Vec<PathBuf>,
     startup_path_rx: Option<mpsc::Receiver<StartupPathLoadResult>>,
@@ -299,6 +302,7 @@ impl ViewerApp {
             state,
             viewer: ImageViewer::new(),
             mono_colormap_previews: MonoColormapPreviews::default(),
+            asset_list_selection: AssetListSelection::default(),
 
             last_path: None,
             startup_paths: Vec::new(),
@@ -2389,12 +2393,21 @@ impl eframe::App for ViewerApp {
                         ui.separator();
                     }
 
+                    self.asset_list_selection.retain(|hash| self.state.assets.contains_key(hash));
                     ui.horizontal(|ui| {
                         ui.heading("Image List");
+                        if self.asset_list_selection.len() > 0 {
+                            ui.label(
+                                egui::RichText::new(format!("{} selected", self.asset_list_selection.len()))
+                                    .small()
+                                    .color(ASSET_MULTI_SELECTION_STROKE),
+                            );
+                        }
                         ui.with_layout(egui::Layout::top_down(egui::Align::RIGHT), |ui| {
                             ui.button("Clear").clicked().then(|| {
                                 self.state.assets.clear();
                                 self.state.clear_asset();
+                                self.asset_list_selection.clear();
                             });
                         });
                     });
@@ -2465,7 +2478,32 @@ impl eframe::App for ViewerApp {
 
                             let row = ui
                                 .with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
-                                    let btn = if Some(hash.as_str()) == asset_primary_hash.as_deref() {
+                                    let btn = if self.asset_list_selection.contains(&hash) {
+                                        let visuals = ui.visuals_mut();
+                                        visuals.selection.bg_fill = ASSET_MULTI_SELECTION_FILL;
+                                        // Let egui account for the border during layout instead of
+                                        // overriding the button stroke after its hover compensation.
+                                        let stroke = egui::Stroke::new(1.0, ASSET_MULTI_SELECTION_STROKE);
+                                        for widget in [
+                                            &mut visuals.widgets.inactive,
+                                            &mut visuals.widgets.hovered,
+                                            &mut visuals.widgets.active,
+                                            &mut visuals.widgets.open,
+                                        ] {
+                                            widget.bg_stroke = stroke;
+                                        }
+                                        for widget in [
+                                            &mut visuals.widgets.hovered,
+                                            &mut visuals.widgets.active,
+                                            &mut visuals.widgets.open,
+                                        ] {
+                                            widget.bg_stroke.color = ASSET_MULTI_SELECTION_HOVER_STROKE;
+                                        }
+                                        ui.add(
+                                            egui::Button::selectable(true, &display_name)
+                                                .sense(egui::Sense::click_and_drag()),
+                                        )
+                                    } else if Some(hash.as_str()) == asset_primary_hash.as_deref() {
                                         ui.add(
                                             egui::Button::selectable(true, &display_name)
                                                 .sense(egui::Sense::click_and_drag()),
@@ -2482,11 +2520,23 @@ impl eframe::App for ViewerApp {
                                                 .sense(egui::Sense::click_and_drag()),
                                         )
                                     };
-                                    btn.context_menu(|ui| {
+                                    let row_response = btn.clone();
+                                    if row_response.secondary_clicked() && !self.asset_list_selection.contains(&hash) {
+                                        self.asset_list_selection.activate(&hash);
+                                    }
+                                    row_response.context_menu(|ui| {
+                                        let bulk_delete = self.asset_list_selection.contains(&hash);
                                         ui.visuals_mut().override_text_color = Some(DANGER_TEXT);
                                         if ui.button("Delete").clicked() {
-                                            to_remove.insert(hash.clone());
+                                            if bulk_delete {
+                                                to_remove.extend(self.asset_list_selection.hashes().cloned());
+                                            } else {
+                                                to_remove.insert(hash.clone());
+                                            }
                                             ui.close();
+                                        }
+                                        if bulk_delete {
+                                            return;
                                         }
                                         if ui.button("Delete Others").clicked() {
                                             to_retain.insert(hash.clone());
@@ -2545,7 +2595,14 @@ impl eframe::App for ViewerApp {
                                     btn.dnd_set_drag_payload(hash.clone());
 
                                     if btn.clicked() {
-                                        if ui.input(|i| i.modifiers.command) {
+                                        let modifiers = ui.input(|i| i.modifiers);
+                                        if modifiers.shift {
+                                            let order: Vec<_> = self.state.assets.keys().map(String::as_str).collect();
+                                            self.asset_list_selection.select_range(
+                                                &order, &hash, asset_primary_hash.as_deref(), modifiers.command,
+                                            );
+                                        } else if modifiers.command {
+                                            self.asset_list_selection.activate(&hash);
                                             // Ctrl/Cmd + Click: set secondary
                                             if self
                                                 .state
@@ -2558,12 +2615,13 @@ impl eframe::App for ViewerApp {
                                                 to_set_secondary = Some(asset.clone());
                                             }
                                         } else {
+                                            self.asset_list_selection.activate(&hash);
                                             // Normal click: set primary
                                             to_set_primary = Some(asset.clone());
                                         }
                                     }
 
-                                    btn
+                                    row_response
                                 })
                                 .inner;
                             first_row_rect.get_or_insert(row.rect);
@@ -2682,12 +2740,11 @@ impl eframe::App for ViewerApp {
                             self.state.reorder_asset_by_hash(&hash, insertion_index);
                         }
 
-                        if let Some(asset) = &self.state.asset {
-                            if asset.asset_type() != AssetType::Comparison
-                                && !self.state.assets.contains_key(asset.hash())
-                            {
-                                self.state.clear_asset();
-                            }
+                        self.asset_list_selection.retain(|hash| self.state.assets.contains_key(hash));
+                        if self.state.asset_primary.as_ref().is_some_and(|asset| !self.state.assets.contains_key(asset.hash())) {
+                            self.state.clear_asset();
+                        } else if self.state.asset_secondary.as_ref().is_some_and(|asset| !self.state.assets.contains_key(asset.hash())) {
+                            self.state.set_secondary_asset(None);
                         }
                     });
                 });
