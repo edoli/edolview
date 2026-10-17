@@ -10,6 +10,26 @@ use crate::ui::gpu::mono_colormap_preview_pipeline;
 
 type PreviewResult = (String, Result<wgpu::RenderPipeline, String>);
 
+pub fn colormap_popup_contents(ui: &mut egui::Ui, add_colormaps: impl FnOnce(&mut egui::Ui)) -> bool {
+    // Only the colormap choices scroll; keep the folder action visible below them.
+    let footer_height = ui.spacing().interact_size.y + 3.0 * ui.spacing().item_spacing.y;
+    let list_height = ui.spacing().combo_height.min((ui.available_height() - footer_height).max(0.0));
+    egui::ScrollArea::vertical()
+        .id_salt("colormap_choices")
+        .max_height(list_height)
+        .auto_shrink([false, true])
+        .show(ui, add_colormaps);
+    ui.separator();
+    let clicked = ui
+        .selectable_label(false, "Custom 📁")
+        .on_hover_text("Open the colormap folder to add .glsl files. Restart the app to refresh the list.")
+        .clicked();
+    if clicked {
+        ui.close();
+    }
+    clicked
+}
+
 #[derive(Default)]
 pub struct MonoColormapPreviews {
     pipelines: HashMap<String, wgpu::RenderPipeline>,
@@ -70,52 +90,55 @@ impl MonoColormapPreviews {
         combo: egui::ComboBox<'_>,
         selected: &mut String,
         names: &[String],
+        open_custom: &mut bool,
     ) -> egui::InnerResponse<Option<()>> {
-        let response = combo.selected_text(selected.as_str()).show_ui(ui, |ui| {
-            let preview_size = vec2(52.0, 12.0);
-            let padding = ui.spacing().button_padding;
-            let font = egui::TextStyle::Button.resolve(ui.style());
-            let label_width = names
-                .iter()
-                .map(|name| {
-                    ui.painter()
-                        .layout_no_wrap(name.clone(), font.clone(), ui.visuals().text_color())
-                        .size()
-                        .x
-                })
-                .fold(0.0_f32, f32::max);
-            let row_width = ui.available_width().max(label_width + preview_size.x + padding.x * 2.0 + 12.0);
-            let row_height = ui.spacing().interact_size.y.max(preview_size.y + padding.y * 2.0);
-            for name in names {
-                let row = ui.add_sized(
-                    vec2(row_width, row_height),
-                    egui::Button::selectable(*selected == *name, "").left_text(name.as_str()),
-                );
-                let bar = egui::Rect::from_center_size(
-                    egui::pos2(row.rect.right() - padding.x - preview_size.x * 0.5, row.rect.center().y),
-                    preview_size,
-                );
-                if ui.is_rect_visible(bar) {
-                    if let Some(pipeline) = self.pipelines.get(name) {
-                        ui.painter().add(egui_wgpu::Callback::new_paint_callback(
-                            bar,
-                            ColormapPreviewCallback(pipeline.clone()),
-                        ));
-                    } else {
-                        ui.painter().rect_filled(bar, 0.0, ui.visuals().faint_bg_color);
-                    }
-                    ui.painter().rect_stroke(
-                        bar,
-                        0.0,
-                        ui.visuals().widgets.noninteractive.bg_stroke,
-                        egui::StrokeKind::Outside,
+        let response = combo.height(f32::INFINITY).selected_text(selected.as_str()).show_ui(ui, |ui| {
+            *open_custom |= colormap_popup_contents(ui, |ui| {
+                let preview_size = vec2(52.0, 12.0);
+                let padding = ui.spacing().button_padding;
+                let font = egui::TextStyle::Button.resolve(ui.style());
+                let label_width = names
+                    .iter()
+                    .map(|name| {
+                        ui.painter()
+                            .layout_no_wrap(name.clone(), font.clone(), ui.visuals().text_color())
+                            .size()
+                            .x
+                    })
+                    .fold(0.0_f32, f32::max);
+                let row_width = ui.available_width().max(label_width + preview_size.x + padding.x * 2.0 + 12.0);
+                let row_height = ui.spacing().interact_size.y.max(preview_size.y + padding.y * 2.0);
+                for name in names {
+                    let row = ui.add_sized(
+                        vec2(row_width, row_height),
+                        egui::Button::selectable(*selected == *name, "").left_text(name.as_str()),
                     );
+                    let bar = egui::Rect::from_center_size(
+                        egui::pos2(row.rect.right() - padding.x - preview_size.x * 0.5, row.rect.center().y),
+                        preview_size,
+                    );
+                    if ui.is_rect_visible(bar) {
+                        if let Some(pipeline) = self.pipelines.get(name) {
+                            ui.painter().add(egui_wgpu::Callback::new_paint_callback(
+                                bar,
+                                ColormapPreviewCallback(pipeline.clone()),
+                            ));
+                        } else {
+                            ui.painter().rect_filled(bar, 0.0, ui.visuals().faint_bg_color);
+                        }
+                        ui.painter().rect_stroke(
+                            bar,
+                            0.0,
+                            ui.visuals().widgets.noninteractive.bg_stroke,
+                            egui::StrokeKind::Outside,
+                        );
+                    }
+                    if row.clicked() {
+                        *selected = name.clone();
+                        ui.close();
+                    }
                 }
-                if row.clicked() {
-                    *selected = name.clone();
-                    ui.close();
-                }
-            }
+            });
         });
         response.response.hover_scroll(ui, names, selected, false);
         response

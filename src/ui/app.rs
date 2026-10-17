@@ -26,7 +26,8 @@ use crate::{
     },
     ui::{
         component::{
-            channel_toggle_ui, display_controls_ui, display_profile_slider, draw_histogram, draw_multi_line_plot,
+            channel_toggle_ui, colormap_popup_contents, display_controls_ui, display_profile_slider, draw_histogram,
+            draw_multi_line_plot,
             egui_ext::{ComboBoxExt, ResponseExt, Size, UiExt},
             range_slider_context_menu, range_slider_ui, show_bookmark_window, BookmarkJumpMode, CopyExport,
             ExportAction, MonoColormapPreviews, SaveExport, Toast, ToastUi, ToastsExt,
@@ -179,6 +180,7 @@ pub struct ViewerApp {
     was_focused_last_frame: bool,
     last_image_save_dir: Option<PathBuf>,
     pending_image_save_dialog: Option<PendingImageSaveDialog>,
+    colormap_folder_rx: Option<mpsc::Receiver<Result<(), String>>>,
 }
 
 impl Drop for ViewerApp {
@@ -355,6 +357,7 @@ impl ViewerApp {
             was_focused_last_frame: false,
             last_image_save_dir: None,
             pending_image_save_dialog: None,
+            colormap_folder_rx: None,
         }
     }
 
@@ -525,6 +528,46 @@ impl ViewerApp {
         }
 
         dialog
+    }
+
+    fn open_colormap_folder(&mut self, ctx: &egui::Context, is_mono: bool) {
+        if self.colormap_folder_rx.is_some() {
+            return;
+        }
+        let (tx, rx) = mpsc::channel();
+        self.colormap_folder_rx = Some(rx);
+        let ctx = ctx.clone();
+        thread::spawn(move || {
+            // Match the executable-relative directory used by AppState's colormap list.
+            let directory =
+                crate::util::path_ext::exe_dir_or_cwd()
+                    .join("colormap")
+                    .join(if is_mono { "mono" } else { "rgb" });
+            let result = fs::create_dir_all(&directory)
+                .map_err(|error| format!("Failed to create colormap folder '{}': {error}", directory.display()))
+                .and_then(|()| {
+                    opener::open(&directory)
+                        .map_err(|error| format!("Failed to open colormap folder '{}': {error}", directory.display()))
+                });
+            let _ = tx.send(result);
+            ctx.request_repaint();
+        });
+    }
+
+    fn poll_colormap_folder_open(&mut self) {
+        let Some(rx) = &self.colormap_folder_rx else {
+            return;
+        };
+        let result = match rx.try_recv() {
+            Ok(result) => result,
+            Err(mpsc::TryRecvError::Empty) => return,
+            Err(mpsc::TryRecvError::Disconnected) => Err("Colormap folder worker disconnected".to_string()),
+        };
+        self.colormap_folder_rx = None;
+        if let Err(error) = result {
+            eprintln!("{error}");
+            self.toasts.add_error(error);
+        }
     }
 
     fn request_viewer_image_save(&mut self, ctx: &egui::Context) {
@@ -1503,6 +1546,7 @@ impl ViewerApp {
         let _timer = ScopedTimer::new("ui.app.logic");
 
         self.poll_pending_image_save_dialog(ctx);
+        self.poll_colormap_folder_open();
 
         super::style::apply(ctx);
 
@@ -1906,6 +1950,7 @@ impl eframe::App for ViewerApp {
                     // ComboBox widths are minimums. Bound each control to its own column
                     // so its natural text width cannot grow the panel on every frame.
                     let sizes = [Size::exact(68.0), Size::remainder(1.0), Size::exact(if is_mono { 0.0 } else { 54.0 })];
+                    let mut open_custom_colormap = false;
                     ui.columns_sized(sizes, |[channel_ui, colormap_ui, alpha_ui]| {
                         let channel_values: Vec<i32> = if channels > 1 {
                             (-1..channels).collect()
@@ -1943,13 +1988,26 @@ impl eframe::App for ViewerApp {
                                 colormap_combo,
                                 &mut self.state.colormap_mono,
                                 &self.state.colormap_mono_list,
+                                &mut open_custom_colormap,
                             )
                         } else {
-                            colormap_combo.combo(
+                            let response = colormap_combo
+                                .height(f32::INFINITY)
+                                .selected_text(self.state.colormap_rgb.as_str())
+                                .show_ui(colormap_ui, |ui| {
+                                    open_custom_colormap |= colormap_popup_contents(ui, |ui| {
+                                    for name in &self.state.colormap_rgb_list {
+                                        ui.selectable_value(&mut self.state.colormap_rgb, name.clone(), name);
+                                    }
+                                    });
+                                });
+                            response.response.hover_scroll(
                                 colormap_ui,
-                                &mut self.state.colormap_rgb,
                                 &self.state.colormap_rgb_list,
-                            )
+                                &mut self.state.colormap_rgb,
+                                false,
+                            );
+                            response
                         }
                         .response
                         .on_hover_text("Colormap");
@@ -1958,6 +2016,9 @@ impl eframe::App for ViewerApp {
                             alpha_ui.checkbox(&mut self.state.shader_params.use_alpha, "Alpha");
                         }
                     });
+                    if open_custom_colormap {
+                        self.open_colormap_folder(&ctx, is_mono);
+                    }
 
                     ui.separator();
                     ui.checkbox(&mut self.state.shader_params.use_per_channel, "Per-channel controls");
