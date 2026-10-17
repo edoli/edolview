@@ -20,6 +20,12 @@ pub const STATISTICS_MAX_TOGGLE_FILL: Color32 = Color32::from_rgb(214, 48, 49);
 pub const SELECTION_HANDLE_CLIPPED_STROKE: Color32 = Color32::from_rgb(120, 72, 0);
 pub const TEXT_EDIT_PARSE_FAILED_FLASH: Color32 = Color32::from_rgba_premultiplied(255, 64, 64, 64);
 
+pub const RGB_CHANNEL_LABEL_COLORS: [Color32; 3] = [
+    Color32::from_rgb(255, 100, 100),
+    Color32::from_rgb(100, 220, 120),
+    Color32::from_rgb(100, 160, 255),
+];
+
 pub const HISTOGRAM_LABEL_COLORS: [Color32; 4] = [Color32::RED, Color32::GREEN, Color32::BLUE, Color32::YELLOW];
 
 pub const MULTI_LINE_PLOT_COLORS: [Color32; 8] = [

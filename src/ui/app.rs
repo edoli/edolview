@@ -21,8 +21,8 @@ use crate::{
     },
     res::{
         icons::Icons, KeyboardShortcutExt, ASSET_SECONDARY_SELECTION_FILL, CONTROL_LISTENER_UNAVAILABLE_TEXT,
-        DANGER_TEXT, NOTICE_ERROR_TEXT, NOTICE_WARNING_TEXT, STATISTICS_MAX_TOGGLE_FILL, STATISTICS_MIN_TOGGLE_FILL,
-        UPDATE_ACCENT_FILL, UPDATE_ACCENT_TEXT,
+        DANGER_TEXT, NOTICE_ERROR_TEXT, NOTICE_WARNING_TEXT, RGB_CHANNEL_LABEL_COLORS, STATISTICS_MAX_TOGGLE_FILL,
+        STATISTICS_MIN_TOGGLE_FILL, UPDATE_ACCENT_FILL, UPDATE_ACCENT_TEXT,
     },
     ui::{
         component::{
@@ -2038,13 +2038,17 @@ impl eframe::App for ViewerApp {
                                 for i in 0..channels {
                                     ui.horizontal(|ui| {
                                         let label = match (channels, i) {
-                                            (1, 0) => "C".to_string(),
-                                            (_, 0) => "R".to_string(),
-                                            (_, 1) => "G".to_string(),
-                                            (_, 2) => "B".to_string(),
-                                            _ => "A".to_string(),
+                                            (1, 0) => "C",
+                                            (_, 0) => "R",
+                                            (_, 1) => "G",
+                                            (_, 2) => "B",
+                                            _ => "A",
                                         };
-                                        ui.label(label.to_string());
+                                        let mut label = egui::RichText::new(label);
+                                        if channels > 1 && i < 3 {
+                                            label = label.color(RGB_CHANNEL_LABEL_COLORS[i as usize]);
+                                        }
+                                        ui.label(label);
 
                                         display_controls_ui(
                                             ui,
