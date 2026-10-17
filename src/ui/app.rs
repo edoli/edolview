@@ -2072,9 +2072,10 @@ impl eframe::App for ViewerApp {
                             let mut style: egui::Style = ui.style().as_ref().clone();
                             egui::containers::menu::menu_style(&mut style);
                             style.spacing.item_spacing.x = 4.0;
-                            ui.set_style(std::sync::Arc::new(style));
+                            let menu_style = std::sync::Arc::new(style);
 
-                            ui.columns_sized([Size::exact(68.0), Size::remainder(1.0)], |[axis_ui, range_ui]| {
+                            ui.columns_sized([Size::exact(68.0), Size::remainder(1.0)], |[axis_ui, channel_ui]| {
+                                axis_ui.set_style(menu_style.clone());
                                 axis_ui.horizontal(|ui| {
                                     ui.radio_icon(
                                         &mut self.plot_dim,
@@ -2096,30 +2097,32 @@ impl eframe::App for ViewerApp {
                                     );
                                 });
 
-                                range_ui.spacing_mut().slider_width = range_ui.available_width();
-                                let [low, high] = &mut self.plot_percentiles;
-                                let response = range_slider_ui(range_ui, low, high, 0.0..=100.0, |slider| {
-                                    slider.show_value(false).step_by(1.0).smart_aim(false)
-                                });
-                                if response.changed() {
-                                    ctx.request_repaint();
+                                if channels > 1 {
+                                    channel_toggle_ui(channel_ui, &mut self.show_plot_channels, channels);
                                 }
-                                let response = response.on_hover_text(format!(
-                                    "Plot Y-axis percentiles: {:.0}%–{:.0}%",
-                                    self.plot_percentiles[0], self.plot_percentiles[1],
-                                ));
-                                range_slider_context_menu(&response, |ui| {
-                                    if ui.button("Reset (0–100%)").clicked() {
-                                        self.plot_percentiles = [0.0, 100.0];
-                                        ctx.request_repaint();
-                                        ui.close();
-                                    }
-                                });
+                            });
+
+                            ui.set_style(menu_style);
+                            ui.spacing_mut().slider_width = ui.available_width();
+                            let [low, high] = &mut self.plot_percentiles;
+                            let response = range_slider_ui(ui, low, high, 0.0..=100.0, 1.0, |slider| {
+                                slider.show_value(false).smart_aim(false)
+                            });
+                            if response.changed() {
+                                ctx.request_repaint();
+                            }
+                            let response = response.on_hover_text(format!(
+                                "Plot Y-axis percentiles: {:.0}%–{:.0}%",
+                                self.plot_percentiles[0], self.plot_percentiles[1],
+                            ));
+                            range_slider_context_menu(&response, |ui| {
+                                if ui.button("Reset (0–100%)").clicked() {
+                                    self.plot_percentiles = [0.0, 100.0];
+                                    ctx.request_repaint();
+                                    ui.close();
+                                }
                             });
                         });
-                        if channels > 1 {
-                            channel_toggle_ui(ui, &mut self.show_plot_channels, channels);
-                        }
                     } else {
                         ui.allocate_ui_with_layout(
                             desired_size_plot,
