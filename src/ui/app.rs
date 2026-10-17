@@ -1676,7 +1676,14 @@ impl eframe::App for ViewerApp {
                 });
 
                 ui.separator();
-                if ui.button("Reset").on_hover_text("Reset zoom and pan to original").clicked() {
+                if ui
+                    .button("Reset")
+                    .on_hover_text(format!(
+                        "Reset zoom and pan to original ({})",
+                        crate::res::RESET_VIEW.format_sys()
+                    ))
+                    .clicked()
+                {
                     self.viewer.reset_view();
                 }
 
