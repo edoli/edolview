@@ -133,6 +133,7 @@ pub struct ViewerApp {
     last_marquee_asset_hash: Option<String>,
     rois: Vec<Roi>,
     active_roi_index: Option<usize>,
+    scroll_to_new_roi: bool,
     roi_jump_mode: RoiJumpMode,
 
     show_plot_channels: [bool; 4],
@@ -311,6 +312,7 @@ impl ViewerApp {
             last_marquee_asset_hash: None,
             rois: Vec::new(),
             active_roi_index: None,
+            scroll_to_new_roi: false,
             roi_jump_mode: RoiJumpMode::Center,
 
             show_plot_channels: [true, true, true, false],
@@ -691,18 +693,14 @@ impl ViewerApp {
 
         let roi = Roi { rect };
         if let Some(index) = self.rois.iter().position(|entry| entry == &roi) {
-            self.rois.remove(index);
-            self.active_roi_index = match self.active_roi_index {
-                Some(active) if active == index => None,
-                Some(active) if active > index => Some(active - 1),
-                active => active,
-            };
+            self.remove_roi(index);
             self.toasts.add_success("Removed ROI".to_string());
             return;
         }
 
         self.rois.push(roi);
         self.active_roi_index = Some(self.rois.len() - 1);
+        self.scroll_to_new_roi = true;
         self.toasts.add_success(format!("Added ROI {}", self.rois.len()));
     }
 
@@ -711,6 +709,9 @@ impl ViewerApp {
             return;
         }
 
+        if index + 1 == self.rois.len() {
+            self.scroll_to_new_roi = false;
+        }
         self.rois.remove(index);
         self.active_roi_index = match self.active_roi_index {
             Some(active) if active == index => None,
@@ -749,6 +750,7 @@ impl ViewerApp {
     fn clear_rois(&mut self) {
         self.rois.clear();
         self.active_roi_index = None;
+        self.scroll_to_new_roi = false;
     }
 
     fn navigate_roi(&mut self, direction: i32, ctx: &egui::Context) {
@@ -1042,6 +1044,7 @@ impl ViewerApp {
             &mut self.show_rois_modal,
             &roi_rects,
             self.active_roi_index,
+            &mut self.scroll_to_new_roi,
             &mut self.roi_jump_mode,
             &crate::res::ROI_ADD.format_sys(),
         );

@@ -40,6 +40,7 @@ pub fn show_roi_window(
     open: &mut bool,
     rois: &[Recti],
     active_roi_index: Option<usize>,
+    scroll_to_new_roi: &mut bool,
     jump_mode: &mut RoiJumpMode,
     add_shortcut_label: &str,
 ) -> RoiWindowActions {
@@ -54,6 +55,7 @@ pub fn show_roi_window(
         .collapsible(false)
         .resizable(true)
         .default_width(320.0)
+        .default_height(220.0)
         .open(open)
         .show(ctx, |ui| {
             ui.horizontal(|ui| {
@@ -84,7 +86,7 @@ pub fn show_roi_window(
                 return;
             }
 
-            egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
+            egui::ScrollArea::vertical().auto_shrink([false, true]).show(ui, |ui| {
                 for (index, rect) in rois.iter().enumerate() {
                     let selected = active_roi_index == Some(index);
 
@@ -138,6 +140,10 @@ pub fn show_roi_window(
                             },
                         );
                     });
+                }
+                if *scroll_to_new_roi && ui.is_visible() {
+                    ui.scroll_to_cursor_animation(Some(egui::Align::BOTTOM), egui::style::ScrollAnimation::none());
+                    *scroll_to_new_roi = false;
                 }
             });
         });
