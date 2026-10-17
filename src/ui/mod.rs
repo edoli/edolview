@@ -4,6 +4,7 @@ pub mod gpu;
 pub mod icon;
 
 mod app;
+mod field_input;
 mod image_viewer;
 mod style;
 

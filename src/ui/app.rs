@@ -1595,6 +1595,10 @@ impl ViewerApp {
 }
 
 impl eframe::App for ViewerApp {
+    fn raw_input_hook(&mut self, _ctx: &egui::Context, raw_input: &mut egui::RawInput) {
+        super::field_input::filter_field_input(raw_input);
+    }
+
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.run_logic(ctx);
     }

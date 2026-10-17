@@ -128,7 +128,10 @@ impl<'a> Parser<'a> {
     fn consume_keyword(&mut self, keyword: &str) -> bool {
         self.skip_whitespace();
         let remaining = &self.input[self.offset..];
-        if remaining.len() >= keyword.len() && remaining[..keyword.len()].eq_ignore_ascii_case(keyword) {
+        if remaining
+            .get(..keyword.len())
+            .is_some_and(|prefix| prefix.eq_ignore_ascii_case(keyword))
+        {
             self.offset += keyword.len();
             true
         } else {
@@ -182,5 +185,14 @@ mod tests {
     fn only_accepts_integral_values_for_i32() {
         assert_eq!(parse_i32_expression("1920 / 2"), Some(960));
         assert_eq!(parse_i32_expression("pi"), None);
+    }
+
+    #[test]
+    fn rejects_unsupported_unicode_without_panicking() {
+        for input in ["한", "한글", "ㄱ", "🙂", "é", "p🙂", "1 + 한글", "(🙂)", "pi한", "e🙂"] {
+            assert_eq!(parse_number_expression(input), None, "{input}");
+            assert_eq!(parse_i32_expression(input), None, "{input}");
+        }
+        assert_eq!(parse_number_expression("π"), Some(std::f64::consts::PI));
     }
 }
