@@ -12,8 +12,11 @@ use crate::res::{
     selection_handle_clipped_fill, KeyboardShortcutExt, PIXEL_VALUE_CHANNEL_COLORS, SELECTION_HANDLE_CLIPPED_STROKE,
 };
 use crate::ui::component::egui_ext::UiExt;
-use crate::ui::component::{ContextValueCopy, ImageContextInfo};
-use crate::ui::gpu::{ExportRequest, GpuRenderer, ImagePaintCallback, ImageSlot, MinMaxOverlay, PaneDraw};
+use crate::ui::component::{ContextValueCopy, ImageContextInfo, ViewportMinimap};
+use crate::ui::gpu::{
+    ExportRequest, GpuRenderer, ImagePaintCallback, ImageSlot, MinMaxOverlay, PaneDraw, MINIMAP_PRIMARY_UNIFORM_SLOT,
+    MINIMAP_SECONDARY_UNIFORM_SLOT,
+};
 use crate::util::func_ext::FuncExt;
 use crate::util::math_ext::vec2i;
 
@@ -1067,6 +1070,58 @@ impl ImageViewer {
                         }
                     }
                 }
+                if app_state.is_show_minimap {
+                    let minimaps = [
+                        (
+                            active_primary_rect,
+                            Some(render_primary_image),
+                            ImageSlot::Primary,
+                            MINIMAP_PRIMARY_UNIFORM_SLOT,
+                            &min_max_primary,
+                        ),
+                        (
+                            right_pane_rect,
+                            secondary_image.filter(|_| split_view),
+                            ImageSlot::Secondary,
+                            MINIMAP_SECONDARY_UNIFORM_SLOT,
+                            &min_max_secondary,
+                        ),
+                    ]
+                    .map(|(pane, image, slot, uniform_slot, min_max)| {
+                        let image = image?;
+                        let spec = image.spec();
+                        let visible = egui::Rect::from_min_max(
+                            self.pane_view_to_image_coords(pane.min, pane, pixel_per_point),
+                            self.pane_view_to_image_coords(pane.max, pane, pixel_per_point),
+                        );
+                        let minimap = ViewportMinimap::new(pane, vec2(spec.width as f32, spec.height as f32), visible)?;
+                        Some((minimap, slot, uniform_slot, min_max))
+                    });
+                    let mut egui_renderer = render_state.renderer.write();
+                    if let Some(renderer) = egui_renderer.callback_resources.get_mut::<GpuRenderer>() {
+                        for (minimap, _, uniform_slot, min_max) in minimaps.iter().flatten() {
+                            renderer.write_params(
+                                &render_state.queue,
+                                *uniform_slot,
+                                minimap.image_rect.size() * pixel_per_point,
+                                minimap.image_size,
+                                channel_index,
+                                min_max,
+                                minimap.scale * pixel_per_point,
+                                egui::Vec2::ZERO,
+                                &shader_params,
+                                &disabled_min_max_overlay,
+                                background_colors[0],
+                                background_colors[1],
+                            );
+                        }
+                        drop(egui_renderer);
+                        // Paint after image overlays, while staying below popup menus.
+                        for (minimap, slot, uniform_slot, _) in minimaps.iter().flatten() {
+                            minimap.paint(ui, *slot, *uniform_slot);
+                        }
+                    }
+                }
             }
         } else {
             ui.colored_label(egui::Color32::RED, "No texture uploaded");
@@ -1615,4 +1670,24 @@ fn rect_with_handle_at(rect: Recti, handle: ResizeHandle, handle_pos: egui::Pos2
         }
     }
     adjusted.validate()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn minimap_view_bounds_follow_zoom_pan_dpi_and_split_panes() {
+        let mut viewer = ImageViewer::new();
+        viewer.zoom_in(4.0, None);
+        viewer.pan = vec2(-1000.0, -500.0);
+        let viewport = egui::Rect::from_min_size(egui::pos2(40.0, 80.0), vec2(1000.0, 500.0));
+        let (left, right) = viewer.split_pane_rects(viewport);
+        for (pane, expected_width) in [(viewport, 1000.0), (left, 500.0), (right, 500.0)] {
+            let min = viewer.pane_view_to_image_coords(pane.min, pane, 2.0);
+            let max = viewer.pane_view_to_image_coords(pane.max, pane, 2.0);
+            assert!((min - egui::pos2(500.0, 250.0)).length() < 0.001);
+            assert!(((max - min) - vec2(expected_width, 500.0)).length() < 0.001);
+        }
+    }
 }

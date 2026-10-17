@@ -14,7 +14,10 @@ use crate::{
 };
 
 const IMAGE_SHADER_CODE: &str = include_str!("gpu_image.frag");
-const PARAM_SLOT_COUNT: u64 = 3;
+// Main panes use 0/1, exports use 2, and minimaps have separate transforms.
+pub const MINIMAP_PRIMARY_UNIFORM_SLOT: u32 = 3;
+pub const MINIMAP_SECONDARY_UNIFORM_SLOT: u32 = 4;
+const PARAM_SLOT_COUNT: u64 = 5;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ScaleMode {
@@ -975,6 +978,187 @@ struct BackgroundOut { @builtin(position) position: vec4<f32>, @location(0) uv: 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn minimaps_render_full_image_without_changing_main_view_or_export() {
+        struct TestImage(Arc<GpuImageTexture>);
+        impl Image for TestImage {
+            fn id(&self) -> u64 {
+                1
+            }
+            fn spec(&self) -> crate::model::ImageSpec {
+                self.0.spec.clone()
+            }
+            fn data(&self) -> Option<&[f32]> {
+                None
+            }
+            fn gpu_texture(&self) -> Result<Arc<GpuImageTexture>> {
+                Ok(self.0.clone())
+            }
+        }
+
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
+        let adapter = pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default())).unwrap();
+        let (device, queue) = pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default())).unwrap();
+        let texture = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("minimap source quadrants"),
+            size: wgpu::Extent3d {
+                width: 4,
+                height: 4,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba32Float,
+            usage: wgpu::TextureUsages::TEXTURE_BINDING | wgpu::TextureUsages::COPY_DST,
+            view_formats: &[],
+        });
+        let quadrants = [
+            [1.0_f32, 0.0, 0.0, 1.0],
+            [0.0, 1.0, 0.0, 1.0],
+            [0.0, 0.0, 1.0, 1.0],
+            [1.0; 4],
+        ];
+        let pixels: Vec<_> = (0..4)
+            .flat_map(|y| (0..4).flat_map(move |x| quadrants[(y / 2) * 2 + x / 2]))
+            .collect();
+        queue.write_texture(
+            texture.as_image_copy(),
+            bytemuck::cast_slice(&pixels),
+            wgpu::TexelCopyBufferLayout {
+                offset: 0,
+                bytes_per_row: Some(64),
+                rows_per_image: Some(4),
+            },
+            texture.size(),
+        );
+        let image = TestImage(Arc::new(GpuImageTexture {
+            view: texture.create_view(&Default::default()),
+            texture,
+            spec: crate::model::ImageSpec::new(4, 4, 4, crate::model::PixelType::F32),
+        }));
+        let mut renderer = GpuRenderer::new(&device, wgpu::TextureFormat::Rgba8Unorm, false).unwrap();
+        renderer.sync_image(&device, &queue, ImageSlot::Primary, Some(&image)).unwrap();
+        for (slot, size, scale) in [
+            (0, 64.0, 32.0),
+            (2, 64.0, 16.0),
+            (MINIMAP_PRIMARY_UNIFORM_SLOT, 16.0, 4.0),
+            (MINIMAP_SECONDARY_UNIFORM_SLOT, 8.0, 2.0),
+        ] {
+            renderer.write_params(
+                &queue,
+                slot,
+                Vec2::splat(size),
+                Vec2::splat(4.0),
+                -1,
+                &crate::model::empty_minmax(),
+                scale,
+                Vec2::ZERO,
+                &ShaderParams::default(),
+                &MinMaxOverlay::default(),
+                Color32::BLACK,
+                Color32::BLACK,
+            );
+        }
+        let target = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("minimap and main view test"),
+            size: wgpu::Extent3d {
+                width: 64,
+                height: 64,
+                depth_or_array_layers: 1,
+            },
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+            view_formats: &[],
+        });
+        let view = target.create_view(&Default::default());
+        let readback = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("minimap test readback"),
+            size: 64 * 64 * 4,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let mut encoder = device.create_command_encoder(&Default::default());
+        let export = renderer
+            .encode_export(
+                &device,
+                &mut encoder,
+                &ExportRequest {
+                    width: 64,
+                    height: 64,
+                    slot: ImageSlot::Primary,
+                    completion: Arc::new(|_| {}),
+                },
+            )
+            .unwrap();
+        {
+            let mut pass = encoder
+                .begin_render_pass(&wgpu::RenderPassDescriptor {
+                    color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                        view: &view,
+                        resolve_target: None,
+                        depth_slice: None,
+                        ops: wgpu::Operations {
+                            load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
+                            store: wgpu::StoreOp::Store,
+                        },
+                    })],
+                    ..Default::default()
+                })
+                .forget_lifetime();
+            let panes = [
+                (egui::pos2(0.0, 0.0), 64.0, 0),
+                (egui::pos2(48.0, 48.0), 16.0, MINIMAP_PRIMARY_UNIFORM_SLOT),
+                (egui::pos2(32.0, 48.0), 8.0, MINIMAP_SECONDARY_UNIFORM_SLOT),
+            ]
+            .map(|(pos, size, uniform_slot)| PaneDraw {
+                viewport_px: egui::Rect::from_min_size(pos, Vec2::splat(size)),
+                slot: ImageSlot::Primary,
+                uniform_slot,
+            });
+            renderer.paint(&mut pass, &panes);
+        }
+        encoder.copy_texture_to_buffer(
+            target.as_image_copy(),
+            wgpu::TexelCopyBufferInfo {
+                buffer: &readback,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(256),
+                    rows_per_image: Some(64),
+                },
+            },
+            target.size(),
+        );
+        queue.submit([encoder.finish()]);
+        let read = |buffer: &wgpu::Buffer| {
+            let slice = buffer.slice(..);
+            let (tx, rx) = std::sync::mpsc::channel();
+            slice.map_async(wgpu::MapMode::Read, move |result| tx.send(result).unwrap());
+            device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
+            rx.recv().unwrap().unwrap();
+            let bytes = slice.get_mapped_range().unwrap().to_vec();
+            buffer.unmap();
+            bytes
+        };
+        let display = read(&readback);
+        let export = read(&export.buffer);
+        let pixel = |bytes: &[u8], x: usize, y: usize| bytes[(y * 64 + x) * 4..][..4].to_vec();
+        assert_eq!(pixel(&display, 60, 30), [255, 0, 0, 255], "main view stays zoomed");
+        for (points, bytes) in [
+            ([(50, 50), (60, 50), (50, 60), (60, 60)], &display),
+            ([(33, 49), (38, 49), (33, 54), (38, 54)], &display),
+            ([(8, 8), (56, 8), (8, 56), (56, 56)], &export),
+        ] {
+            for ((x, y), color) in points.into_iter().zip(quadrants) {
+                assert_eq!(pixel(bytes, x, y), color.map(|v| (v * 255.0) as u8));
+            }
+        }
+    }
 
     #[test]
     fn mono_colormap_previews_render_reference_bars() {

@@ -258,6 +258,7 @@ impl ViewerApp {
         state.background_style = persisted_ui_state.background_style;
         state.is_show_pixel_value = persisted_ui_state.is_show_pixel_value;
         state.is_show_crosshair = persisted_ui_state.is_show_crosshair;
+        state.is_show_minimap = persisted_ui_state.is_show_minimap;
         state.is_show_sidebar = persisted_ui_state.is_show_sidebar;
         state.is_show_statusbar = persisted_ui_state.is_show_statusbar;
         state.copy_use_original_size = persisted_ui_state.copy_use_original_size;
@@ -653,6 +654,7 @@ impl ViewerApp {
         ui_state.background_style = self.state.background_style;
         ui_state.is_show_pixel_value = self.state.is_show_pixel_value;
         ui_state.is_show_crosshair = self.state.is_show_crosshair;
+        ui_state.is_show_minimap = self.state.is_show_minimap;
         ui_state.is_show_sidebar = self.state.is_show_sidebar;
         ui_state.is_show_statusbar = self.state.is_show_statusbar;
         ui_state.copy_use_original_size = self.state.copy_use_original_size;
@@ -1714,6 +1716,11 @@ impl eframe::App for ViewerApp {
                     &mut self.state.is_show_crosshair,
                     self.icons.get_show_crosshair(&ctx),
                     "Show Crosshair",
+                );
+                ui.toggle_icon(
+                    &mut self.state.is_show_minimap,
+                    self.icons.get_show_minimap(&ctx),
+                    "Show Minimap (current visible region)",
                 );
                 let background_button = ui
                     .add(egui::Button::image(self.icons.get_background(

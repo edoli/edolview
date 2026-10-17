@@ -13,6 +13,7 @@ const BACKGROUND_ICON_INSET: usize = 3;
 const BACKGROUND_ICON_CELL_SIZE: usize = 6;
 const SHOW_PIXEL_VALUE: &[u8] = include_bytes!("icons/show_pixel_value.svg");
 const SHOW_CROSSHAIR: &[u8] = include_bytes!("icons/show_crosshair.svg");
+const SHOW_MINIMAP: &[u8] = include_bytes!("icons/show_minimap.svg");
 
 const SCALE_LINEAR: &[u8] = include_bytes!("icons/scale_linear.svg");
 const SCALE_INVERSE: &[u8] = include_bytes!("icons/scale_inverse.svg");
@@ -35,6 +36,7 @@ pub struct Icons {
     background: Mutex<HashMap<[egui::Color32; 2], egui::TextureHandle>>,
     show_pixel_value: OnceLock<egui::TextureHandle>,
     show_crosshair: OnceLock<egui::TextureHandle>,
+    show_minimap: OnceLock<egui::TextureHandle>,
 
     scale_linear: OnceLock<egui::TextureHandle>,
     scale_inverse: OnceLock<egui::TextureHandle>,
@@ -61,6 +63,7 @@ impl Icons {
             background: Mutex::new(HashMap::new()),
             show_pixel_value: OnceLock::new(),
             show_crosshair: OnceLock::new(),
+            show_minimap: OnceLock::new(),
 
             scale_linear: OnceLock::new(),
             scale_inverse: OnceLock::new(),
@@ -129,6 +132,13 @@ impl Icons {
     pub fn get_show_crosshair<'c>(&self, ctx: &egui::Context) -> egui::Image<'c> {
         self.show_crosshair
             .get_or_init(|| icon::load_svg_icon_texture(ctx, "show_crosshair", SHOW_CROSSHAIR))
+            .to_icon()
+    }
+
+    #[inline]
+    pub fn get_show_minimap<'c>(&self, ctx: &egui::Context) -> egui::Image<'c> {
+        self.show_minimap
+            .get_or_init(|| icon::load_svg_icon_texture(ctx, "show_minimap", SHOW_MINIMAP))
             .to_icon()
     }
 

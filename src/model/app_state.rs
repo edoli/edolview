@@ -39,6 +39,7 @@ pub struct AppState {
     pub background_style: BackgroundStyle,
     pub is_show_pixel_value: bool,
     pub is_show_crosshair: bool,
+    pub is_show_minimap: bool,
     pub is_show_sidebar: bool,
     pub is_show_statusbar: bool,
 
@@ -98,6 +99,7 @@ impl AppState {
             background_style: BackgroundStyle::default(),
             is_show_pixel_value: true,
             is_show_crosshair: false,
+            is_show_minimap: false,
             is_show_sidebar: true,
             is_show_statusbar: true,
             copy_use_original_size: true,

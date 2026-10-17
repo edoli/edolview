@@ -18,6 +18,9 @@ pub const STATISTICS_MIN_TOGGLE_FILL: Color32 = Color32::from_rgb(0, 122, 255);
 pub const STATISTICS_MAX_TOGGLE_FILL: Color32 = Color32::from_rgb(214, 48, 49);
 
 pub const SELECTION_HANDLE_CLIPPED_STROKE: Color32 = Color32::from_rgb(120, 72, 0);
+pub const MINIMAP_VIEWPORT_STROKE: Color32 = Color32::from_rgb(255, 210, 64);
+pub const MINIMAP_VIEWPORT_OUTLINE: Color32 = Color32::BLACK;
+pub const MINIMAP_OUTSIDE_VIEW_FILL: Color32 = Color32::from_black_alpha(100);
 pub const TEXT_EDIT_PARSE_FAILED_FLASH: Color32 = Color32::from_rgba_premultiplied(255, 64, 64, 64);
 
 pub const RGB_CHANNEL_LABEL_COLORS: [Color32; 3] = [
