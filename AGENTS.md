@@ -6,6 +6,13 @@
 - After Rust code changes, run `cargo build`.
 - If `cargo build` is blocked because a running `edolview` process is holding the executable open (for example from a VS Code debug session), terminate the `edolview` process and retry the build.
 
+## UI verification
+
+- For UI changes, use temporary automation scripts with tools supported by the development OS, not Computer Use tools unless explicitly requested.
+- Run a separate debug app instance and preserve the user's existing instances and settings. If loading fixtures by socket, use the test instance's address from stderr.
+- Reproduce relevant hover, drag, scroll, and boundary states; account for DPI and window focus. Capture using an OS-appropriate tool (for example `PrintWindow` on Windows) and directly inspect the screenshots before claiming the UI is correct. If automation or capture is unavailable, report the limitation.
+- Keep temporary scripts and captures under `target/`. Remove scripts and close the test instance after verification; screenshots may remain for review. Report what was checked and any limitations.
+
 ## Generated assets and packaging
 
 - If you touch `icon.svg`, `icons\`, `build.rs`, or startup icon loading, run `cargo run -p xtask -- icons` before validating.
