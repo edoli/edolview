@@ -626,10 +626,14 @@ fn upload_image(
 
 fn compile_fragment_module(device: &wgpu::Device, colormap: &str, is_mono: bool) -> Result<wgpu::ShaderModule> {
     let source = build_fragment_source(colormap, is_mono)?;
+    compile_fragment_source(device, &source)
+}
+
+fn compile_fragment_source(device: &wgpu::Device, source: &str) -> Result<wgpu::ShaderModule> {
     let mut frontend = naga::front::glsl::Frontend::default();
     let mut module = frontend
-        .parse(&naga::front::glsl::Options::from(naga::ShaderStage::Fragment), &source)
-        .map_err(|errors| eyre!(errors.emit_to_string(&source)))?;
+        .parse(&naga::front::glsl::Options::from(naga::ShaderStage::Fragment), source)
+        .map_err(|errors| eyre!(errors.emit_to_string(source)))?;
     // GLSL leaves the default fragment sampling point unspecified, while WGSL
     // makes the matching vertex output explicitly center-sampled.
     for entry_point in &mut module.entry_points {
@@ -639,9 +643,70 @@ fn compile_fragment_module(device: &wgpu::Device, colormap: &str, is_mono: bool)
             }
         }
     }
+    naga::valid::Validator::new(naga::valid::ValidationFlags::all(), naga::valid::Capabilities::all())
+        .validate(&module)
+        .map_err(|error| eyre!(error.emit_to_string(source)))?;
     Ok(device.create_shader_module(wgpu::ShaderModuleDescriptor {
         label: Some("edolview image fragment shader"),
         source: wgpu::ShaderSource::Naga(Cow::Owned(module)),
+    }))
+}
+
+pub(super) fn mono_colormap_preview_pipeline(
+    device: &wgpu::Device,
+    format: wgpu::TextureFormat,
+    name: &str,
+) -> Result<wgpu::RenderPipeline> {
+    // Use the same GLSL and color helpers as the image, with a fixed 0..1 input.
+    // Exposure, gamma and normalization settings must not change the reference bar.
+    let source = build_fragment_source(name, true)?;
+    let (helpers, _) = source
+        .split_once("void main()")
+        .ok_or_else(|| eyre!("Missing image shader entry point"))?;
+    let source = format!("{helpers}\nvoid main() {{ frag_color = vec4(colormap(v_tex_coord.x), 1.0); }}");
+    let fragment = compile_fragment_source(device, &source)?;
+    let vertex = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+        label: Some("edolview colormap preview vertex shader"),
+        source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(
+            r#"
+struct VertexOut {
+    @builtin(position) position: vec4<f32>,
+    @location(0) uv: vec2<f32>,
+};
+@vertex fn main(@builtin(vertex_index) index: u32) -> VertexOut {
+    let positions = array<vec2<f32>, 3>(vec2(-1.0, -1.0), vec2(3.0, -1.0), vec2(-1.0, 3.0));
+    var out: VertexOut;
+    out.position = vec4(positions[index], 0.0, 1.0);
+    out.uv = (positions[index] + vec2(1.0)) * 0.5;
+    return out;
+}
+"#,
+        )),
+    });
+    Ok(device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
+        label: Some("edolview mono colormap preview pipeline"),
+        layout: None,
+        vertex: wgpu::VertexState {
+            module: &vertex,
+            entry_point: Some("main"),
+            buffers: &[],
+            compilation_options: Default::default(),
+        },
+        fragment: Some(wgpu::FragmentState {
+            module: &fragment,
+            entry_point: Some("main"),
+            targets: &[Some(wgpu::ColorTargetState {
+                format,
+                blend: None,
+                write_mask: wgpu::ColorWrites::ALL,
+            })],
+            compilation_options: Default::default(),
+        }),
+        primitive: Default::default(),
+        depth_stencil: None,
+        multisample: Default::default(),
+        multiview_mask: None,
+        cache: None,
     }))
 }
 
@@ -910,6 +975,102 @@ struct BackgroundOut { @builtin(position) position: vec4<f32>, @location(0) uv: 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn mono_colormap_previews_render_reference_bars() {
+        let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());
+        let adapter =
+            pollster::block_on(instance.request_adapter(&wgpu::RequestAdapterOptions::default())).expect("GPU adapter");
+        let (device, queue) =
+            pollster::block_on(adapter.request_device(&wgpu::DeviceDescriptor::default())).expect("GPU device");
+        let mut names: Vec<_> = std::fs::read_dir("colormap/mono")
+            .unwrap()
+            .map(|entry| entry.unwrap().path())
+            .filter(|path| path.extension().and_then(|extension| extension.to_str()) == Some("glsl"))
+            .map(|path| path.file_stem().unwrap().to_str().unwrap().to_owned())
+            .collect();
+        names.sort();
+        let pipelines: Vec<_> = names
+            .iter()
+            .map(|name| mono_colormap_preview_pipeline(&device, wgpu::TextureFormat::Rgba8Unorm, name).unwrap())
+            .collect();
+        let extent = wgpu::Extent3d {
+            width: 256,
+            height: names.len() as u32,
+            depth_or_array_layers: 1,
+        };
+        let target = device.create_texture(&wgpu::TextureDescriptor {
+            label: Some("colormap preview test"),
+            size: extent,
+            mip_level_count: 1,
+            sample_count: 1,
+            dimension: wgpu::TextureDimension::D2,
+            format: wgpu::TextureFormat::Rgba8Unorm,
+            usage: wgpu::TextureUsages::RENDER_ATTACHMENT | wgpu::TextureUsages::COPY_SRC,
+            view_formats: &[],
+        });
+        let view = target.create_view(&Default::default());
+        let readback = device.create_buffer(&wgpu::BufferDescriptor {
+            label: Some("colormap preview test readback"),
+            size: 1024 * names.len() as u64,
+            usage: wgpu::BufferUsages::COPY_DST | wgpu::BufferUsages::MAP_READ,
+            mapped_at_creation: false,
+        });
+        let mut encoder = device.create_command_encoder(&Default::default());
+        {
+            let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
+                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
+                    view: &view,
+                    resolve_target: None,
+                    ops: wgpu::Operations {
+                        load: wgpu::LoadOp::Clear(wgpu::Color::TRANSPARENT),
+                        store: wgpu::StoreOp::Store,
+                    },
+                    depth_slice: None,
+                })],
+                ..Default::default()
+            });
+            for (index, pipeline) in pipelines.iter().enumerate() {
+                pass.set_viewport(0.0, index as f32, 256.0, 1.0, 0.0, 1.0);
+                pass.set_pipeline(pipeline);
+                pass.draw(0..3, 0..1);
+            }
+        }
+        encoder.copy_texture_to_buffer(
+            target.as_image_copy(),
+            wgpu::TexelCopyBufferInfo {
+                buffer: &readback,
+                layout: wgpu::TexelCopyBufferLayout {
+                    offset: 0,
+                    bytes_per_row: Some(1024),
+                    rows_per_image: None,
+                },
+            },
+            extent,
+        );
+        queue.submit([encoder.finish()]);
+        let slice = readback.slice(..);
+        let (tx, rx) = std::sync::mpsc::channel();
+        slice.map_async(wgpu::MapMode::Read, move |result| tx.send(result).unwrap());
+        device.poll(wgpu::PollType::wait_indefinitely()).unwrap();
+        rx.recv().unwrap().unwrap();
+        let pixels = slice.get_mapped_range().unwrap();
+        for (name, row) in names.iter().zip(pixels.chunks_exact(1024)) {
+            assert!(row.chunks_exact(4).all(|pixel| pixel[3] == 255), "{name}: opaque preview");
+            // Cyclic maps such as twilight can have identical endpoints.
+            assert!(
+                row.chunks_exact(4).any(|pixel| pixel[..3] != row[..3]),
+                "{name}: varying reference colors"
+            );
+            if name == "gray" || name == "invalid_viz" {
+                for (index, pixel) in row.chunks_exact(4).enumerate() {
+                    assert_eq!(pixel, &[index as u8, index as u8, index as u8, 255]);
+                }
+            }
+        }
+        drop(pixels);
+        readback.unmap();
+    }
 
     #[test]
     fn all_bundled_colormaps_parse_as_wgpu_glsl() {

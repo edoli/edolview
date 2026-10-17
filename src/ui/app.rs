@@ -29,7 +29,7 @@ use crate::{
             channel_toggle_ui, display_controls_ui, display_profile_slider, draw_histogram, draw_multi_line_plot,
             egui_ext::{ComboBoxExt, ResponseExt, Size, UiExt},
             range_slider_context_menu, range_slider_ui, show_bookmark_window, BookmarkJumpMode, CopyExport,
-            ExportAction, SaveExport, Toast, ToastUi, ToastsExt,
+            ExportAction, MonoColormapPreviews, SaveExport, Toast, ToastUi, ToastsExt,
         },
         fonts::{apply_fallback_fonts, spawn_fallback_font_loader, LoadedFallbackFonts},
         ImageViewer,
@@ -119,6 +119,7 @@ fn statistics_overlay_toggle(
 pub struct ViewerApp {
     state: AppState,
     viewer: ImageViewer,
+    mono_colormap_previews: MonoColormapPreviews,
     last_path: Option<PathBuf>,
     startup_paths: Vec<PathBuf>,
     startup_path_rx: Option<mpsc::Receiver<StartupPathLoadResult>>,
@@ -293,6 +294,7 @@ impl ViewerApp {
         Self {
             state,
             viewer: ImageViewer::new(),
+            mono_colormap_previews: MonoColormapPreviews::default(),
 
             last_path: None,
             startup_paths: Vec::new(),
@@ -1892,6 +1894,15 @@ impl eframe::App for ViewerApp {
                     let channels = self.state.asset.as_ref().map(|a| a.image().spec().channels).unwrap_or(0);
                     let is_mono = self.state.channel_index != -1 || channels == 1;
 
+                    if is_mono {
+                        if let Some(render_state) = frame.wgpu_render_state() {
+                            for error in self.mono_colormap_previews.prepare(&ctx, render_state, &self.state.colormap_mono_list) {
+                                eprintln!("{error}");
+                                self.toasts.add_error(error);
+                            }
+                        }
+                    }
+
                     // ComboBox widths are minimums. Bound each control to its own column
                     // so its natural text width cannot grow the panel on every frame.
                     let sizes = [Size::exact(68.0), Size::remainder(1.0), Size::exact(if is_mono { 0.0 } else { 54.0 })];
@@ -1927,8 +1938,9 @@ impl eframe::App for ViewerApp {
                             .width(colormap_ui.available_width())
                             .truncate();
                         if is_mono {
-                            colormap_combo.combo(
+                            self.mono_colormap_previews.show(
                                 colormap_ui,
+                                colormap_combo,
                                 &mut self.state.colormap_mono,
                                 &self.state.colormap_mono_list,
                             )

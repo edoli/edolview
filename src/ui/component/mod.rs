@@ -1,5 +1,6 @@
 mod bookmark_window;
 mod channel_toggle;
+mod colormap_combo;
 mod custom_slider;
 mod display_controls;
 pub mod egui_ext;
@@ -11,6 +12,7 @@ mod toast;
 
 pub use bookmark_window::*;
 pub use channel_toggle::*;
+pub use colormap_combo::*;
 pub use custom_slider::*;
 pub use display_controls::*;
 pub use export_action::*;
