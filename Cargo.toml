@@ -53,10 +53,19 @@ avif = ["image/avif-native"]
 members = ["xtask"]
 
 [profile.release]
-codegen-units = 1
-lto = "thin"
+# Favor fast local rebuilds while retaining release-level optimization.
+codegen-units = 16
+lto = "off"
+incremental = true
 panic = "abort"
 strip = "symbols"
+
+[profile.release-dist]
+inherits = "release"
+# Preserve the original optimization settings for distributed binaries.
+codegen-units = 1
+lto = "thin"
+incremental = false
 
 [build-dependencies]
 winres = "0.1"
@@ -77,6 +86,7 @@ icon = ["icons/Edolview.icns"]
 
 [package.metadata.deb]
 name = "edolview"
+profile = "release-dist"
 maintainer = "Daniel Jeon <edoli.mia@gmail.com>"
 copyright = "2026, Daniel Jeon"
 license-file = ["LICENSE", "4"]
@@ -84,6 +94,7 @@ section = "graphics"
 priority = "optional"
 depends = "$auto"
 assets = [
+    # cargo-deb remaps target/release to the selected profile's output directory.
     ["target/release/edolview", "opt/edolview/edolview", "755"],
     ["colormap/mono/*.glsl", "opt/edolview/colormap/mono/", "644"],
     ["colormap/rgb/*.glsl", "opt/edolview/colormap/rgb/", "644"],

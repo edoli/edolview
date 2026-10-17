@@ -2,7 +2,7 @@ param(
     [string]$Version,
     [string]$Compiler = $env:INNO_SETUP_COMPILER,
     [string]$OutputDirectory = (Join-Path $PSScriptRoot '..\target\dist'),
-    [string]$SourceExe = (Join-Path $PSScriptRoot '..\target\release\edolview.exe'),
+    [string]$SourceExe = (Join-Path $PSScriptRoot '..\target\release-dist\edolview.exe'),
     [switch]$NoBuild
 )
 $ErrorActionPreference = 'Stop'
@@ -33,7 +33,7 @@ try {
     if (-not $NoBuild) {
         & cargo run -p xtask -- icons
         if ($LASTEXITCODE -ne 0) { throw 'Asset generation failed' }
-        & cargo build --release
+        & cargo build --profile release-dist
         if ($LASTEXITCODE -ne 0) { throw 'Release build failed' }
     }
     if ((Get-Item -LiteralPath $SourceExe).VersionInfo.ProductVersion -ne $Version) {

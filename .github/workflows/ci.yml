@@ -167,15 +167,15 @@ jobs:
           Add-Content -Path $Env:GITHUB_ENV -Value "CXX=clang-cl"
 
       - name: Package release binary
-        run: cargo build --release --features heif,avif
+        run: cargo build --profile release-dist --features heif,avif
 
       - name: Copy release binary to root
         run: |
           set -e
           if [ "$RUNNER_OS" = "Windows" ]; then
-            cp target/release/edolview.exe ./ || echo "Windows release binary not found"
+            cp target/release-dist/edolview.exe ./ || echo "Windows release binary not found"
           else
-            cp target/release/edolview ./ || echo "Unix release binary not found"
+            cp target/release-dist/edolview ./ || echo "Unix release binary not found"
           fi
           ls -al edolview* || true
         shell: bash
@@ -217,7 +217,7 @@ jobs:
           rm -f target/dist/edolview-installer-dmg.dmg
           APP_ROOT="target/dmg-root/Edolview.app/Contents"
           mkdir -p "$APP_ROOT/MacOS" "$APP_ROOT/Resources"
-          cp target/release/edolview "$APP_ROOT/MacOS/edolview"
+          cp target/release-dist/edolview "$APP_ROOT/MacOS/edolview"
           cp -R colormap "$APP_ROOT/MacOS/colormap"
           cp icons/Edolview.icns "$APP_ROOT/Resources/edolview.icns"
           sed -e "s/__VERSION__/$VERSION/g" -e "s/__SHORT_VERSION__/$VERSION/g" packaging/macos/Info.plist.in > "$APP_ROOT/Info.plist"
@@ -252,7 +252,7 @@ jobs:
           else
             DEB_VERSION="$(python -c "import tomllib; print(tomllib.load(open('Cargo.toml', 'rb'))['package']['version'])")"
           fi
-          cargo deb --no-build --deb-version "$DEB_VERSION" --output target/dist/edolview-installer-deb.deb
+          cargo deb --no-build --profile release-dist --deb-version "$DEB_VERSION" --output target/dist/edolview-installer-deb.deb
 
       - name: Build AppImage package
         if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'Linux')
@@ -260,7 +260,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/256x256/apps target/dist
-          cp target/release/edolview AppDir/usr/bin/edolview
+          cp target/release-dist/edolview AppDir/usr/bin/edolview
           cp -R colormap AppDir/usr/bin/colormap
           cp packaging/edolview.desktop AppDir/usr/share/applications/edolview.desktop
           cp icons/hicolor/256x256/apps/edolview.png AppDir/usr/share/icons/hicolor/256x256/apps/edolview.png
