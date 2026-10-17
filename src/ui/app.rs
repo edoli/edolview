@@ -2685,6 +2685,7 @@ impl eframe::App for ViewerApp {
                     ui,
                     frame,
                     &mut self.state,
+                    &self.icons,
                     self.show_statistics,
                     self.show_statistics_min_overlay_channels,
                     self.show_statistics_max_overlay_channels,

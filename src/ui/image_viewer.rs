@@ -7,11 +7,12 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::model::{empty_minmax, AppState, Image, MeanDim, PixelType, Recti};
+use crate::model::{empty_minmax, AppState, Image, PixelType, Recti};
 use crate::res::{
     selection_handle_clipped_fill, KeyboardShortcutExt, PIXEL_VALUE_CHANNEL_COLORS, SELECTION_HANDLE_CLIPPED_STROKE,
 };
 use crate::ui::component::egui_ext::UiExt;
+use crate::ui::component::{ContextValueCopy, ImageContextInfo};
 use crate::ui::gpu::{ExportRequest, GpuRenderer, ImagePaintCallback, ImageSlot, MinMaxOverlay, PaneDraw};
 use crate::util::func_ext::FuncExt;
 use crate::util::math_ext::vec2i;
@@ -66,6 +67,7 @@ pub struct ImageViewer {
     save_dialog_requested: bool,
     save_requested: Option<(PathBuf, String)>,
     export_toasts: Arc<Mutex<Vec<ExportToast>>>,
+    context_info: ImageContextInfo,
     last_viewport_size_px: Option<egui::Vec2>,
 
     last_shader_error: Option<String>,
@@ -84,6 +86,7 @@ impl ImageViewer {
             save_dialog_requested: false,
             save_requested: None,
             export_toasts: Arc::new(Mutex::new(Vec::new())),
+            context_info: ImageContextInfo::default(),
             last_viewport_size_px: None,
             last_shader_error: None,
             last_reported_shader_error: None,
@@ -95,6 +98,7 @@ impl ImageViewer {
         ui: &mut egui::Ui,
         frame: &mut eframe::Frame,
         app_state: &mut AppState,
+        icons: &crate::res::icons::Icons,
         show_statistics: bool,
         show_statistics_min_overlay_channels: [bool; 4],
         show_statistics_max_overlay_channels: [bool; 4],
@@ -197,7 +201,7 @@ impl ImageViewer {
             // Detect if the built-in context menu popup for this response is open
             let context_menu_open = resp.context_menu_opened();
 
-            if resp.hovered() && !context_menu_open {
+            if resp.hovered() && (!context_menu_open || resp.secondary_clicked()) {
                 let scroll = ui.raw_scroll_delta_y();
                 if scroll.abs() > 0.0 {
                     // Compute old scale before applying zoom change
@@ -251,79 +255,60 @@ impl ImageViewer {
             }
 
             // Context menu (right-click)
-            resp.context_menu(|ui| {
-                let active_image = if split_view && app_state.cursor_on_secondary {
-                    secondary_image.unwrap_or(primary_image)
-                } else if split_view {
-                    primary_image
-                } else {
-                    image
-                };
-                let has_selection = !app_state.marquee_rect.empty();
-                let copy_label = if has_selection {
-                    format!("Copy Selected Image ({})", crate::res::COPY_SC.format_sys())
-                } else {
-                    format!("Copy Image ({})", crate::res::COPY_SC.format_sys())
-                };
-                if ui.button(copy_label).clicked() {
-                    self.request_copy(if split_view && app_state.cursor_on_secondary {
-                        "secondary".to_string()
+            egui::Popup::context_menu(&resp)
+                .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
+                .show(|ui| {
+                    let active_image = if split_view && app_state.cursor_on_secondary {
+                        secondary_image.unwrap_or(primary_image)
                     } else if split_view {
-                        "primary".to_string()
+                        primary_image
                     } else {
-                        "image".to_string()
-                    });
-                    ui.ctx().request_repaint();
-                    ui.close();
-                }
-                let save_label = if has_selection {
-                    format!("Save Selected Image As... ({})", crate::res::SAVE_IMAGE_SC.format_sys())
-                } else {
-                    format!("Save Image As... ({})", crate::res::SAVE_IMAGE_SC.format_sys())
-                };
-                if ui.button(save_label).clicked() {
-                    self.request_save_dialog();
-                    ui.close();
-                }
-                ui.separator();
-                if ui.button("Copy Cursor Color").clicked() {
-                    if let Some(cursor_pos) = app_state.cursor_pos {
-                        if let Ok(vals) = active_image.get_pixel_at(cursor_pos.x, cursor_pos.y) {
-                            let spec = active_image.spec();
-                            let text = spec.pixel_values_to_string(&vals);
-                            if let Ok(mut cb) = arboard::Clipboard::new() {
-                                let _ = cb.set_text(text);
-                            }
+                        image
+                    };
+                    let has_selection = !app_state.marquee_rect.empty();
+                    let copy_label = if has_selection {
+                        format!("Copy Selected Image ({})", crate::res::COPY_SC.format_sys())
+                    } else {
+                        format!("Copy Image ({})", crate::res::COPY_SC.format_sys())
+                    };
+                    if ui.button(copy_label).clicked() {
+                        self.request_copy(if split_view && app_state.cursor_on_secondary {
+                            "secondary".to_string()
+                        } else if split_view {
+                            "primary".to_string()
+                        } else {
+                            "image".to_string()
+                        });
+                        ui.ctx().request_repaint();
+                        ui.close();
+                    }
+                    let save_label = if has_selection {
+                        format!("Save Selected Image As... ({})", crate::res::SAVE_IMAGE_SC.format_sys())
+                    } else {
+                        format!("Save Image As... ({})", crate::res::SAVE_IMAGE_SC.format_sys())
+                    };
+                    if ui.button(save_label).clicked() {
+                        self.request_save_dialog();
+                        ui.close();
+                    }
+                    // Capture once per right-click so live image updates do not
+                    // change these values or start repeated background reductions.
+                    let errors = if resp.secondary_clicked() || !context_menu_open {
+                        self.context_info
+                            .update(ui.ctx(), active_image, app_state.cursor_pos, app_state.marquee_rect)
+                    } else {
+                        self.context_info.poll()
+                    };
+                    for error in errors {
+                        eprintln!("{error}");
+                        if let Ok(mut toasts) = self.export_toasts.lock() {
+                            toasts.push(ExportToast::Error(error));
                         }
                     }
-                    ui.close();
-                }
-                if ui.button("Copy Cursor Position").clicked() {
-                    if let Some(cursor_pos) = app_state.cursor_pos {
-                        if let Ok(mut cb) = arboard::Clipboard::new() {
-                            let _ = cb.set_text(format!("{}, {}", cursor_pos.x, cursor_pos.y));
-                        }
+                    if let Some(copy) = self.context_info.show(ui, icons) {
+                        self.copy_context_value(ui.ctx(), copy);
                     }
-                    ui.close();
-                }
-                ui.separator();
-                if ui.button("Copy Rect Mean Color").clicked() {
-                    if let Ok(vals) = active_image.mean_value_in_rect(app_state.marquee_rect, MeanDim::All) {
-                        let spec = active_image.spec();
-                        let text = spec.pixel_values_to_string(&vals);
-                        if let Ok(mut cb) = arboard::Clipboard::new() {
-                            let _ = cb.set_text(text);
-                        }
-                    }
-                    ui.close();
-                }
-                if ui.button("Copy Rect Bound").clicked() {
-                    if let Ok(mut cb) = arboard::Clipboard::new() {
-                        let _ = cb.set_text(app_state.marquee_rect.to_string());
-                    }
-                    ui.close();
-                }
-            });
+                });
 
             // Begin interactions
             // 1) If the primary mouse button was just pressed on a handle, start resizing immediately (no drag threshold).
@@ -1296,6 +1281,26 @@ impl ImageViewer {
 
     pub fn is_marquee_interaction_active(&self) -> bool {
         self.dragging && matches!(self.drag_mode, DragMode::Marquee { .. } | DragMode::Resizing { .. })
+    }
+
+    fn copy_context_value(&self, ctx: &egui::Context, copy: ContextValueCopy) {
+        let toasts = Arc::clone(&self.export_toasts);
+        let ctx = ctx.clone();
+        std::thread::spawn(move || {
+            let result = arboard::Clipboard::new().and_then(|mut clipboard| clipboard.set_text(copy.text));
+            let toast = match result {
+                Ok(()) => ExportToast::Success(format!("Copied {}", copy.label)),
+                Err(error) => {
+                    let message = format!("Failed to copy {}: {error}", copy.label);
+                    eprintln!("{message}");
+                    ExportToast::Error(message)
+                }
+            };
+            if let Ok(mut toasts) = toasts.lock() {
+                toasts.push(toast);
+            }
+            ctx.request_repaint();
+        });
     }
 
     pub fn take_export_toasts(&mut self) -> Vec<(bool, String)> {
