@@ -290,7 +290,7 @@ impl IntegralImage {
     }
 }
 
-struct MeanCache {
+struct IntegralImageCache {
     image_id: u64,
     building: bool,
     integral: Option<IntegralImage>,
@@ -302,7 +302,7 @@ struct CachedMean {
     values: Vec<f64>,
 }
 
-impl Default for MeanCache {
+impl Default for IntegralImageCache {
     fn default() -> Self {
         Self {
             image_id: u64::MAX,
@@ -313,8 +313,8 @@ impl Default for MeanCache {
 }
 
 pub struct MeanProcessor {
-    cache: Arc<Mutex<MeanCache>>,
-    results: Mutex<[Option<CachedMean>; 3]>,
+    integral_cache: Arc<Mutex<IntegralImageCache>>,
+    mean_results: Mutex<[Option<CachedMean>; 3]>,
     active_image_id: Arc<AtomicU64>,
     precompute_enabled: AtomicBool,
 }
@@ -322,8 +322,8 @@ pub struct MeanProcessor {
 impl MeanProcessor {
     pub fn new() -> Self {
         Self {
-            cache: Arc::new(Mutex::new(MeanCache::default())),
-            results: Mutex::new(Default::default()),
+            integral_cache: Arc::new(Mutex::new(IntegralImageCache::default())),
+            mean_results: Mutex::new(Default::default()),
             active_image_id: Arc::new(AtomicU64::new(u64::MAX)),
             precompute_enabled: AtomicBool::new(true),
         }
@@ -333,7 +333,7 @@ impl MeanProcessor {
         let was_enabled = self.precompute_enabled.swap(enabled, Ordering::AcqRel);
         if !enabled && was_enabled {
             self.active_image_id.store(u64::MAX, Ordering::Release);
-            *self.cache.lock().unwrap() = MeanCache::default();
+            *self.integral_cache.lock().unwrap() = IntegralImageCache::default();
         }
     }
 
@@ -355,17 +355,17 @@ impl MeanProcessor {
             MeanDim::Row => 2,
         };
         if cache_result {
-            let results = self.results.lock().unwrap();
-            if let Some(result) = &results[slot] {
+            let mean_results = self.mean_results.lock().unwrap();
+            if let Some(result) = &mean_results[slot] {
                 if result.image_id == image.id() && result.rect == rect {
                     return Ok(result.values.clone());
                 }
             }
         }
         {
-            let cache = self.cache.lock().unwrap();
-            if cache.image_id == image.id() {
-                if let Some(integral) = cache.integral.as_ref() {
+            let integral_cache = self.integral_cache.lock().unwrap();
+            if integral_cache.image_id == image.id() {
+                if let Some(integral) = integral_cache.integral.as_ref() {
                     return integral.mean(rect, dim);
                 }
             }
@@ -379,7 +379,7 @@ impl MeanProcessor {
         if cache_result {
             // Keep one result per reduction dimension so the status bar and
             // row/column plot do not evict each other's results.
-            self.results.lock().unwrap()[slot] = Some(CachedMean {
+            self.mean_results.lock().unwrap()[slot] = Some(CachedMean {
                 image_id: image.id(),
                 rect,
                 values: values.clone(),
@@ -394,28 +394,28 @@ impl MeanProcessor {
         }
         let image_id = image.id();
         {
-            let mut cache = self.cache.lock().unwrap();
-            if cache.image_id == image_id && (cache.building || cache.integral.is_some()) {
+            let mut integral_cache = self.integral_cache.lock().unwrap();
+            if integral_cache.image_id == image_id && (integral_cache.building || integral_cache.integral.is_some()) {
                 return;
             }
-            cache.image_id = image_id;
-            cache.building = true;
-            cache.integral = None;
+            integral_cache.image_id = image_id;
+            integral_cache.building = true;
+            integral_cache.integral = None;
         }
         self.active_image_id.store(image_id, Ordering::Release);
 
         let image = image.clone();
-        let cache = Arc::clone(&self.cache);
+        let integral_cache = Arc::clone(&self.integral_cache);
         let active_image_id = Arc::clone(&self.active_image_id);
         std::thread::spawn(move || {
             let result = IntegralImage::build(&image, &active_image_id);
-            let mut cache = cache.lock().unwrap();
-            if cache.image_id != image_id {
+            let mut integral_cache = integral_cache.lock().unwrap();
+            if integral_cache.image_id != image_id {
                 return;
             }
-            cache.building = false;
+            integral_cache.building = false;
             match result {
-                Ok(Some(integral)) => cache.integral = Some(integral),
+                Ok(Some(integral)) => integral_cache.integral = Some(integral),
                 Ok(None) => {}
                 Err(error) => eprintln!("Mean integral precompute failed: {error}"),
             }
@@ -425,7 +425,7 @@ impl MeanProcessor {
     #[cfg(test)]
     fn install_integral(&self, image: &ImageData, integral: IntegralImage) {
         self.active_image_id.store(image.id(), Ordering::Release);
-        *self.cache.lock().unwrap() = MeanCache {
+        *self.integral_cache.lock().unwrap() = IntegralImageCache {
             image_id: image.id(),
             building: false,
             integral: Some(integral),
@@ -435,12 +435,17 @@ impl MeanProcessor {
     #[cfg(test)]
     fn clear_integral(&self) {
         self.active_image_id.store(u64::MAX, Ordering::Release);
-        *self.cache.lock().unwrap() = MeanCache::default();
+        *self.integral_cache.lock().unwrap() = IntegralImageCache::default();
     }
 
     #[cfg(test)]
     fn cached_integral_bytes(&self) -> usize {
-        self.cache.lock().unwrap().integral.as_ref().map_or(0, IntegralImage::bytes)
+        self.integral_cache
+            .lock()
+            .unwrap()
+            .integral
+            .as_ref()
+            .map_or(0, IntegralImage::bytes)
     }
 }
 
