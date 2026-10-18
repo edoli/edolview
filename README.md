@@ -15,7 +15,7 @@ Designed for researchers, engineers, and graphics professionals who need **speed
 
 - __Windows__:
   - [edolview-windows.zip](https://github.com/edoli/edolview-rs/releases/latest/download/edolview-windows.zip)
-  - [edolview-installer-msi.msi](https://github.com/edoli/edolview-rs/releases/latest/download/edolview-installer-msi.msi)
+  - [edolview-installer-exe.exe](https://github.com/edoli/edolview-rs/releases/latest/download/edolview-installer-exe.exe)
 - __macOS__:
   - [edolview-mac.zip](https://github.com/edoli/edolview-rs/releases/latest/download/edolview-mac.zip)
   - [edolview-installer-dmg.dmg](https://github.com/edoli/edolview-rs/releases/latest/download/edolview-installer-dmg.dmg)
@@ -32,7 +32,7 @@ Designed for researchers, engineers, and graphics professionals who need **speed
   * `←` / `→` : navigate image files in current directory
   * `page up` / `page down` : navigate loaded assets
   * `+` / `-`, `scroll` : zoom in / out
-  * `r` : reset view
+  * `Home` : reset view
   * `f11` : fullscreen mode
 
 * **Selection**
@@ -42,10 +42,17 @@ Designed for researchers, engineers, and graphics professionals who need **speed
   * `ctrl` / `cmd` + `c` : copy image or selected region
   * `ctrl` / `cmd` + `s` : save image or selected region
 
-* **Bookmarks**
-  * `b` : toggle bookmarks window
-  * `ctrl` / `cmd` + `b` : add or remove current selection bookmark
-  * `[` / `]` : jump to previous / next bookmark
+* **ROIs**
+  * `r` : toggle ROIs window
+  * `ctrl` / `cmd` + `r` : add or remove the current selection as an ROI
+  * `[` / `]` : jump to previous / next ROI
+
+* **Image List**
+  * Rows selected for batch deletion have a purple fill and outline.
+  * `shift` + click selects a range; `ctrl` / `cmd` + `shift` + click adds a range.
+  * Right-click a selected row and choose **Delete** to remove the selected images from the list.
+  * Click an image name to view it and clear the batch selection.
+  * `ctrl` / `cmd` + click an image name selects the secondary image for comparison.
 
 * **View Presets**
   * `ctrl` / `cmd` + `1` .. `9` : save current view preset to slot 1 .. 9
