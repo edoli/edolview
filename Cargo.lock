@@ -896,6 +896,7 @@ dependencies = [
  "image",
  "indexmap",
  "libheif-sys",
+ "log",
  "lru",
  "naga",
  "notify",

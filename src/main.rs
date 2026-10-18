@@ -8,6 +8,16 @@ use std::{path::PathBuf, sync::Arc};
 
 use crate::ui::ViewerApp;
 
+#[cfg(diagnostics)]
+#[macro_use]
+mod diagnostics;
+
+// Distribution builds enter the application directly, without diagnostics.
+#[cfg(diagnostics)]
+use diagnostics::main;
+#[cfg(not(diagnostics))]
+use run as main;
+
 mod control;
 mod model;
 mod res;
@@ -183,8 +193,10 @@ struct Args {
     images: Vec<PathBuf>,
 }
 
-fn main() -> Result<()> {
+fn run() -> Result<()> {
     color_eyre::install()?;
+    #[cfg(diagnostics)]
+    diagnostics::install_panic_hook();
     set_windows_app_user_model_id();
     let args = Args::parse();
 

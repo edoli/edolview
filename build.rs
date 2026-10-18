@@ -1,4 +1,19 @@
 fn main() {
+    // Cargo's PROFILE reports "release" for inherited profiles too. OUT_DIR is
+    // <build-dir>/<profile>/build/<package>/out, including custom target dirs.
+    let out_dir = std::path::PathBuf::from(std::env::var_os("OUT_DIR").expect("OUT_DIR must be set"));
+    let profile = out_dir
+        .ancestors()
+        .nth(3)
+        .and_then(|path| path.file_name())
+        .and_then(|name| name.to_str())
+        .expect("Cargo profile directory must exist");
+    println!("cargo:rustc-check-cfg=cfg(diagnostics)");
+    println!("cargo:rustc-env=EDOLVIEW_BUILD_PROFILE={profile}");
+    if profile != "release-dist" {
+        println!("cargo:rustc-cfg=diagnostics");
+    }
+
     println!("cargo:rerun-if-env-changed=EDOLVIEW_BUILD_VERSION");
     println!("cargo:rerun-if-env-changed=GITHUB_REF_TYPE");
     println!("cargo:rerun-if-env-changed=GITHUB_REF_NAME");

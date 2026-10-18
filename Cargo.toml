@@ -16,6 +16,7 @@ hayro-jpeg2000 = "0.4.0"
 tiff = { version = "0.11.3", features = ["webp", "zstd"] }
 clap = { version = "4.6.1", features = ["derive"] }
 color-eyre = "0.6.5"
+log = "0.4.34"
 # Use wgpu for both egui and the image pipeline so rendering and compute share one GPU API.
 eframe = { version = "0.37.0", default-features = false, features = ["default_fonts", "wgpu"] }
 # egui 0.37 makes the legacy bundled symbol/emoji fonts opt-in.
@@ -58,7 +59,8 @@ codegen-units = 16
 lto = "off"
 incremental = true
 panic = "abort"
-strip = "symbols"
+debug = 1
+strip = "none"
 
 [profile.release-dist]
 inherits = "release"
@@ -66,6 +68,8 @@ inherits = "release"
 codegen-units = 1
 lto = "thin"
 incremental = false
+debug = 0
+strip = "symbols"
 
 [build-dependencies]
 winres = "0.1"
