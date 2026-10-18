@@ -132,7 +132,7 @@ impl Default for PersistentUiState {
             background_style: BackgroundStyle::default(),
             is_show_pixel_value: true,
             is_show_crosshair: false,
-            is_show_minimap: false,
+            is_show_minimap: true,
             is_show_sidebar: true,
             is_show_statusbar: true,
             copy_use_original_size: true,
