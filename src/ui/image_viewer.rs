@@ -29,6 +29,10 @@ type PendingExportRequest = (Option<String>, Option<(PathBuf, String)>, i32, i32
 
 enum DragMode {
     None,
+    Minimap {
+        on_secondary: bool,
+        grab_offset: egui::Vec2,
+    },
     Panning {
         last_pixel_pos: egui::Pos2,
     },
@@ -192,6 +196,53 @@ impl ImageViewer {
             let (left_pane_rect, right_pane_rect) = self.split_pane_rects(rect);
             let active_primary_rect = if split_view { left_pane_rect } else { rect };
 
+            // Register the minimaps above the image before processing image gestures.
+            let minimaps = [
+                (active_primary_rect, Some(render_primary_image), false),
+                (right_pane_rect, secondary_image.filter(|_| split_view), true),
+            ]
+            .map(|(pane, image, on_secondary)| {
+                if !app_state.is_show_minimap {
+                    return None;
+                }
+                let image = image?;
+                let minimap = self.viewport_minimap(pane, image.spec(), pixel_per_point)?;
+                Some((minimap, pane, on_secondary))
+            });
+            let over_minimap =
+                |pointer: egui::Pos2| minimaps.iter().flatten().any(|(map, _, _)| map.image_rect.contains(pointer));
+            let pointer_over_minimap = ui.input(|input| input.pointer.hover_pos().is_some_and(over_minimap));
+            let press_over_minimap = ui.input(|input| input.pointer.press_origin().is_some_and(over_minimap));
+            for (minimap, pane, on_secondary) in minimaps.iter().flatten() {
+                let response = minimap.interact(ui, ui.scope_id().with(("viewport_minimap", on_secondary)));
+                if !self.dragging && response.is_pointer_button_down_on() && ui.input(|i| i.pointer.primary_pressed()) {
+                    if let Some(pointer) = response.interact_pointer_pos() {
+                        self.dragging = true;
+                        self.drag_mode = DragMode::Minimap {
+                            on_secondary: *on_secondary,
+                            grab_offset: minimap.grab_offset(pointer),
+                        };
+                    }
+                }
+                if let DragMode::Minimap {
+                    on_secondary: dragging_secondary,
+                    grab_offset,
+                } = self.drag_mode
+                {
+                    if dragging_secondary == *on_secondary {
+                        if let Some(pointer) = ui.input(|i| i.pointer.interact_pos()) {
+                            let center = minimap.navigation_center(pointer, grab_offset);
+                            self.pan = pane.size() * (pixel_per_point * 0.5) - center.to_vec2() * self.zoom();
+                            app_state.cursor_on_secondary = *on_secondary;
+                            ui.ctx().set_cursor_icon(egui::CursorIcon::Grabbing);
+                        }
+                    }
+                }
+            }
+            if pointer_over_minimap || matches!(self.drag_mode, DragMode::Minimap { .. }) {
+                app_state.cursor_pos = None;
+            }
+
             // Pre-compute selection rect in view space (points) for handle interactions
             let selection_rect_view =
                 self.selection_rect_in_view(active_primary_rect, app_state.marquee_rect, pixel_per_point);
@@ -204,7 +255,11 @@ impl ImageViewer {
             // Detect if the built-in context menu popup for this response is open
             let context_menu_open = resp.context_menu_opened();
 
-            if resp.hovered() && (!context_menu_open || resp.secondary_clicked()) {
+            if resp.hovered()
+                && !pointer_over_minimap
+                && !matches!(self.drag_mode, DragMode::Minimap { .. })
+                && (!context_menu_open || resp.secondary_clicked())
+            {
                 let scroll = ui.raw_scroll_delta_y();
                 if scroll.abs() > 0.0 {
                     // Compute old scale before applying zoom change
@@ -258,7 +313,11 @@ impl ImageViewer {
             }
 
             // Context menu (right-click)
-            egui::Popup::context_menu(&resp)
+            let mut context_popup = egui::Popup::context_menu(&resp);
+            if pointer_over_minimap && !context_menu_open {
+                context_popup = context_popup.open(false);
+            }
+            context_popup
                 .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
                 .show(|ui| {
                     let active_image = if split_view && app_state.cursor_on_secondary {
@@ -315,7 +374,7 @@ impl ImageViewer {
 
             // Begin interactions
             // 1) If the primary mouse button was just pressed on a handle, start resizing immediately (no drag threshold).
-            if !self.dragging && resp.hovered() && ui.input(|i| i.pointer.primary_pressed()) {
+            if !self.dragging && resp.hovered() && !pointer_over_minimap && ui.input(|i| i.pointer.primary_pressed()) {
                 if let Some(pos) = ui.input(|i| i.pointer.hover_pos()) {
                     // If a marquee exists and a corner handle is pressed, start resizing right away
                     let handle_under_mouse =
@@ -353,7 +412,7 @@ impl ImageViewer {
                 }
             }
 
-            if !self.dragging && resp.drag_started() {
+            if !self.dragging && resp.drag_started() && !press_over_minimap {
                 self.dragging = true;
                 if let Some(pos) = resp.interact_pointer_pos() {
                     // If a marquee exists and a corner handle is grabbed, start resizing
@@ -1089,12 +1148,7 @@ impl ImageViewer {
                     ]
                     .map(|(pane, image, slot, uniform_slot, min_max)| {
                         let image = image?;
-                        let spec = image.spec();
-                        let visible = egui::Rect::from_min_max(
-                            self.pane_view_to_image_coords(pane.min, pane, pixel_per_point),
-                            self.pane_view_to_image_coords(pane.max, pane, pixel_per_point),
-                        );
-                        let minimap = ViewportMinimap::new(pane, vec2(spec.width as f32, spec.height as f32), visible)?;
+                        let minimap = self.viewport_minimap(pane, image.spec(), pixel_per_point)?;
                         Some((minimap, slot, uniform_slot, min_max))
                     });
                     let mut egui_renderer = render_state.renderer.write();
@@ -1131,6 +1185,19 @@ impl ImageViewer {
     pub fn reset_view(&mut self) {
         self.zoom_level = 0.0;
         self.pan = egui::Vec2::ZERO;
+    }
+
+    fn viewport_minimap(
+        &self,
+        pane: egui::Rect,
+        spec: crate::model::ImageSpec,
+        pixel_per_point: f32,
+    ) -> Option<ViewportMinimap> {
+        let visible = egui::Rect::from_min_max(
+            self.pane_view_to_image_coords(pane.min, pane, pixel_per_point),
+            self.pane_view_to_image_coords(pane.max, pane, pixel_per_point),
+        );
+        ViewportMinimap::new(pane, vec2(spec.width as f32, spec.height as f32), visible)
     }
 
     pub fn zoom(&self) -> f32 {

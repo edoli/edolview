@@ -9,6 +9,7 @@ pub struct ViewportMinimap {
     pub image_rect: Rect,
     pub image_size: Vec2,
     pub scale: f32,
+    visible_image: Rect,
     visible_rect: Option<Rect>,
 }
 
@@ -32,8 +33,27 @@ impl ViewportMinimap {
             image_rect,
             image_size,
             scale,
+            visible_image,
             visible_rect,
         })
+    }
+
+    pub fn interact(&self, ui: &mut egui::Ui, id: egui::Id) -> egui::Response {
+        ui.interact(self.image_rect, id, egui::Sense::click_and_drag())
+            .on_hover_cursor(egui::CursorIcon::Grab)
+            .on_hover_text("Click or drag to move the view")
+    }
+
+    pub fn grab_offset(&self, pointer: egui::Pos2) -> Vec2 {
+        if self.visible_rect.is_some_and(|visible| visible.contains(pointer)) {
+            (pointer - self.image_rect.min) / self.scale - self.visible_image.center().to_vec2()
+        } else {
+            Vec2::ZERO
+        }
+    }
+
+    pub fn navigation_center(&self, pointer: egui::Pos2, grab_offset: Vec2) -> egui::Pos2 {
+        ((pointer - self.image_rect.min) / self.scale - grab_offset).to_pos2()
     }
 
     pub fn paint(&self, ui: &egui::Ui, slot: ImageSlot, uniform_slot: u32) {
@@ -133,5 +153,99 @@ mod tests {
         let pane = Rect::from_min_size(egui::Pos2::ZERO, vec2(800.0, 600.0));
         assert!(ViewportMinimap::new(pane, Vec2::ZERO, pane).is_none());
         assert!(ViewportMinimap::new(pane, vec2(f32::NAN, 100.0), pane).is_none());
+    }
+
+    #[test]
+    fn navigation_preserves_the_grab_point_and_allows_moving_beyond_image_edges() {
+        let pane = Rect::from_min_size(pos2(40.0, 80.0), vec2(1000.0, 500.0));
+        let visible = Rect::from_min_size(pos2(500.0, 250.0), vec2(1000.0, 500.0));
+        let map = ViewportMinimap::new(pane, vec2(4000.0, 2000.0), visible).unwrap();
+        let grab = map.image_rect.min + vec2(700.0, 400.0) * map.scale;
+        let offset = map.grab_offset(grab);
+        assert!((map.navigation_center(grab, offset) - visible.center()).length() < 0.002);
+        let moved = grab + vec2(200.0, 100.0) * map.scale;
+        assert!((map.navigation_center(moved, offset) - pos2(1200.0, 600.0)).length() < 0.002);
+
+        let jump = map.image_rect.min + vec2(3000.0, 1500.0) * map.scale;
+        assert_eq!(map.grab_offset(jump), Vec2::ZERO);
+        assert!((map.navigation_center(jump, Vec2::ZERO) - pos2(3000.0, 1500.0)).length() < 0.002);
+        let outside_min = map.image_rect.min - vec2(100.0, 100.0) * map.scale;
+        let outside_max = map.image_rect.max + vec2(100.0, 100.0) * map.scale;
+        assert!((map.navigation_center(outside_min, Vec2::ZERO) - pos2(-100.0, -100.0)).length() < 0.002);
+        assert!((map.navigation_center(outside_max, Vec2::ZERO) - pos2(4100.0, 2100.0)).length() < 0.002);
+    }
+
+    #[test]
+    fn navigation_does_not_jump_for_partially_offscreen_or_oversized_views() {
+        let pane = Rect::from_min_size(egui::Pos2::ZERO, vec2(1000.0, 800.0));
+        for (size, visible) in [
+            (
+                vec2(4000.0, 2000.0),
+                Rect::from_min_size(pos2(-300.0, -200.0), vec2(1000.0, 500.0)),
+            ),
+            (
+                vec2(4000.0, 2000.0),
+                Rect::from_min_size(pos2(3600.0, 1900.0), vec2(1000.0, 500.0)),
+            ),
+            (
+                vec2(200.0, 400.0),
+                Rect::from_min_size(pos2(-100.0, -100.0), vec2(1000.0, 800.0)),
+            ),
+        ] {
+            let map = ViewportMinimap::new(pane, size, visible).unwrap();
+            let pointer = map.visible_rect.unwrap().center();
+            let offset = map.grab_offset(pointer);
+            assert!((map.navigation_center(pointer, offset) - visible.center()).length() < 0.002);
+            let delta = vec2(32.0, -24.0);
+            assert!(
+                (map.navigation_center(pointer + delta * map.scale, offset) - (visible.center() + delta)).length()
+                    < 0.002
+            );
+        }
+    }
+
+    #[test]
+    fn minimap_owns_the_drag_even_when_the_pointer_leaves_its_bounds() {
+        let ctx = egui::Context::default();
+        let mut map_rect = Rect::NOTHING;
+        let mut run_frame = |events: Vec<egui::Event>| {
+            let mut state = (false, false, false);
+            let mut output = ctx.run_ui(
+                egui::RawInput {
+                    screen_rect: Some(Rect::from_min_size(egui::Pos2::ZERO, vec2(800.0, 600.0))),
+                    events,
+                    ..Default::default()
+                },
+                |ui| {
+                    let (pane, image_response) =
+                        ui.allocate_exact_size(ui.available_size(), egui::Sense::click_and_drag());
+                    let map = ViewportMinimap::new(pane, vec2(4000.0, 2000.0), pane).unwrap();
+                    map_rect = map.image_rect;
+                    let response = map.interact(ui, ui.scope_id().with("minimap"));
+                    state = (
+                        response.is_pointer_button_down_on(),
+                        response.dragged(),
+                        image_response.drag_started(),
+                    );
+                },
+            );
+            output.textures_delta.clear();
+            (map_rect, state)
+        };
+        let (rect, _) = run_frame(vec![]);
+        let point = rect.center();
+        run_frame(vec![egui::Event::PointerMoved(point)]);
+        let (_, (down, _, image_drag)) = run_frame(vec![egui::Event::PointerButton {
+            pos: point,
+            button: egui::PointerButton::Primary,
+            pressed: true,
+            modifiers: egui::Modifiers::NONE,
+        }]);
+        assert!(down);
+        assert!(!image_drag);
+        let outside = rect.min - vec2(100.0, 100.0);
+        let (_, (_, dragged, image_drag)) = run_frame(vec![egui::Event::PointerMoved(outside)]);
+        assert!(dragged);
+        assert!(!image_drag);
     }
 }
