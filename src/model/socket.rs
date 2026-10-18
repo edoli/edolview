@@ -219,6 +219,10 @@ fn read_u64(stream: &mut TcpStream) -> io::Result<u64> {
 }
 
 fn parse_extra(bytes: &[u8]) -> Result<Extra> {
+    if bytes.len() < 24 {
+        return Err(io::Error::new(io::ErrorKind::InvalidData, "metadata must contain at least 24 bytes").into());
+    }
+
     let nbytes = u64::from_be_bytes(bytes[0..8].try_into()?);
     let shape = [
         u32::from_be_bytes(bytes[8..12].try_into()?),
@@ -299,4 +303,17 @@ fn validate_raw_extra(extra: &Extra) -> io::Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_extra;
+
+    #[test]
+    fn rejects_metadata_shorter_than_the_fixed_fields() {
+        for len in 0..24 {
+            assert!(parse_extra(&vec![0; len]).is_err());
+        }
+        assert!(parse_extra(&[0; 24]).is_ok());
+    }
 }
