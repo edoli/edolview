@@ -1,7 +1,10 @@
 use eframe::egui::{self, pos2, vec2, Rect, Vec2};
 
 use crate::{
-    res::{MINIMAP_OUTSIDE_VIEW_FILL, MINIMAP_VIEWPORT_OUTLINE, MINIMAP_VIEWPORT_STROKE},
+    res::{
+        MINIMAP_DRAG_STROKE, MINIMAP_HOVER_STROKE, MINIMAP_OUTSIDE_VIEW_FILL, MINIMAP_VIEWPORT_OUTLINE,
+        MINIMAP_VIEWPORT_STROKE,
+    },
     ui::gpu::{ImagePaintCallback, ImageSlot, PaneDraw},
 };
 
@@ -56,7 +59,7 @@ impl ViewportMinimap {
         ((pointer - self.image_rect.min) / self.scale - grab_offset).to_pos2()
     }
 
-    pub fn paint(&self, ui: &egui::Ui, slot: ImageSlot, uniform_slot: u32) {
+    pub fn paint(&self, ui: &egui::Ui, slot: ImageSlot, uniform_slot: u32, hovered: bool, dragging: bool) {
         if !ui.is_rect_visible(self.image_rect) {
             return;
         }
@@ -107,6 +110,24 @@ impl ViewportMinimap {
                 egui::Stroke::new(1.5, MINIMAP_VIEWPORT_STROKE),
                 egui::StrokeKind::Middle,
             );
+        }
+        if hovered || dragging {
+            // Outline the whole input target immediately, independently of the
+            // yellow marker showing which part of the image is currently visible.
+            let painter = ui.painter().with_clip_rect(self.image_rect.expand(5.0));
+            let frame = self.image_rect.expand(1.5);
+            let (width, color) = if dragging {
+                (3.0, MINIMAP_DRAG_STROKE)
+            } else {
+                (2.0, MINIMAP_HOVER_STROKE)
+            };
+            painter.rect_stroke(
+                frame,
+                2.0,
+                egui::Stroke::new(width + 2.0, MINIMAP_VIEWPORT_OUTLINE),
+                egui::StrokeKind::Middle,
+            );
+            painter.rect_stroke(frame, 2.0, egui::Stroke::new(width, color), egui::StrokeKind::Middle);
         }
     }
 }

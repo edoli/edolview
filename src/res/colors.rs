@@ -24,6 +24,8 @@ pub const SELECTION_HANDLE_CLIPPED_STROKE: Color32 = Color32::from_rgb(120, 72, 
 pub const MINIMAP_VIEWPORT_STROKE: Color32 = Color32::from_rgb(255, 210, 64);
 pub const MINIMAP_VIEWPORT_OUTLINE: Color32 = Color32::BLACK;
 pub const MINIMAP_OUTSIDE_VIEW_FILL: Color32 = Color32::from_black_alpha(100);
+pub const MINIMAP_HOVER_STROKE: Color32 = Color32::from_rgb(112, 206, 255);
+pub const MINIMAP_DRAG_STROKE: Color32 = Color32::from_rgb(178, 229, 255);
 pub const TEXT_EDIT_PARSE_FAILED_FLASH: Color32 = Color32::from_rgba_premultiplied(255, 64, 64, 64);
 
 pub const RGB_CHANNEL_LABEL_COLORS: [Color32; 3] = [

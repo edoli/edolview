@@ -213,8 +213,10 @@ impl ImageViewer {
                 |pointer: egui::Pos2| minimaps.iter().flatten().any(|(map, _, _)| map.image_rect.contains(pointer));
             let pointer_over_minimap = ui.input(|input| input.pointer.hover_pos().is_some_and(over_minimap));
             let press_over_minimap = ui.input(|input| input.pointer.press_origin().is_some_and(over_minimap));
+            let mut minimap_hovered = [false; 2];
             for (minimap, pane, on_secondary) in minimaps.iter().flatten() {
                 let response = minimap.interact(ui, ui.scope_id().with(("viewport_minimap", on_secondary)));
+                minimap_hovered[usize::from(*on_secondary)] = response.hovered();
                 if !self.dragging && response.is_pointer_button_down_on() && ui.input(|i| i.pointer.primary_pressed()) {
                     if let Some(pointer) = response.interact_pointer_pos() {
                         self.dragging = true;
@@ -1172,7 +1174,15 @@ impl ImageViewer {
                         drop(egui_renderer);
                         // Paint after image overlays, while staying below popup menus.
                         for (minimap, slot, uniform_slot, _) in minimaps.iter().flatten() {
-                            minimap.paint(ui, *slot, *uniform_slot);
+                            let on_secondary = matches!(slot, ImageSlot::Secondary);
+                            let dragging = matches!(self.drag_mode, DragMode::Minimap { on_secondary: active, .. } if active == on_secondary);
+                            minimap.paint(
+                                ui,
+                                *slot,
+                                *uniform_slot,
+                                minimap_hovered[usize::from(on_secondary)],
+                                dragging,
+                            );
                         }
                     }
                 }
