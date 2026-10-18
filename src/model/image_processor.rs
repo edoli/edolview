@@ -296,6 +296,12 @@ struct MeanCache {
     integral: Option<IntegralImage>,
 }
 
+struct CachedMean {
+    image_id: u64,
+    rect: Recti,
+    values: Vec<f64>,
+}
+
 impl Default for MeanCache {
     fn default() -> Self {
         Self {
@@ -308,6 +314,7 @@ impl Default for MeanCache {
 
 pub struct MeanProcessor {
     cache: Arc<Mutex<MeanCache>>,
+    results: Mutex<[Option<CachedMean>; 3]>,
     active_image_id: Arc<AtomicU64>,
     precompute_enabled: AtomicBool,
 }
@@ -316,6 +323,7 @@ impl MeanProcessor {
     pub fn new() -> Self {
         Self {
             cache: Arc::new(Mutex::new(MeanCache::default())),
+            results: Mutex::new(Default::default()),
             active_image_id: Arc::new(AtomicU64::new(u64::MAX)),
             precompute_enabled: AtomicBool::new(true),
         }
@@ -336,8 +344,23 @@ impl MeanProcessor {
     /// Uses the O(1) summed-area query whenever precompute is ready. The GPU
     /// reduction remains a no-copy fallback during the short build window.
     pub fn compute(&self, image: &ImageData, rect: Recti, dim: MeanDim) -> Result<Vec<f64>> {
-        if rect.validate().empty() {
+        let rect = rect.validate();
+        if rect.empty() {
             return Ok(Vec::new());
+        }
+        let cache_result = !self.precompute_enabled();
+        let slot = match dim {
+            MeanDim::All => 0,
+            MeanDim::Column => 1,
+            MeanDim::Row => 2,
+        };
+        if cache_result {
+            let results = self.results.lock().unwrap();
+            if let Some(result) = &results[slot] {
+                if result.image_id == image.id() && result.rect == rect {
+                    return Ok(result.values.clone());
+                }
+            }
         }
         {
             let cache = self.cache.lock().unwrap();
@@ -352,7 +375,17 @@ impl MeanProcessor {
             self.precompute_async(image);
         }
         let texture = image.gpu_texture()?;
-        gpu_compute()?.mean(&texture, rect, dim)
+        let values = gpu_compute()?.mean(&texture, rect, dim)?;
+        if cache_result {
+            // Keep one result per reduction dimension so the status bar and
+            // row/column plot do not evict each other's results.
+            self.results.lock().unwrap()[slot] = Some(CachedMean {
+                image_id: image.id(),
+                rect,
+                values: values.clone(),
+            });
+        }
+        Ok(values)
     }
 
     pub fn precompute_async(&self, image: &ImageData) {

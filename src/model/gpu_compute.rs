@@ -1825,6 +1825,56 @@ mod tests {
     }
 
     #[test]
+    fn disabled_precompute_reuses_mean_results_and_invalidates_changed_keys() {
+        let compute = context();
+        let image = ImageData::from_f32(ImageSpec::new(2, 2, 1, PixelType::F32), vec![1.0, 2.0, 3.0, 4.0]).unwrap();
+        let processor = crate::model::MeanProcessor::new();
+        processor.set_precompute_enabled(false);
+        let full = Recti::from_min_size(Vec2i::ZERO, Vec2i::new(2, 2));
+        let expected = [
+            (MeanDim::All, vec![2.5]),
+            (MeanDim::Column, vec![2.0, 3.0]),
+            (MeanDim::Row, vec![1.5, 3.5]),
+        ];
+        for (dim, values) in &expected {
+            assert_eq!(processor.compute(&image, full, *dim).unwrap(), *values);
+        }
+
+        // Alter only the GPU texture to make a repeated reduction observable.
+        // A cache hit must still return the original values in every dimension.
+        compute
+            .upload_direct(&image.gpu_texture().unwrap().texture, &image.spec(), &[9.0; 4])
+            .unwrap();
+        for (dim, values) in &expected {
+            assert_eq!(processor.compute(&image.clone(), full, *dim).unwrap(), *values);
+        }
+        let reversed = Recti::from_min_max(full.max, full.min);
+        assert_eq!(processor.compute(&image, reversed, MeanDim::All).unwrap(), vec![2.5]);
+        assert!(processor.compute(&image, Recti::ZERO, MeanDim::All).unwrap().is_empty());
+
+        let column = Recti::from_min_size(Vec2i::ZERO, Vec2i::new(1, 2));
+        assert_eq!(processor.compute(&image, column, MeanDim::All).unwrap(), vec![9.0]);
+        assert_eq!(processor.compute(&image, full, MeanDim::All).unwrap(), vec![9.0]);
+        let replacement = ImageData::from_f32(image.spec(), vec![5.0; 4]).unwrap();
+        assert_eq!(processor.compute(&replacement, full, MeanDim::All).unwrap(), vec![5.0]);
+    }
+
+    #[test]
+    fn enabling_precompute_bypasses_cached_gpu_means() {
+        let compute = context();
+        let image = ImageData::from_f32(ImageSpec::new(2, 2, 1, PixelType::F32), vec![1.0; 4]).unwrap();
+        let processor = crate::model::MeanProcessor::new();
+        processor.set_precompute_enabled(false);
+        let full = Recti::from_min_size(Vec2i::ZERO, Vec2i::new(2, 2));
+        assert_eq!(processor.compute(&image, full, MeanDim::All).unwrap(), vec![1.0]);
+        compute
+            .upload_direct(&image.gpu_texture().unwrap().texture, &image.spec(), &[9.0; 4])
+            .unwrap();
+        processor.set_precompute_enabled(true);
+        assert_eq!(processor.compute(&image, full, MeanDim::All).unwrap(), vec![9.0]);
+    }
+
+    #[test]
     fn gpu_statistics_match_expected_values() {
         let compute = context();
         let image = test_image(0.0);
