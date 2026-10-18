@@ -2140,42 +2140,75 @@ impl eframe::App for ViewerApp {
                             plot_data.push(channel_data);
                         }
 
-                        if channels > 1 {
-                            let plot_refs = (0..channels).map(|i| plot_data[i].as_slice()).collect::<Vec<_>>();
-                            if let Some(export) = draw_multi_line_plot(
-                                ui,
-                                desired_size_plot,
-                                SeriesRef::new(&plot_refs),
-                                &self.show_plot_channels,
-                                self.plot_percentiles,
-                                asset.image().spec().dtype.alpha(),
-                                position_label,
-                                position_offset,
-                            ) {
-                                self.handle_export_action(export);
-                            }
-                        } else {
-                            let plot_refs = vec![plot_data[0].as_slice()];
-                            if let Some(export) = draw_multi_line_plot(
-                                ui,
-                                desired_size_plot,
-                                SeriesRef::new(&plot_refs),
-                                &[true],
-                                self.plot_percentiles,
-                                asset.image().spec().dtype.alpha(),
-                                position_label,
-                                position_offset,
-                            ) {
-                                self.handle_export_action(export);
-                            }
-                        }
+                        let mut style: egui::Style = ui.style().as_ref().clone();
+                        egui::containers::menu::menu_style(&mut style);
+                        style.spacing.item_spacing.x = 4.0;
+                        let menu_style = std::sync::Arc::new(style);
+                        let slider_width = ui.spacing().interact_size.y;
+                        let alpha_scale = asset.image().spec().dtype.alpha();
+                        // Use part of the panel's right padding without increasing the row's reported width.
+                        egui::Frame::new().inner_margin(egui::Margin { right: -4, ..Default::default() }).show(ui, |ui| {
+                            ui.spacing_mut().item_spacing.x = 2.0;
+                            ui.columns_sized([Size::remainder(1.0), Size::exact(slider_width)], |[plot_ui, slider_ui]| {
+                                let plot_refs = plot_data.iter().map(Vec::as_slice).collect::<Vec<_>>();
+                                let mask = if channels > 1 { &self.show_plot_channels[..] } else { &[true] };
+                                if let Some(export) = draw_multi_line_plot(
+                                    plot_ui,
+                                    egui::vec2(plot_ui.available_width(), desired_size_plot.y),
+                                    SeriesRef::new(&plot_refs),
+                                    mask,
+                                    self.plot_percentiles,
+                                    alpha_scale,
+                                    position_label,
+                                    position_offset,
+                                ) {
+                                    self.handle_export_action(export);
+                                }
+
+                                slider_ui.set_style(menu_style.clone());
+                                slider_ui.spacing_mut().slider_width = desired_size_plot.y;
+                                let [low, high] = &mut self.plot_percentiles;
+                                let response = slider_ui.scope(|ui| {
+                                    // Inset the painted handles without shrinking the pointer target.
+                                    // Compensate their aspect ratio to preserve the handle height.
+                                    let inset = 2.0;
+                                    let radius = slider_width.max(ui.text_style_height(&egui::TextStyle::Body)) / 2.5;
+                                    let widgets = &mut ui.visuals_mut().widgets;
+                                    for visuals in [
+                                        &mut widgets.noninteractive,
+                                        &mut widgets.inactive,
+                                        &mut widgets.hovered,
+                                        &mut widgets.active,
+                                    ] {
+                                        visuals.expansion -= inset;
+                                    }
+                                    range_slider_ui(ui, low, high, 0.0..=100.0, 1.0, |slider| {
+                                        slider.vertical().show_value(false).smart_aim(false)
+                                            .handle_shape(egui::style::HandleShape::Rect {
+                                                aspect_ratio: 0.4 + inset / radius,
+                                            })
+                                    })
+                                }).inner;
+                                if response.changed() {
+                                    ctx.request_repaint();
+                                }
+                                range_slider_tooltip(
+                                    slider_ui,
+                                    &response,
+                                    "Adjust the plot's Y-axis limits using lower and upper percentiles.",
+                                    self.plot_percentiles.map(|value| format!("{value:.0}%")),
+                                );
+                                range_slider_context_menu(&response, |ui| {
+                                    if ui.button("Reset (0–100%)").clicked() {
+                                        self.plot_percentiles = [0.0, 100.0];
+                                        ctx.request_repaint();
+                                        ui.close();
+                                    }
+                                });
+                            });
+                        });
 
                         ui.scope(|ui| {
-                            let mut style: egui::Style = ui.style().as_ref().clone();
-                            egui::containers::menu::menu_style(&mut style);
-                            style.spacing.item_spacing.x = 4.0;
-                            let menu_style = std::sync::Arc::new(style);
-
                             ui.columns_sized([Size::exact(68.0), Size::remainder(1.0)], |[axis_ui, channel_ui]| {
                                 axis_ui.set_style(menu_style.clone());
                                 axis_ui.horizontal(|ui| {
@@ -2201,29 +2234,6 @@ impl eframe::App for ViewerApp {
 
                                 if channels > 1 {
                                     channel_toggle_ui(channel_ui, &mut self.show_plot_channels, channels);
-                                }
-                            });
-
-                            ui.set_style(menu_style);
-                            ui.spacing_mut().slider_width = ui.available_width();
-                            let [low, high] = &mut self.plot_percentiles;
-                            let response = range_slider_ui(ui, low, high, 0.0..=100.0, 1.0, |slider| {
-                                slider.show_value(false).smart_aim(false)
-                            });
-                            if response.changed() {
-                                ctx.request_repaint();
-                            }
-                            range_slider_tooltip(
-                                ui,
-                                &response,
-                                "Adjust the plot's Y-axis limits using lower and upper percentiles.",
-                                self.plot_percentiles.map(|value| format!("{value:.0}%")),
-                            );
-                            range_slider_context_menu(&response, |ui| {
-                                if ui.button("Reset (0–100%)").clicked() {
-                                    self.plot_percentiles = [0.0, 100.0];
-                                    ctx.request_repaint();
-                                    ui.close();
                                 }
                             });
                         });

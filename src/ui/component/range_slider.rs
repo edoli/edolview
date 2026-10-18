@@ -164,11 +164,23 @@ fn range_slider_value_labels(ui: &egui::Ui, response: &egui::Response, values: [
     let font = egui::TextStyle::Body.resolve(ui.style());
     let text = values.map(|value| painter.layout_no_wrap(value, font.clone(), ui.visuals().text_color()));
     let handles = [low.rect, high.rect];
+    let vertical = response.rect.height() > response.rect.width();
     let mut labels = std::array::from_fn::<_, 2, _>(|index| {
         let size = text[index].size() + margin.sum();
         let handle = handles[index];
-        let left = (handle.center().x - size.x / 2.0).clamp(bounds.left(), bounds.right() - size.x);
-        let top = if handle.bottom() + 6.0 + size.y <= bounds.bottom() {
+        let left = if vertical {
+            if handle.left() - 6.0 - size.x >= bounds.left() {
+                handle.left() - 6.0 - size.x
+            } else {
+                handle.right() + 6.0
+            }
+        } else {
+            handle.center().x - size.x / 2.0
+        }
+        .clamp(bounds.left(), bounds.right() - size.x);
+        let top = if vertical {
+            (handle.center().y - size.y / 2.0).clamp(bounds.top(), bounds.bottom() - size.y)
+        } else if handle.bottom() + 6.0 + size.y <= bounds.bottom() {
             handle.bottom() + 6.0
         } else {
             handle.top() - 6.0 - size.y
@@ -177,32 +189,37 @@ fn range_slider_value_labels(ui: &egui::Ui, response: &egui::Response, values: [
     });
     let gap = 8.0;
     if labels[0].expand(gap / 2.0).intersects(labels[1].expand(gap / 2.0)) {
-        // Move both bubbles as a group so equal/nearby values remain readable,
-        // including at the screen edge. Keep low on the left and high on the right.
-        let width = labels[0].width() + gap + labels[1].width();
-        let center = (handles[0].center().x + handles[1].center().x) / 2.0;
-        let left = (center - width / 2.0).clamp(bounds.left(), bounds.right() - width);
-        labels[0] = egui::Rect::from_min_size(egui::pos2(left, labels[0].top()), labels[0].size());
-        labels[1] = egui::Rect::from_min_size(egui::pos2(labels[0].right() + gap, labels[1].top()), labels[1].size());
+        // Separate nearby values along the slider's axis, keeping their order.
+        if vertical {
+            let height = labels[0].height() + gap + labels[1].height();
+            let center = (handles[0].center().y + handles[1].center().y) / 2.0;
+            let top = (center - height / 2.0).clamp(bounds.top(), bounds.bottom() - height);
+            labels[1] = egui::Rect::from_min_size(egui::pos2(labels[1].left(), top), labels[1].size());
+            labels[0] =
+                egui::Rect::from_min_size(egui::pos2(labels[0].left(), labels[1].bottom() + gap), labels[0].size());
+        } else {
+            let width = labels[0].width() + gap + labels[1].width();
+            let center = (handles[0].center().x + handles[1].center().x) / 2.0;
+            let left = (center - width / 2.0).clamp(bounds.left(), bounds.right() - width);
+            labels[0] = egui::Rect::from_min_size(egui::pos2(left, labels[0].top()), labels[0].size());
+            labels[1] =
+                egui::Rect::from_min_size(egui::pos2(labels[0].right() + gap, labels[1].top()), labels[1].size());
+        }
     }
     for (index, label) in labels.into_iter().enumerate() {
         let handle = handles[index];
-        let below = label.top() >= handle.bottom();
-        painter.line_segment(
-            [
-                if below {
-                    handle.center_bottom()
-                } else {
-                    handle.center_top()
-                },
-                if below {
-                    label.center_top()
-                } else {
-                    label.center_bottom()
-                },
-            ],
-            ui.visuals().window_stroke(),
-        );
+        let connector = if vertical {
+            if label.right() <= handle.left() {
+                [handle.left_center(), label.right_center()]
+            } else {
+                [handle.right_center(), label.left_center()]
+            }
+        } else if label.top() >= handle.bottom() {
+            [handle.center_bottom(), label.center_top()]
+        } else {
+            [handle.center_top(), label.center_bottom()]
+        };
+        painter.line_segment(connector, ui.visuals().window_stroke());
         let content = label - margin;
         painter.add(frame.paint(content));
         painter.galley(content.min, text[index].clone(), ui.visuals().text_color());
