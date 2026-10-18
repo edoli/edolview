@@ -1207,7 +1207,15 @@ impl ImageViewer {
             self.pane_view_to_image_coords(pane.min, pane, pixel_per_point),
             self.pane_view_to_image_coords(pane.max, pane, pixel_per_point),
         );
-        ViewportMinimap::new(pane, vec2(spec.width as f32, spec.height as f32), visible)
+        let image_size = vec2(spec.width as f32, spec.height as f32);
+        // Base visibility on zoom and pane size, regardless of the pan position.
+        let view_size = pane.size() * pixel_per_point / self.zoom();
+        let view_area = view_size.x * view_size.y;
+        // Keep the drag target alive until release if the pane size changes.
+        if view_area > image_size.x * image_size.y * 0.5 && !matches!(self.drag_mode, DragMode::Minimap { .. }) {
+            return None;
+        }
+        ViewportMinimap::new(pane, image_size, visible)
     }
 
     pub fn zoom(&self) -> f32 {
@@ -1752,6 +1760,47 @@ fn rect_with_handle_at(rect: Recti, handle: ResizeHandle, handle_pos: egui::Pos2
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn minimap_visibility_follows_view_area_independently_of_pan_and_keeps_an_active_drag() {
+        let mut viewer = ImageViewer::new();
+        let pane = egui::Rect::from_min_size(egui::pos2(40.0, 80.0), vec2(800.0, 600.0));
+        let spec = crate::model::ImageSpec::new(800, 600, 3, PixelType::U8);
+        for pan in [vec2(0.0, 0.0), vec2(-0.1, 0.0), vec2(600.0, 0.0), vec2(1000.0, 1000.0)] {
+            viewer.pan = pan;
+            assert!(viewer.viewport_minimap(pane, spec.clone(), 1.0).is_none());
+            for (width, shown) in [(399.0, true), (400.0, true), (401.0, false)] {
+                let resized_pane = egui::Rect::from_min_size(pane.min, vec2(width, 600.0));
+                assert_eq!(viewer.viewport_minimap(resized_pane, spec.clone(), 1.0).is_some(), shown);
+            }
+        }
+
+        viewer.pan = vec2(100.0, 50.0);
+        assert!(viewer.viewport_minimap(pane, spec.clone(), 1.5).is_none());
+        viewer.pan = vec2(500.0, 50.0);
+        assert!(viewer.viewport_minimap(pane, spec.clone(), 1.5).is_none());
+        viewer.reset_view();
+        let (left, right) = viewer.split_pane_rects(pane);
+        for split_pane in [left, right] {
+            assert!(viewer.viewport_minimap(split_pane, spec.clone(), 1.5).is_none());
+        }
+        viewer.zoom_in(4.0, None);
+        for split_pane in [left, right] {
+            assert!(viewer.viewport_minimap(split_pane, spec.clone(), 1.5).is_some());
+        }
+        assert!(viewer.viewport_minimap(pane, spec.clone(), 1.0).is_some());
+        assert!(viewer.viewport_minimap(pane, spec.clone(), 1.5).is_none());
+        viewer.reset_view();
+        viewer.drag_mode = DragMode::Minimap {
+            on_secondary: false,
+            grab_offset: egui::Vec2::ZERO,
+        };
+        assert!(viewer.viewport_minimap(pane, spec.clone(), 1.5).is_some());
+        viewer.drag_mode = DragMode::None;
+        assert!(viewer.viewport_minimap(pane, spec.clone(), 1.5).is_none());
+        viewer.zoom_in(8.0, None);
+        assert!(viewer.viewport_minimap(pane, spec.clone(), 1.5).is_some());
+    }
 
     #[test]
     fn minimap_view_bounds_follow_zoom_pan_dpi_and_split_panes() {
