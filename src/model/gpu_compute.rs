@@ -1314,7 +1314,7 @@ fn histogram(
         let value = textureLoad(source_a, roi_pixel(index), 0);
         for (var channel = 0u; channel < params.image.z; channel++) {
             let v = value[channel];
-            if (v >= 0.0 && v < 1.0) {
+            if (v >= 0.0 && v <= 1.0) {
                 let bin = min(255u, u32(floor(v * 256.0)));
                 atomicAdd(&output[channel * 256u + bin], 1u);
             }
@@ -1900,7 +1900,36 @@ mod tests {
         let histogram = compute.histogram(&texture).unwrap();
         assert_eq!(histogram.len(), 4);
         assert_eq!(histogram[0].iter().sum::<f32>(), 2048.0);
-        assert_eq!(histogram[3].iter().sum::<f32>(), 0.0);
+        assert_eq!(histogram[3].iter().sum::<f32>(), 2048.0);
+        assert_eq!(histogram[3][255], 2048.0);
+    }
+
+    #[test]
+    fn histogram_includes_maximum_values_in_the_last_bin() {
+        let compute = context();
+        let u8_image = ImageData::from_raw_bytes(&[0, u8::MAX], 2, 1, 1, PixelType::U8).unwrap();
+        let u16_image =
+            ImageData::from_raw_bytes(bytemuck::cast_slice(&[0_u16, u16::MAX]), 2, 1, 1, PixelType::U16).unwrap();
+        let float_image = ImageData::from_f32(
+            ImageSpec::new(8, 1, 1, PixelType::F32),
+            vec![
+                0.0,
+                f32::from_bits(1.0_f32.to_bits() - 1),
+                1.0,
+                -f32::EPSILON,
+                1.0 + f32::EPSILON,
+                f32::NAN,
+                f32::INFINITY,
+                f32::NEG_INFINITY,
+            ],
+        )
+        .unwrap();
+        for (image, upper_count) in [(u8_image, 1.0), (u16_image, 1.0), (float_image, 2.0)] {
+            let histogram = compute.histogram(&image.gpu_texture().unwrap()).unwrap();
+            assert_eq!(histogram[0][0], 1.0);
+            assert_eq!(histogram[0][255], upper_count);
+            assert_eq!(histogram[0].iter().sum::<f32>(), 1.0 + upper_count);
+        }
     }
 
     #[test]
