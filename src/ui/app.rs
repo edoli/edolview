@@ -424,18 +424,28 @@ impl ViewerApp {
 
     // egui-winit turns Ctrl+V key-down into Paste before app shortcuts see it.
     // The key-up still arrives, so use it as a fallback for the more specific Ctrl+Shift+V command.
-    fn open_from_clipboard_shortcut_released(input: &egui::InputState) -> bool {
-        input.events.iter().any(|event| {
-            matches!(
-                event,
-                egui::Event::Key {
-                    key: egui::Key::V,
-                    pressed: false,
-                    modifiers,
-                    ..
-                } if modifiers.matches_logically(crate::res::OPEN_FROM_CLIPBOARD_SC.modifiers)
-            )
-        })
+    fn consume_open_from_clipboard_shortcut(input: &mut egui::InputState) -> bool {
+        let shortcut = crate::res::OPEN_FROM_CLIPBOARD_SC;
+        let mut triggered = false;
+        input.events.retain(|event| {
+            if let egui::Event::Key {
+                key,
+                pressed: true,
+                repeat,
+                modifiers,
+                ..
+            } = event
+            {
+                if *key == shortcut.logical_key && modifiers.matches_logically(shortcut.modifiers) {
+                    // Consume auto-repeat too, but load only on the initial key-down.
+                    // Ctrl+Shift+V is preserved as a key event by egui-winit.
+                    triggered |= !repeat;
+                    return false;
+                }
+            }
+            true
+        });
+        triggered
     }
 
     fn handle_export_action(&mut self, export: ExportAction) {
@@ -1473,8 +1483,7 @@ impl ViewerApp {
             add_roi |= i.consume_shortcut(&crate::res::ROI_ADD);
             navigate_prev_roi |= i.consume_shortcut(&crate::res::ROI_PREV);
             navigate_next_roi |= i.consume_shortcut(&crate::res::ROI_NEXT);
-            open_from_clipboard |= i.consume_shortcut(&crate::res::OPEN_FROM_CLIPBOARD_SC)
-                || Self::open_from_clipboard_shortcut_released(i);
+            open_from_clipboard |= Self::consume_open_from_clipboard_shortcut(i);
             if i.consume_shortcut(&crate::res::NAVIGATE_PREV) {
                 if let Err(e) = self.state.navigate_prev() {
                     let path = self.state.file_nav.navigate_prev();
@@ -2860,5 +2869,63 @@ impl eframe::App for ViewerApp {
         {
             crate::debug::debug_window(&ctx);
         }
+    }
+}
+
+#[cfg(test)]
+mod clipboard_shortcut_tests {
+    use super::*;
+
+    fn key(pressed: bool, modifiers: egui::Modifiers) -> egui::Event {
+        egui::Event::Key {
+            key: crate::res::OPEN_FROM_CLIPBOARD_SC.logical_key,
+            physical_key: None,
+            pressed,
+            // Like egui-winit, let egui detect repeated key-downs.
+            repeat: false,
+            modifiers,
+        }
+    }
+
+    fn frame(ctx: &egui::Context, events: Vec<egui::Event>) -> bool {
+        ctx.begin_pass(egui::RawInput {
+            events,
+            ..Default::default()
+        });
+        let triggered = ctx.input_mut(ViewerApp::consume_open_from_clipboard_shortcut);
+        ctx.end_pass().textures_delta.clear();
+        triggered
+    }
+
+    #[test]
+    fn clipboard_shortcut_loads_once_per_press_and_release() {
+        let ctx = egui::Context::default();
+        let modifiers = crate::res::OPEN_FROM_CLIPBOARD_SC.modifiers;
+        assert!(frame(&ctx, vec![key(true, modifiers)]));
+        for _ in 0..10 {
+            assert!(!frame(&ctx, vec![key(true, modifiers)]));
+        }
+        assert!(!frame(&ctx, vec![key(false, modifiers)]));
+        assert!(frame(&ctx, vec![key(true, modifiers)]));
+        // Releasing the modifiers before V must also allow the next press.
+        assert!(!frame(&ctx, vec![key(false, egui::Modifiers::NONE)]));
+        assert!(frame(&ctx, vec![key(true, modifiers)]));
+    }
+
+    #[test]
+    fn clipboard_shortcut_handles_a_quick_tap_without_a_release_load() {
+        let ctx = egui::Context::default();
+        let modifiers = crate::res::OPEN_FROM_CLIPBOARD_SC.modifiers;
+        assert!(frame(&ctx, vec![key(true, modifiers), key(false, modifiers)]));
+        assert!(!frame(&ctx, vec![]));
+        assert!(frame(&ctx, vec![key(true, modifiers), key(false, modifiers)]));
+    }
+
+    #[test]
+    fn clipboard_shortcut_ignores_plain_paste() {
+        let ctx = egui::Context::default();
+        assert!(!frame(&ctx, vec![key(true, egui::Modifiers::CTRL)]));
+        assert!(!frame(&ctx, vec![key(false, egui::Modifiers::CTRL)]));
+        assert!(!frame(&ctx, vec![egui::Event::Paste("123".into())]));
     }
 }
