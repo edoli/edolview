@@ -65,9 +65,11 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock', '.github/workflows/ci.yml') }}
+          # Native build scripts cache absolute paths within the checkout.
+          # Keep fallback caches scoped to the repository name across renames.
+          key: ${{ runner.os }}-${{ github.repository }}-cargo-${{ hashFiles('**/Cargo.lock', '.github/workflows/ci.yml') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-
+            ${{ runner.os }}-${{ github.repository }}-cargo-
 
       # ----- Cache vcpkg installations to speed up dependency builds -----
       - name: Cache vcpkg (Linux)
