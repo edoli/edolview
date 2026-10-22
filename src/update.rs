@@ -28,8 +28,8 @@ use crate::{
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-pub const RELEASES_PAGE_URL: &str = "https://github.com/edoli/edolview-rs/releases";
-const LATEST_RELEASE_API_URL: &str = "https://api.github.com/repos/edoli/edolview-rs/releases/latest";
+pub const RELEASES_PAGE_URL: &str = "https://github.com/edoli/edolview/releases";
+const LATEST_RELEASE_API_URL: &str = "https://api.github.com/repos/edoli/edolview/releases/latest";
 const WINDOWS_INSTALLER_ASSET: &str = "edolview-installer-exe.exe";
 const CURRENT_VERSION: &str = match option_env!("EDOLVIEW_BUILD_VERSION") {
     Some(version) => version,
@@ -190,7 +190,7 @@ fn http_agent(seconds: u64) -> ureq::Agent {
 fn fetch_latest_release() -> Result<ReleaseResponse, String> {
     http_agent(20)
         .get(LATEST_RELEASE_API_URL)
-        .header("User-Agent", "edolview-rs")
+        .header("User-Agent", "edolview")
         .header("Accept", "application/vnd.github+json")
         .call()
         .map_err(|e| format!("Failed to query GitHub releases: {e}"))?
@@ -206,7 +206,7 @@ fn fetch_latest_release() -> Result<ReleaseResponse, String> {
 fn download_asset(url: &str, destination: &Path) -> Result<(), String> {
     let mut response = http_agent(300)
         .get(url)
-        .header("User-Agent", "edolview-rs")
+        .header("User-Agent", "edolview")
         .call()
         .map_err(|e| format!("Failed to download update asset: {e}"))?;
     let mut asset = fs::File::create(destination).map_err(|e| format!("Failed to create update asset: {e}"))?;

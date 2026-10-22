@@ -16,4 +16,4 @@ keywords = ["util", "edolview"]
 dependencies = ["numpy"]
 
 [project.urls]
-Homepage = "https://github.com/edoli/edolview-rs"
+Homepage = "https://github.com/edoli/edolview"

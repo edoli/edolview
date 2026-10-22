@@ -235,7 +235,7 @@ fn run() -> Result<()> {
 
     let mut native_options = eframe::NativeOptions {
         viewport: ViewportBuilder::default()
-            .with_title("edolview-rs")
+            .with_title("edolview")
             .with_inner_size(egui::vec2(1280.0, 720.0))
             .with_min_inner_size(egui::vec2(720.0, 480.0))
             .with_icon(icon),
@@ -245,7 +245,7 @@ fn run() -> Result<()> {
     configure_wgpu(&mut native_options);
 
     if let Err(e) = eframe::run_native(
-        "edolview-rs",
+        "edolview",
         native_options,
         Box::new(|_cc| Ok(Box::new(ViewerApp::new().with_paths(args.images)))),
     ) {

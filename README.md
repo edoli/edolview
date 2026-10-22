@@ -14,15 +14,15 @@ Designed for researchers, engineers, and graphics professionals who need **speed
 ## Installation
 
 - __Windows__:
-  - [edolview-windows.zip](https://github.com/edoli/edolview-rs/releases/latest/download/edolview-windows.zip)
-  - [edolview-installer-exe.exe](https://github.com/edoli/edolview-rs/releases/latest/download/edolview-installer-exe.exe)
+  - [edolview-windows.zip](https://github.com/edoli/edolview/releases/latest/download/edolview-windows.zip)
+  - [edolview-installer-exe.exe](https://github.com/edoli/edolview/releases/latest/download/edolview-installer-exe.exe)
 - __macOS__:
-  - [edolview-mac.zip](https://github.com/edoli/edolview-rs/releases/latest/download/edolview-mac.zip)
-  - [edolview-installer-dmg.dmg](https://github.com/edoli/edolview-rs/releases/latest/download/edolview-installer-dmg.dmg)
+  - [edolview-mac.zip](https://github.com/edoli/edolview/releases/latest/download/edolview-mac.zip)
+  - [edolview-installer-dmg.dmg](https://github.com/edoli/edolview/releases/latest/download/edolview-installer-dmg.dmg)
 - __Linux__:
-  - [edolview-linux.zip](https://github.com/edoli/edolview-rs/releases/latest/download/edolview-linux.zip)
-  - [edolview-installer-appimage.AppImage](https://github.com/edoli/edolview-rs/releases/latest/download/edolview-installer-appimage.AppImage)
-  - [edolview-installer-deb.deb](https://github.com/edoli/edolview-rs/releases/latest/download/edolview-installer-deb.deb)
+  - [edolview-linux.zip](https://github.com/edoli/edolview/releases/latest/download/edolview-linux.zip)
+  - [edolview-installer-appimage.AppImage](https://github.com/edoli/edolview/releases/latest/download/edolview-installer-appimage.AppImage)
+  - [edolview-installer-deb.deb](https://github.com/edoli/edolview/releases/latest/download/edolview-installer-deb.deb)
 
 ## Usage
 
@@ -60,9 +60,9 @@ Designed for researchers, engineers, and graphics professionals who need **speed
 
 ### Features
 
-* Color maps: **Edolview** supports various color maps. To get more information of color maps, see the wiki page: https://github.com/edoli/edolview-rs/wiki/Color-Map
+* Color maps: **Edolview** supports various color maps. To get more information of color maps, see the wiki page: https://github.com/edoli/edolview/wiki/Color-Map
  
-* **Remote Viewer**: **Edolview** can also be controlled remotely over the network. The current protocol is implemented in the [Python package](https://pypi.org/project/edolview/) and the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=edolview-vscode.edolview). See [Remote-Viewer](https://github.com/edoli/edolview-rs/wiki/Remote%E2%80%90Viewer).
+* **Remote Viewer**: **Edolview** can also be controlled remotely over the network. The current protocol is implemented in the [Python package](https://pypi.org/project/edolview/) and the [VS Code extension](https://marketplace.visualstudio.com/items?itemName=edolview-vscode.edolview). See [Remote-Viewer](https://github.com/edoli/edolview/wiki/Remote%E2%80%90Viewer).
 
 * **Copy-Paste Selected Region**
 
