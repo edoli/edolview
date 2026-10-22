@@ -71,36 +71,37 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ github.repository }}-cargo-
 
-      # ----- Cache vcpkg installations to speed up dependency builds -----
+      # Cache the complete vcpkg checkout: cargo-vcpkg needs its Git metadata
+      # when the Cargo cache is empty but the native dependency cache is warm.
       - name: Cache vcpkg (Linux)
         if: startsWith(runner.os, 'Linux')
         uses: actions/cache@v4
         with:
           path: |
-            target/vcpkg/installed/x64-linux-release
-          key: vcpkg-${{ runner.os }}
+            target/vcpkg
+          key: vcpkg-${{ runner.os }}-${{ github.repository }}
           restore-keys: |
-            vcpkg-${{ runner.os }}-
+            vcpkg-${{ runner.os }}-${{ github.repository }}-
 
       - name: Cache vcpkg (macOS)
         if: startsWith(runner.os, 'macOS')
         uses: actions/cache@v4
         with:
           path: |
-            target/vcpkg/installed/arm64-osx-release
-          key: vcpkg-${{ runner.os }}
+            target/vcpkg
+          key: vcpkg-${{ runner.os }}-${{ github.repository }}
           restore-keys: |
-            vcpkg-${{ runner.os }}-
+            vcpkg-${{ runner.os }}-${{ github.repository }}-
 
       - name: Cache vcpkg (Windows)
         if: startsWith(runner.os, 'Windows')
         uses: actions/cache@v4
         with:
           path: |
-            target/vcpkg/installed/x64-windows-static-md
-          key: vcpkg-${{ runner.os }}
+            target/vcpkg
+          key: vcpkg-${{ runner.os }}-${{ github.repository }}
           restore-keys: |
-            vcpkg-${{ runner.os }}-
+            vcpkg-${{ runner.os }}-${{ github.repository }}-
 
               
 
