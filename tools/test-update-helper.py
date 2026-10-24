@@ -134,12 +134,12 @@ def exercise(case):
                         time.sleep(.05)
             if case == 'success':
                 assert executable.read_bytes() == payload.read_bytes()
-                assert not (config/'update-result.txt').exists() or not (config/'update-result.txt').read_text().strip()
-                if APP == 'edolview': assert (install/'colormap/mono/gray.glsl').read_text() == 'new colormap'
+                assert not (config/'update-result.txt').exists() or not (config/'update-result.txt').read_text(encoding="utf-8").strip()
+                if APP == 'edolview': assert (install/'colormap/mono/gray.glsl').read_text(encoding="utf-8") == 'new colormap'
             else:
                 assert executable.read_bytes() == original, case + ': original executable was not preserved'
-                if APP == 'edolview': assert (install/'colormap/mono/gray.glsl').read_text() == 'old colormap'
-                if case != 'cancel': assert (config/'update-result.txt').read_text().strip()
+                if APP == 'edolview': assert (install/'colormap/mono/gray.glsl').read_text(encoding="utf-8") == 'old colormap'
+                if case != 'cancel': assert (config/'update-result.txt').read_text(encoding="utf-8").strip()
             print('PASS',APP,sys.platform,case,flush=True)
         finally:
             for process in [parent,child]:
