@@ -21,7 +21,8 @@ with tempfile.TemporaryDirectory(prefix=APP+'-mac-test-') as temporary:
     base=Path(temporary)
     source=base/'source'/f'{NAME}.app'
     (source/'Contents/MacOS').mkdir(parents=True)
-    shutil.copy2('/usr/bin/true',source/'Contents/MacOS'/APP)
+    shutil.copyfile('/usr/bin/true',source/'Contents/MacOS'/APP)
+    (source/'Contents/MacOS'/APP).chmod(0o755)
     (source/'Contents/Info.plist').write_bytes(plistlib.dumps({'CFBundleIdentifier':'dev.edoli.helperfixture','CFBundleExecutable':APP,'CFBundlePackageType':'APPL','CFBundleVersion':VERSION,'CFBundleShortVersionString':VERSION}))
     run('codesign','--force','--deep','--sign','-',source)
     dmg=base/'fixture.dmg'
