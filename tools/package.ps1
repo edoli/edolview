@@ -33,7 +33,7 @@ try {
     if (-not $NoBuild) {
         & cargo run -p xtask -- icons
         if ($LASTEXITCODE -ne 0) { throw 'Asset generation failed' }
-        & cargo build --profile release-dist
+        & cargo build --profile release-dist --locked
         if ($LASTEXITCODE -ne 0) { throw 'Release build failed' }
     }
     if ((Get-Item -LiteralPath $SourceExe).VersionInfo.ProductVersion -ne $Version) {
@@ -42,7 +42,23 @@ try {
     & $Compiler "/DAppVersion=$Version" "/DSourceExe=$SourceExe" "/DOutputPath=$OutputDirectory" "/DProjectRoot=$projectRoot" (Join-Path $projectRoot 'installer\edolview.iss')
     if ($LASTEXITCODE -ne 0) { throw 'Installer compilation failed' }
     $installer = Join-Path $OutputDirectory 'edolview-installer-exe.exe'
-    Get-Item -LiteralPath $installer | Select-Object Name, Length
+    $stage = Join-Path $projectRoot ('target\portable-' + [guid]::NewGuid().ToString('N'))
+    New-Item -ItemType Directory -Path $stage | Out-Null
+    try {
+        Copy-Item -LiteralPath $SourceExe -Destination (Join-Path $stage 'edolview.exe')
+        Copy-Item -LiteralPath (Join-Path $projectRoot 'colormap') -Destination $stage -Recurse
+        $portable = Join-Path $OutputDirectory 'edolview-windows.zip'
+        Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $portable -Force
+    } finally {
+        $targetRoot = [IO.Path]::GetFullPath((Join-Path $projectRoot 'target')) + [IO.Path]::DirectorySeparatorChar
+        if (-not [IO.Path]::GetFullPath($stage).StartsWith($targetRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid stage path' }
+        Remove-Item -LiteralPath $stage -Recurse -Force
+    }
+    $checksums = foreach ($file in @($installer, $portable)) {
+        (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + [IO.Path]::GetFileName($file)
+    }
+    [IO.File]::WriteAllLines((Join-Path $OutputDirectory 'SHA256SUMS-windows.txt'), [string[]]$checksums, [Text.Encoding]::ASCII)
+    Get-Item -LiteralPath $installer, $portable | Select-Object Name, Length
 } finally {
     Pop-Location
 }
