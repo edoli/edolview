@@ -23,6 +23,8 @@ with zipfile.ZipFile(DIST / f"{app}-{suffix}.zip") as archive:
         display = {"edolview": "Edolview", "edolwave": "EdolWave", "edot": "Edot"}[app]
         prefix = f"{display}.app/Contents/"
         assert all(name.startswith(f"{display}.app/") for name in names), names
+        assert prefix + "Resources/colormap/rgb/rgb.glsl" in names
+        assert not any(name.startswith(prefix + "MacOS/colormap/") for name in names)
         info = plistlib.loads(archive.read(prefix + "Info.plist"))
         assert info["CFBundleVersion"] == version
         assert info["CFBundleExecutable"] == app

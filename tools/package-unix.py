@@ -104,7 +104,9 @@ def package_mac(binary: Path, stage: Path, build_version: str) -> list[Path]:
     resources = contents / "Resources"
     resources.mkdir(parents=True)
     copy_binary(binary, contents / f"MacOS/{APP}")
-    copy_assets(contents / "MacOS")
+    # Data in MacOS is treated as nested code; its xattr signatures do not
+    # survive plain ZIPs. Resources are sealed by CodeResources instead.
+    copy_assets(resources)
     info = app_plist(build_version)
     info["CFBundleIconFile"] = "app.icns"
     (contents / "Info.plist").write_bytes(plistlib.dumps(info))

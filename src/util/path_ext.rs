@@ -106,6 +106,10 @@ pub fn app_config_dir() -> PathBuf {
 }
 
 pub fn colormap_dir() -> PathBuf {
+    #[cfg(target_os = "macos")]
+    if let Some(resources) = macos_bundle_resources() {
+        return resources.join("colormap");
+    }
     #[cfg(target_os = "linux")]
     if env::current_exe().is_ok_and(|exe| exe == Path::new("/usr/bin/edolview")) {
         return PathBuf::from("/usr/share/edolview/colormap");
@@ -114,11 +118,24 @@ pub fn colormap_dir() -> PathBuf {
 }
 
 pub fn custom_colormap_dir() -> PathBuf {
+    #[cfg(target_os = "macos")]
+    if macos_bundle_resources().is_some() {
+        return app_config_dir().join("colormap");
+    }
     #[cfg(target_os = "linux")]
     if env::current_exe().is_ok_and(|exe| exe == Path::new("/usr/bin/edolview")) {
         return app_config_dir().join("colormap");
     }
     colormap_dir()
+}
+
+#[cfg(target_os = "macos")]
+fn macos_bundle_resources() -> Option<PathBuf> {
+    let executable_dir = exe_dir_or_cwd();
+    let contents = executable_dir.parent()?;
+    let bundle = contents.parent()?;
+    (executable_dir.file_name()? == "MacOS" && contents.file_name()? == "Contents" && bundle.extension()? == "app")
+        .then(|| contents.join("Resources"))
 }
 
 pub fn colormap_file(relative: &Path) -> PathBuf {

@@ -91,15 +91,20 @@ case "${PACKAGE##*/}" in
         cp -p "$EXE" "$backup"
         asset_target=${EXE%/*}/colormap
         asset_stage=$(mktemp -d "${EXE%/*}/.edolview-assets.XXXXXX")
-        # The new archive has only an executable and relative colormap files.
-        unzip -Z1 "$PACKAGE" | while IFS= read -r entry; do
-            case "$entry" in
-                edolview|colormap/mono/*.glsl|colormap/rgb/*.glsl) ;;
-                *) echo 'Unexpected portable archive entry' >&2; exit 1 ;;
-            esac
-            case "$entry" in *../*|/*|*\\*) exit 1 ;; esac
-        done
-        unzip -q "$PACKAGE" 'colormap/*' -d "$asset_stage"
+        if [ "${PACKAGE##*/}" = 'edolview-mac.zip' ]; then
+            unzip -q "$PACKAGE" 'Edolview.app/Contents/Resources/colormap/*' -d "$asset_stage"
+            mv "$asset_stage/Edolview.app/Contents/Resources/colormap" "$asset_stage/colormap"
+        else
+            # Linux portable archives contain only the executable and colormaps.
+            unzip -Z1 "$PACKAGE" | while IFS= read -r entry; do
+                case "$entry" in
+                    edolview|colormap/mono/*.glsl|colormap/rgb/*.glsl) ;;
+                    *) echo 'Unexpected portable archive entry' >&2; exit 1 ;;
+                esac
+                case "$entry" in *../*|/*|*\\*) exit 1 ;; esac
+            done
+            unzip -q "$PACKAGE" 'colormap/*' -d "$asset_stage"
+        fi
         if [ -d "$asset_target" ]; then
             asset_backup=$(mktemp -d "${EXE%/*}/.edolview-assets.XXXXXX")
             rmdir "$asset_backup"
