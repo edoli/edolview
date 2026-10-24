@@ -10,6 +10,7 @@ use std::{
 use std::{fs::File, io::Write};
 
 use serde::Deserialize;
+use sha2::{Digest, Sha256};
 
 #[cfg(not(target_os = "windows"))]
 use crate::util::path_ext::safe_temp_dir;
@@ -46,6 +47,8 @@ pub struct AvailableUpdate {
     pub html_url: String,
     pub asset_name: String,
     pub asset_download_url: String,
+    pub asset_size: u64,
+    pub asset_sha256: String,
     pub target: UpdateTarget,
 }
 
@@ -86,6 +89,8 @@ struct ReleaseResponse {
 struct ReleaseAsset {
     name: String,
     browser_download_url: String,
+    size: u64,
+    digest: Option<String>,
 }
 
 pub fn check_for_update() -> Result<Option<AvailableUpdate>, String> {
@@ -101,12 +106,15 @@ pub fn check_for_update() -> Result<Option<AvailableUpdate>, String> {
         .iter()
         .find(|asset| asset.name == asset_name)
         .ok_or_else(|| format!("No compatible update asset found for {}", target.label()))?;
+    let digest = checked_digest(asset.size, asset.digest.as_deref())?;
 
     Ok(Some(AvailableUpdate {
         version: normalize_version_label(release.tag_name.as_str()),
         html_url: release.html_url,
         asset_name: asset.name.clone(),
         asset_download_url: asset.browser_download_url.clone(),
+        asset_size: asset.size,
+        asset_sha256: digest,
         target,
     }))
 }
@@ -130,7 +138,10 @@ impl PreparedUpdate {
 }
 
 pub fn start_update(update: &AvailableUpdate) -> Result<PreparedUpdate, String> {
-    let current_exe = env::current_exe().map_err(|e| format!("Failed to locate current executable: {e}"))?;
+    let current_exe = env::var_os("APPIMAGE")
+        .map(PathBuf::from)
+        .map_or_else(env::current_exe, Ok)
+        .map_err(|e| format!("Failed to locate current executable: {e}"))?;
     #[cfg(target_os = "windows")]
     if is_legacy_machine_install(&current_exe) && install_scope(&current_exe).is_none() {
         return Err("This copy uses the old all-users installation. Uninstall it with administrator permission, then install the new Inno Setup installer from the releases page.".to_string());
@@ -142,7 +153,7 @@ pub fn start_update(update: &AvailableUpdate) -> Result<PreparedUpdate, String> 
         update.asset_name.as_str()
     });
 
-    download_asset(update.asset_download_url.as_str(), &asset_path)?;
+    download_asset(update, &asset_path)?;
     #[cfg(target_os = "windows")]
     let handoff = if update.target == UpdateTarget::WindowsInno {
         let scope = install_scope(&current_exe)
@@ -203,16 +214,62 @@ fn fetch_latest_release() -> Result<ReleaseResponse, String> {
         })
 }
 
-fn download_asset(url: &str, destination: &Path) -> Result<(), String> {
+fn checked_digest(size: u64, digest: Option<&str>) -> Result<String, String> {
+    if size == 0 || size > 256 * 1024 * 1024 {
+        return Err("Invalid update asset size".to_string());
+    }
+    let digest = digest
+        .and_then(|value| value.strip_prefix("sha256:"))
+        .filter(|value| value.len() == 64 && value.bytes().all(|b| b.is_ascii_hexdigit()))
+        .ok_or("GitHub asset has no valid SHA-256 digest")?;
+    Ok(digest.to_ascii_lowercase())
+}
+
+fn transfer_verified(
+    mut input: impl io::Read,
+    output: &mut impl io::Write,
+    size: u64,
+    digest: &str,
+) -> Result<(), String> {
+    let mut hash = Sha256::new();
+    let mut received = 0;
+    let mut buffer = [0; 64 * 1024];
+    loop {
+        let count = input.read(&mut buffer).map_err(|e| e.to_string())?;
+        if count == 0 {
+            break;
+        }
+        received += count as u64;
+        if received > size {
+            return Err("Update asset exceeds its advertised size".into());
+        }
+        output.write_all(&buffer[..count]).map_err(|e| e.to_string())?;
+        hash.update(&buffer[..count]);
+    }
+    if received != size || format!("{:x}", hash.finalize()) != digest {
+        return Err("Update asset size or SHA-256 does not match GitHub metadata".into());
+    }
+    Ok(())
+}
+
+fn download_asset(update: &AvailableUpdate, destination: &Path) -> Result<(), String> {
     let mut response = http_agent(300)
-        .get(url)
+        .get(&update.asset_download_url)
         .header("User-Agent", "edolview")
         .call()
         .map_err(|e| format!("Failed to download update asset: {e}"))?;
     let mut asset = fs::File::create(destination).map_err(|e| format!("Failed to create update asset: {e}"))?;
-    io::copy(&mut response.body_mut().as_reader(), &mut asset)
-        .map_err(|e| format!("Failed to save update asset: {e}"))?;
-    Ok(())
+    let result = transfer_verified(
+        response.body_mut().as_reader(),
+        &mut asset,
+        update.asset_size,
+        &update.asset_sha256,
+    );
+    drop(asset);
+    if result.is_err() {
+        let _ = fs::remove_file(destination);
+    }
+    result
 }
 
 fn detect_update_target() -> Result<UpdateTarget, String> {
@@ -233,7 +290,7 @@ fn detect_update_target() -> Result<UpdateTarget, String> {
 
     #[cfg(target_os = "linux")]
     {
-        if exe.extension().and_then(|ext| ext.to_str()) == Some("AppImage") {
+        if env::var_os("APPIMAGE").is_some() || exe.extension().and_then(|ext| ext.to_str()) == Some("AppImage") {
             return Ok(UpdateTarget::LinuxAppImage);
         }
         if exe.starts_with(Path::new("/opt/edolview")) {
@@ -861,6 +918,20 @@ fn app_bundle_path(_path: &Path) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::is_newer_version;
+
+    #[test]
+    fn update_assets_require_size_and_sha256_and_reject_corruption() {
+        use super::*;
+        let digest = format!("{:x}", Sha256::digest(b"abc"));
+        assert!(checked_digest(3, Some(&format!("sha256:{digest}"))).is_ok());
+        assert!(checked_digest(3, None).is_err());
+        assert!(checked_digest(0, Some(&format!("sha256:{digest}"))).is_err());
+        assert!(checked_digest(3, Some("sha256:bad")).is_err());
+        assert!(transfer_verified(&b"abc"[..], &mut Vec::new(), 3, &digest).is_ok());
+        for input in [&b"ab"[..], &b"abd"[..], &b"abcd"[..]] {
+            assert!(transfer_verified(input, &mut Vec::new(), 3, &digest).is_err());
+        }
+    }
 
     #[test]
     fn detects_newer_semver_versions() {

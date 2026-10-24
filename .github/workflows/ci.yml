@@ -2,355 +2,163 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
-    tags:
-      - 'v*.*.*'
+    branches: [main]
+    tags: ['v*']
   pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  CARGO_INCREMENTAL: 0
+  CARGO_BUILD_JOBS: 2
+  PKG_CONFIG_ALL_STATIC: 1
+
 jobs:
   build:
-    name: Build (${{ matrix.os }})
+    name: Build (${{ matrix.label }})
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
-            suffix: linux
           - os: windows-latest
+            label: Windows x64
             suffix: windows
-          - os: macos-latest
+          - os: macos-15
+            label: macOS Apple Silicon
             suffix: mac
-
-    env:
-      CARGO_TERM_COLOR: always
-      RUST_BACKTRACE: 1
-      PKG_CONFIG_ALL_STATIC: 1
-      # image's native AVIF decoder uses dav1d. Build it from the pinned
-      # dav1d-sys source so release artifacts do not depend on a runner-provided
-      # shared library.
-      SYSTEM_DEPS_DAV1D_BUILD_INTERNAL: always
-      SYSTEM_DEPS_DAV1D_LINK: static
-
+          - os: ubuntu-24.04
+            label: Linux x64
+            suffix: linux
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Validate version metadata
-        shell: bash
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Validate Cargo version and release tag
+        shell: python
         run: |
-          set -euo pipefail
-          CARGO_VERSION="$(python -c "import tomllib; print(tomllib.load(open('Cargo.toml', 'rb'))['package']['version'])")"
-          echo "EDOLVIEW_BUILD_VERSION=$CARGO_VERSION" >> "$GITHUB_ENV"
-          if [[ "${GITHUB_REF_TYPE:-}" == "tag" ]]; then
-            TAG_VERSION="${GITHUB_REF_NAME#v}"
-            if [[ "$TAG_VERSION" != "$CARGO_VERSION" ]]; then
-              echo "Tag version ($TAG_VERSION) does not match Cargo.toml version ($CARGO_VERSION)." >&2
-              exit 1
-            fi
-          fi
-
-      - name: Cache cargo registry + build
-        uses: actions/cache@v4
+          import os, re, tomllib
+          version = tomllib.load(open('Cargo.toml', 'rb'))['package']['version']
+          if not re.fullmatch(r'(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)', version) or any(int(p) > 65535 for p in version.split('.')):
+              raise SystemExit(f'Invalid Cargo version: {version}')
+          if os.environ['GITHUB_REF_TYPE'] == 'tag' and os.environ['GITHUB_REF_NAME'] != f'v{version}':
+              raise SystemExit(f"Tag {os.environ['GITHUB_REF_NAME']} must equal v{version}")
+      - uses: actions/cache@v4
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target
-          # Native build scripts cache absolute paths within the checkout.
-          # Keep fallback caches scoped to the repository name across renames.
-          key: ${{ runner.os }}-${{ github.repository }}-cargo-${{ hashFiles('**/Cargo.lock', '.github/workflows/ci.yml') }}
-          restore-keys: |
-            ${{ runner.os }}-${{ github.repository }}-cargo-
-
-      # Cache the complete vcpkg checkout: cargo-vcpkg needs its Git metadata
-      # when the Cargo cache is empty but the native dependency cache is warm.
-      - name: Cache vcpkg (Linux)
-        if: startsWith(runner.os, 'Linux')
-        uses: actions/cache@v4
+            target/debug
+            target/release-dist
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.repository }}-cargo-${{ hashFiles('Cargo.lock', 'Cargo.toml', '.cargo/config.toml', '.github/workflows/ci.yml') }}
+          restore-keys: ${{ runner.os }}-${{ runner.arch }}-${{ github.repository }}-cargo-
+      - uses: actions/cache@v4
         with:
-          path: |
-            target/vcpkg
-          key: vcpkg-${{ runner.os }}-${{ github.repository }}
-          restore-keys: |
-            vcpkg-${{ runner.os }}-${{ github.repository }}-
-
-      - name: Cache vcpkg (macOS)
-        if: startsWith(runner.os, 'macOS')
-        uses: actions/cache@v4
-        with:
-          path: |
-            target/vcpkg
-          key: vcpkg-${{ runner.os }}-${{ github.repository }}
-          restore-keys: |
-            vcpkg-${{ runner.os }}-${{ github.repository }}-
-
-      - name: Cache vcpkg (Windows)
-        if: startsWith(runner.os, 'Windows')
-        uses: actions/cache@v4
-        with:
-          path: |
-            target/vcpkg
-          key: vcpkg-${{ runner.os }}-${{ github.repository }}
-          restore-keys: |
-            vcpkg-${{ runner.os }}-${{ github.repository }}-
-
-              
-
-      - name: Install native build deps (Ubuntu)
-        if: startsWith(runner.os, 'Linux')
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends \
-            build-essential cmake meson ninja-build git curl unzip pkg-config \
-            nasm
-
-      - name: Install native build deps (macOS)
-        if: startsWith(runner.os, 'macOS')
-        run: |
-          brew update
-          brew install cmake meson ninja nasm
-
-      - name: Install build deps (Windows)
-        if: startsWith(runner.os, 'Windows')
+          path: target/vcpkg
+          key: vcpkg-static-crt-${{ runner.os }}-${{ github.repository }}-${{ hashFiles('Cargo.toml') }}
+      - name: Install native build dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y build-essential clang cmake meson ninja-build git curl unzip pkg-config nasm desktop-file-utils zsync dpkg-dev patchelf squashfs-tools file
+      - name: Install native build dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install cmake meson ninja nasm
+      - name: Install native build dependencies (Windows)
+        if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          choco install -y --no-progress llvm cmake meson ninja pkgconfiglite git curl unzip nasm
+          choco install -y --no-progress llvm cmake meson ninja pkgconfiglite nasm
           Import-Module "$env:ChocolateyInstall\helpers\chocolateyProfile.psm1"
           refreshenv
-          # Add Chocolatey's shim directory explicitly for this job.
-          $chocoBin = Join-Path $env:ChocolateyInstall 'bin'
-          $env:PATH = "$chocoBin;$env:PATH"
-          if (-not (Get-Command meson -ErrorAction SilentlyContinue)) {
-            throw "Meson is not available on PATH after installation."
-          }
-          meson --version
-
-          $llvmBin = "C:\Program Files\LLVM\bin"
-          if (Test-Path $llvmBin) {
-            # Preserve the refreshed PATH so later steps can find Meson.
-            echo "PATH=$llvmBin;$env:PATH" | Out-File -FilePath $Env:GITHUB_ENV -Append
-            echo "LIBCLANG_PATH=$llvmBin" | Out-File -FilePath $Env:GITHUB_ENV -Append
-          }
-
-      - name: Run vcpkg build
+          "PATH=C:\Program Files\LLVM\bin;$env:PATH" >> $env:GITHUB_ENV
+          'LIBCLANG_PATH=C:\Program Files\LLVM\bin' >> $env:GITHUB_ENV
+          'CC=clang-cl' >> $env:GITHUB_ENV
+          'CXX=clang-cl' >> $env:GITHUB_ENV
+      - name: Build native image codecs
+        env:
+          SYSTEM_DEPS_DAV1D_BUILD_INTERNAL: always
+          SYSTEM_DEPS_DAV1D_LINK: static
         run: |
-          cargo install cargo-vcpkg
+          cargo install cargo-vcpkg --locked
           cargo vcpkg -v build
-          
-      - name: Add vcpkg pkgconfig to PKG_CONFIG_PATH (Ubuntu)
-        if: startsWith(runner.os, 'Linux')
-        run: |
-          echo "PKG_CONFIG_PATH=${{ github.workspace }}/target/vcpkg/installed/x64-linux-release/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
-
-      - name: Add vcpkg pkgconfig to PKG_CONFIG_PATH (macOS)
-        if: startsWith(runner.os, 'macOS')
-        run: |
-          echo "PKG_CONFIG_PATH=${{ github.workspace }}/target/vcpkg/installed/arm64-osx-release/lib/pkgconfig:$PKG_CONFIG_PATH" >> $GITHUB_ENV
-          
-      - name: Run icon generation
-        run: cargo run -p xtask --features heif -- icons
-
-      - name: Select MSVC-compatible compiler for dav1d (Windows)
-        if: startsWith(runner.os, 'Windows')
-        shell: pwsh
-        run: |
-          # dav1d-sys builds its pinned dav1d source with Meson. The hosted
-          # PATH also contains MinGW, whose GCC output cannot be linked by the
-          # MSVC Rust target. clang-cl emits MSVC-compatible objects instead.
-          Add-Content -Path $Env:GITHUB_ENV -Value "CC=clang-cl"
-          Add-Content -Path $Env:GITHUB_ENV -Value "CXX=clang-cl"
-
-      - name: Package release binary
-        run: cargo build --profile release-dist --features heif,avif
-
-      - name: Copy release binary to root
-        run: |
-          set -e
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            cp target/release-dist/edolview.exe ./ || echo "Windows release binary not found"
-          else
-            cp target/release-dist/edolview ./ || echo "Unix release binary not found"
-          fi
-          ls -al edolview* || true
+      - name: Configure native codec build
         shell: bash
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        run: |
+          echo 'SYSTEM_DEPS_DAV1D_LINK=static' >> "$GITHUB_ENV"
+          if [ "$RUNNER_OS" = Windows ]; then
+            echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/target/vcpkg/installed/x64-windows-static/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
+          elif [ "$RUNNER_OS" = Linux ]; then
+            echo 'SYSTEM_DEPS_DAV1D_BUILD_INTERNAL=always' >> "$GITHUB_ENV"
+            echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/target/vcpkg/installed/x64-linux-release/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
+          elif [ "$RUNNER_OS" = macOS ]; then
+            echo 'SYSTEM_DEPS_DAV1D_BUILD_INTERNAL=always' >> "$GITHUB_ENV"
+            echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/target/vcpkg/installed/arm64-osx-release/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
+          fi
+      - name: Generate icons and desktop integration
+        run: cargo run --locked -p xtask --features heif -- icons
+      - name: Install DEB packaging tool
+        if: runner.os == 'Linux'
+        run: cargo install cargo-deb --locked
+      - name: Build optimized binary
+        run: cargo build --profile release-dist --locked --features heif,avif
+      - name: Install Inno Setup
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tools/install_inno.ps1
+      - name: Package Windows installer and ZIP
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tools/package.ps1 -NoBuild
+      - name: Package macOS or Linux
+        if: runner.os != 'Windows'
+        run: python tools/package-unix.py --no-build
+      - name: Validate final packages
+        run: python tools/check-packages.py
+      - uses: actions/upload-artifact@v4
         with:
           name: edolview-${{ matrix.suffix }}
           path: |
-            edolview*
-            colormap/**
-          if-no-files-found: warn
-
-      - name: Install Inno Setup
-        if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'Windows')
-        shell: pwsh
-        run: ./tools/install_inno.ps1
-
-      - name: Build Inno Setup installer
-        if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'Windows')
-        shell: pwsh
-        run: ./tools/package.ps1 -NoBuild
-
-      - name: Install macOS packaging tools
-        if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'macOS')
-        run: brew install create-dmg
-
-      - name: Build DMG installer
-        if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'macOS')
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [[ "${GITHUB_REF_TYPE:-}" == "tag" && "${GITHUB_REF_NAME:-}" == v* ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"
-          else
-            VERSION="$(python -c "import tomllib; print(tomllib.load(open('Cargo.toml', 'rb'))['package']['version'])")"
-          fi
-          rm -rf target/dmg-root
-          rm -f target/dist/edolview-installer-dmg.dmg
-          APP_ROOT="target/dmg-root/Edolview.app/Contents"
-          mkdir -p "$APP_ROOT/MacOS" "$APP_ROOT/Resources"
-          cp target/release-dist/edolview "$APP_ROOT/MacOS/edolview"
-          cp -R colormap "$APP_ROOT/MacOS/colormap"
-          cp icons/Edolview.icns "$APP_ROOT/Resources/edolview.icns"
-          sed -e "s/__VERSION__/$VERSION/g" -e "s/__SHORT_VERSION__/$VERSION/g" packaging/macos/Info.plist.in > "$APP_ROOT/Info.plist"
-          chmod +x "$APP_ROOT/MacOS/edolview"
-          mkdir -p target/dist
-          create-dmg \
-            --volname "Edolview" \
-            --window-pos 200 120 \
-            --window-size 800 400 \
-            --icon-size 128 \
-            --icon "Edolview.app" 200 190 \
-            --hide-extension "Edolview.app" \
-            --app-drop-link 600 185 \
-            "target/dist/edolview-installer-dmg.dmg" \
-            "target/dmg-root"
-
-      - name: Install Linux packaging tools
-        if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'Linux')
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends desktop-file-utils zsync
-          cargo install cargo-deb
-
-      - name: Build DEB package
-        if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'Linux')
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p target/dist
-          if [[ "${GITHUB_REF_TYPE:-}" == "tag" && "${GITHUB_REF_NAME:-}" == v* ]]; then
-            DEB_VERSION="${GITHUB_REF_NAME#v}"
-          else
-            DEB_VERSION="$(python -c "import tomllib; print(tomllib.load(open('Cargo.toml', 'rb'))['package']['version'])")"
-          fi
-          cargo deb --no-build --profile release-dist --deb-version "$DEB_VERSION" --output target/dist/edolview-installer-deb.deb
-
-      - name: Build AppImage package
-        if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'Linux')
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p AppDir/usr/bin AppDir/usr/share/applications AppDir/usr/share/icons/hicolor/256x256/apps target/dist
-          cp target/release-dist/edolview AppDir/usr/bin/edolview
-          cp -R colormap AppDir/usr/bin/colormap
-          cp packaging/edolview.desktop AppDir/usr/share/applications/edolview.desktop
-          cp icons/hicolor/256x256/apps/edolview.png AppDir/usr/share/icons/hicolor/256x256/apps/edolview.png
-          cp icons/hicolor/256x256/apps/edolview.png AppDir/edolview.png
-          cp packaging/linux/AppRun AppDir/AppRun
-          chmod +x AppDir/AppRun
-          curl -Lo linuxdeploy.AppImage https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-          chmod +x linuxdeploy.AppImage
-          APPIMAGE_EXTRACT_AND_RUN=1 ./linuxdeploy.AppImage --appdir AppDir --desktop-file packaging/edolview.desktop --icon-file icons/hicolor/256x256/apps/edolview.png --output appimage
-          APPIMAGE_OUTPUT="$(find . -maxdepth 1 -type f -name '*.AppImage' ! -name 'linuxdeploy.AppImage' | head -n 1)"
-          mv "$APPIMAGE_OUTPUT" target/dist/edolview-installer-appimage.AppImage
-
-      - name: Upload Inno Setup installer artifact
-        if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'Windows')
-        uses: actions/upload-artifact@v4
-        with:
-          name: edolview-installer-exe
-          path: target/dist/edolview-installer-exe.exe
-          if-no-files-found: warn
-
-      - name: Upload DMG installer artifact
-        if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'macOS')
-        uses: actions/upload-artifact@v4
-        with:
-          name: edolview-installer-dmg
-          path: target/dist/edolview-installer-dmg.dmg
-          if-no-files-found: warn
-
-      - name: Upload DEB installer artifact
-        if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'Linux')
-        uses: actions/upload-artifact@v4
-        with:
-          name: edolview-installer-deb
-          path: target/dist/edolview-installer-deb.deb
-          if-no-files-found: warn
-
-      - name: Upload AppImage installer artifact
-        if: (startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch') && startsWith(runner.os, 'Linux')
-        uses: actions/upload-artifact@v4
-        with:
-          name: edolview-installer-appimage
-          path: target/dist/edolview-installer-appimage.AppImage
-          if-no-files-found: warn
+            target/dist/edolview*
+            target/dist/SHA256SUMS-${{ matrix.suffix }}.txt
+          if-no-files-found: error
+          compression-level: 0
 
   release:
-    name: Release
+    name: Publish GitHub Release
+    if: github.ref_type == 'tag'
     needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Download all build artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
+          python-version: '3.12'
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: edolview-*
+          merge-multiple: true
           path: dist
-
-      - name: Generate checksums
-        run: |
-          cd dist
-          for f in */edolview*; do
-            [ -f "$f" ] || continue
-            sha256sum "$f" >> SHA256SUMS.txt || shasum -a 256 "$f" >> SHA256SUMS.txt
-          done
-          cat SHA256SUMS.txt
-
-      - name: Prepare release assets
-        run: |
-          set -e
-          cd dist
-          for dir in edolview-linux edolview-mac edolview-windows; do
-            if [ -d "$dir" ]; then
-              (cd "$dir" && zip -9 -r ../"$dir".zip . >/dev/null 2>&1 || true)
-            fi
-          done
-          ls -al
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            dist/*.zip
-            dist/**/edolview-installer-exe.exe
-            dist/**/*.dmg
-            dist/**/*.AppImage
-            dist/**/*.deb
-            dist/SHA256SUMS.txt
-          generate_release_notes: true
+      - name: Verify complete release assets and checksums
+        id: assets
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
+        run: python tools/release-assets.py
+      - uses: softprops/action-gh-release@v3
+        with:
+          files: dist/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
+          make_latest: ${{ steps.assets.outputs.make_latest }}
