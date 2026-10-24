@@ -67,6 +67,9 @@ def exercise(case):
             (install/'colormap/mono/gray.glsl').write_text('old colormap')
         digest = hashlib.sha256(archive.read_bytes()).hexdigest()
         environment = os.environ.copy()
+        if WINDOWS:
+            environment["TEMP"] = str(base.parent)
+            environment["TMP"] = str(base.parent)
         prefix = APP.upper()
         for name,value in {'DIR':task,'EXE':executable,'PACKAGE':archive,'VERSION':VERSION,'HASH':digest,'PARENT':parent.pid,'SCOPE':'portable'}.items():
             environment[f'{prefix}_UPDATE_{name}'] = str(value)
