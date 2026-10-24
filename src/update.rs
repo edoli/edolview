@@ -138,10 +138,12 @@ impl PreparedUpdate {
 }
 
 pub fn start_update(update: &AvailableUpdate) -> Result<PreparedUpdate, String> {
-    let current_exe = env::var_os("APPIMAGE")
-        .map(PathBuf::from)
-        .map_or_else(env::current_exe, Ok)
-        .map_err(|e| format!("Failed to locate current executable: {e}"))?;
+    let current_exe = if cfg!(target_os = "linux") {
+        env::var_os("APPIMAGE").map(PathBuf::from).map_or_else(env::current_exe, Ok)
+    } else {
+        env::current_exe()
+    }
+    .map_err(|e| format!("Failed to locate current executable: {e}"))?;
     #[cfg(target_os = "windows")]
     if is_legacy_machine_install(&current_exe) && install_scope(&current_exe).is_none() {
         return Err("This copy uses the old all-users installation. Uninstall it with administrator permission, then install the new Inno Setup installer from the releases page.".to_string());
