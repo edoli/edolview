@@ -148,7 +148,7 @@ def linuxdeploy() -> Path:
 def package_deb(binary: Path, stage: Path, desktop: Path, build_version: str) -> Path:
     destination = DIST / f"{APP}-installer-deb.deb"
     if APP == "edolview":
-        run("cargo", "deb", "--no-build", "--profile", "release-dist", "--output", destination, cwd=ROOT)
+        run("cargo", "deb", "--no-build", "--profile", "release-dist", "--deb-version", build_version, "--output", destination, cwd=ROOT)
         return destination
     root = stage / "deb"
     copy_binary(binary, root / f"usr/bin/{APP}")
