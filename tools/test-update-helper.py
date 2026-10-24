@@ -41,7 +41,7 @@ def compile_fixture(path, version):
 
 def exercise(case):
     with tempfile.TemporaryDirectory(prefix=APP+'-helper-test-') as temporary:
-        base = Path(temporary)
+        base = Path(temporary).resolve()
         # Both executable and update paths exercise spaces and apostrophes.
         install = base / "app O'Brien"
         install.mkdir()
@@ -111,7 +111,13 @@ def exercise(case):
                 child.communicate(timeout=30)
                 assert not (task/'ready').exists()
             else:
-                wait_until(lambda:(task/'ready').is_file(),child,'helper did not become ready')
+                try:
+                    wait_until(lambda:(task/'ready').is_file(),child,'helper did not become ready')
+                except AssertionError:
+                    result = config/'update-result.txt'
+                    print('HELPER ERROR',case,result.read_text(encoding='utf-8') if result.exists() else 'no result file',flush=True)
+                    if child.poll() is not None: print(child.communicate(),flush=True)
+                    raise
                 if case == 'tampered-after-ready':
                     archive.write_bytes(archive.read_bytes()+b'changed after verification')
                 if case != 'cancel':
