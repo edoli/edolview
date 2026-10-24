@@ -28,6 +28,12 @@ if (-not $Compiler -or -not (Test-Path -LiteralPath $Compiler)) {
 $SourceExe = [IO.Path]::GetFullPath($SourceExe)
 $OutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
 New-Item -ItemType Directory -Path $OutputDirectory -Force | Out-Null
+    # Remove only obsolete generated artifacts left by earlier local packaging.
+    Get-ChildItem -LiteralPath $OutputDirectory -File | Where-Object {
+        $_.Name -match '^SHA256SUMS(?:-(windows|mac|linux))?\.txt$' -or
+        $_.Name -eq 'edot-update.txt' -or $_.Name -match '^Edot-Setup-[0-9]+\.[0-9]+\.[0-9]+-windows-x64\.exe$'
+    } | ForEach-Object { Remove-Item -LiteralPath $_.FullName -Force }
+
 Push-Location $projectRoot
 try {
     if (-not $NoBuild) {
@@ -54,10 +60,11 @@ try {
         if (-not [IO.Path]::GetFullPath($stage).StartsWith($targetRoot, [StringComparison]::OrdinalIgnoreCase)) { throw 'Invalid stage path' }
         Remove-Item -LiteralPath $stage -Recurse -Force
     }
-    $checksums = foreach ($file in @($installer, $portable)) {
-        (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + [IO.Path]::GetFileName($file)
+    $checksums = @{}
+    foreach ($file in @($installer, $portable)) {
+        $checksums[[IO.Path]::GetFileName($file)] = (Get-FileHash -LiteralPath $file -Algorithm SHA256).Hash.ToLowerInvariant()
     }
-    [IO.File]::WriteAllLines((Join-Path $OutputDirectory 'SHA256SUMS-windows.txt'), [string[]]$checksums, [Text.Encoding]::ASCII)
+    [IO.File]::WriteAllText((Join-Path $OutputDirectory 'package-checksums-windows.json'), ($checksums | ConvertTo-Json), [Text.Encoding]::ASCII)
     Get-Item -LiteralPath $installer, $portable | Select-Object Name, Length
 } finally {
     Pop-Location

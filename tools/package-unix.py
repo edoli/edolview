@@ -83,10 +83,10 @@ def copy_assets(destination: Path) -> None:
         shutil.copytree(ROOT / "colormap", destination / "colormap")
 
 
-def zip_tree(source: Path, destination: Path) -> None:
+def zip_tree(source: Path, destination: Path, prefix: str = "") -> None:
     with zipfile.ZipFile(destination, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
         for path in sorted(source.rglob("*")):
-            name = path.relative_to(source).as_posix()
+            name = (Path(prefix) / path.relative_to(source)).as_posix()
             if path.is_symlink():
                 entry = zipfile.ZipInfo(name)
                 entry.create_system = 3
@@ -121,7 +121,7 @@ def package_mac(binary: Path, stage: Path, build_version: str) -> list[Path]:
     if "/opt/homebrew/" in dependencies or "/usr/local/" in dependencies:
         raise ValueError(f"Non-system dynamic dependencies:\n{dependencies}")
     archive = DIST / f"{APP}-mac.zip"
-    run("ditto", "-c", "-k", "--sequesterRsrc", "--keepParent", app, archive)
+    zip_tree(app, archive, app.name)
     image_root = stage / "dmg"
     image_root.mkdir()
     shutil.copytree(app, image_root / app.name, symlinks=True)
@@ -147,32 +147,8 @@ def linuxdeploy() -> Path:
 
 def package_deb(binary: Path, stage: Path, desktop: Path, build_version: str) -> Path:
     destination = DIST / f"{APP}-installer-deb.deb"
-    if APP == "edolview":
-        run("cargo", "deb", "--no-build", "--profile", "release-dist", "--deb-version", build_version, "--output", destination, cwd=ROOT)
-        return destination
-    root = stage / "deb"
-    copy_binary(binary, root / f"usr/bin/{APP}")
-    applications = root / "usr/share/applications"
-    applications.mkdir(parents=True)
-    shutil.copy2(desktop, applications / desktop.name)
-    icon = root / f"usr/share/icons/hicolor/512x512/apps/{APP}.png"
-    icon.parent.mkdir(parents=True)
-    shutil.copy2(ICON, icon)
-    debian = stage / "debian"
-    debian.mkdir()
-    (debian / "control").write_text(f"Source: {APP}\nSection: utils\nPriority: optional\nMaintainer: Edoli\n\nPackage: {APP}\nArchitecture: any\nDescription: {NAME}\n")
-    scan = run("dpkg-shlibdeps", "-O", f"-e{binary}", cwd=stage, capture_output=True, text=True).stdout
-    dependencies = next(line.removeprefix("shlibs:Depends=") for line in scan.splitlines() if line.startswith("shlibs:Depends="))
-    # GPUI's GPU backend is loaded at runtime rather than present in DT_NEEDED.
-    dependencies += ", libvulkan1, libxkbcommon-x11-0, libfontconfig1, libfreetype6"
-    if APP == "edot":
-        dependencies += ", libcurl4t64"
-    control = root / "DEBIAN"
-    control.mkdir()
-    (control / "control").write_text(f"Package: {APP}\nVersion: {build_version}\nArchitecture: amd64\nSection: utils\nPriority: optional\nMaintainer: Daniel Jeon <edoli.mia@gmail.com>\nDepends: {dependencies}\nRecommends: xdg-desktop-portal, fonts-noto-cjk\nDescription: {NAME}\n Native desktop application.\n")
-    for event in ("postinst", "postrm"):
-        write_executable(control / event, "#!/bin/sh\nset -e\nif command -v update-desktop-database >/dev/null 2>&1; then update-desktop-database -q /usr/share/applications || true; fi\nif command -v gtk-update-icon-cache >/dev/null 2>&1; then gtk-update-icon-cache -q -t /usr/share/icons/hicolor || true; fi\n")
-    run("dpkg-deb", "--root-owner-group", "--build", root, destination)
+    run("cargo", "deb", "--no-build", "--profile", "release-dist",
+        "--deb-version", build_version, "--output", destination, cwd=ROOT)
     return destination
 
 
@@ -220,8 +196,8 @@ def main() -> None:
     with tempfile.TemporaryDirectory(prefix="package-", dir=ROOT / "target") as temporary:
         outputs = (package_mac if sys.platform == "darwin" else package_linux)(binary, Path(temporary), version())
     suffix = "mac" if sys.platform == "darwin" else "linux"
-    checksums = DIST / f"SHA256SUMS-{suffix}.txt"
-    checksums.write_text("".join(f"{hashlib.sha256(path.read_bytes()).hexdigest()}  {path.name}\n" for path in outputs), encoding="ascii", newline="\n")
+    checksums = DIST / f"package-checksums-{suffix}.json"
+    checksums.write_text(json.dumps({path.name: hashlib.sha256(path.read_bytes()).hexdigest() for path in outputs}), encoding="ascii")
     for path in [*outputs, checksums]:
         print(f"{path.name}: {path.stat().st_size:,} bytes")
 

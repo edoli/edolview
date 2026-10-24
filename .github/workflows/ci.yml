@@ -118,7 +118,7 @@ jobs:
         run: cargo run --locked -p xtask --features heif -- icons
       - name: Install DEB packaging tool
         if: runner.os == 'Linux'
-        run: cargo install cargo-deb --locked
+        run: cargo install cargo-deb --version 3.8.0 --locked
       - name: Build optimized binary
         run: cargo build --profile release-dist --locked --features heif,avif
       - name: Install Inno Setup
@@ -132,6 +132,12 @@ jobs:
       - name: Package macOS or Linux
         if: runner.os != 'Windows'
         run: python tools/package-unix.py --no-build
+      - name: Validate isolated update helpers
+        if: runner.os != 'macOS'
+        run: python tools/test-update-helper.py
+      - name: Validate isolated macOS bundle replacement
+        if: runner.os == 'macOS'
+        run: python tools/test-macos-update.py
       - name: Validate final packages
         run: python tools/check-packages.py
       - uses: actions/upload-artifact@v4
@@ -139,7 +145,7 @@ jobs:
           name: edolview-${{ matrix.suffix }}
           path: |
             target/dist/edolview*
-            target/dist/SHA256SUMS-${{ matrix.suffix }}.txt
+            target/dist/package-checksums-${{ matrix.suffix }}.json
           if-no-files-found: error
           compression-level: 0
 
@@ -167,7 +173,14 @@ jobs:
         run: python tools/release-assets.py
       - uses: softprops/action-gh-release@v3
         with:
-          files: dist/*
+          files: |
+            dist/edolview-windows.zip
+            dist/edolview-mac.zip
+            dist/edolview-linux.zip
+            dist/edolview-installer-exe.exe
+            dist/edolview-installer-dmg.dmg
+            dist/edolview-installer-deb.deb
+            dist/edolview-installer-appimage.AppImage
           fail_on_unmatched_files: true
           generate_release_notes: true
           make_latest: ${{ steps.assets.outputs.make_latest }}

@@ -42,7 +42,6 @@ MinVersion=10.0
 OutputDir={#OutputPath}
 OutputBaseFilename=edolview-installer-exe
 SetupIconFile={#ProjectRoot}\icons\app.ico
-LicenseFile={#ProjectRoot}\LICENSE
 UninstallDisplayIcon={app}\edolview.exe
 Compression=lzma2/max
 SolidCompression=yes

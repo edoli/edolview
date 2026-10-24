@@ -104,3 +104,28 @@ pub fn app_config_dir() -> PathBuf {
     let _ = fs::create_dir_all(&path);
     path
 }
+
+pub fn colormap_dir() -> PathBuf {
+    #[cfg(target_os = "linux")]
+    if env::current_exe().is_ok_and(|exe| exe == Path::new("/usr/bin/edolview")) {
+        return PathBuf::from("/usr/share/edolview/colormap");
+    }
+    exe_dir_or_cwd().join("colormap")
+}
+
+pub fn custom_colormap_dir() -> PathBuf {
+    #[cfg(target_os = "linux")]
+    if env::current_exe().is_ok_and(|exe| exe == Path::new("/usr/bin/edolview")) {
+        return app_config_dir().join("colormap");
+    }
+    colormap_dir()
+}
+
+pub fn colormap_file(relative: &Path) -> PathBuf {
+    let custom = custom_colormap_dir().join(relative);
+    if custom.is_file() {
+        custom
+    } else {
+        colormap_dir().join(relative)
+    }
+}

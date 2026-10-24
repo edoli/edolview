@@ -59,21 +59,27 @@ pub struct AppState {
 
 fn list_colormaps(rel_dir: &str) -> Vec<String> {
     // get file names ending with .glsl in the directory; silently ignore IO errors
-    let base_dir = crate::util::path_ext::exe_dir_or_cwd();
-    let dir = base_dir.join(rel_dir);
+    let relative = rel_dir.strip_prefix("colormap/").unwrap_or(rel_dir);
+    let roots = [
+        crate::util::path_ext::colormap_dir(),
+        crate::util::path_ext::custom_colormap_dir(),
+    ];
     let mut files = Vec::new();
-    if let Ok(entries) = std::fs::read_dir(dir) {
-        for entry in entries.flatten() {
-            if let Some(name) = entry.file_name().to_str() {
-                if name.ends_with(".glsl") {
-                    if let Some(stem) = entry.path().file_stem().and_then(|s| s.to_str()) {
-                        files.push(stem.to_string());
+    for root in roots {
+        if let Ok(entries) = std::fs::read_dir(root.join(relative)) {
+            for entry in entries.flatten() {
+                if let Some(name) = entry.file_name().to_str() {
+                    if name.ends_with(".glsl") {
+                        if let Some(stem) = entry.path().file_stem().and_then(|s| s.to_str()) {
+                            files.push(stem.to_string());
+                        }
                     }
                 }
             }
         }
     }
     files.sort();
+    files.dedup();
     files
 }
 

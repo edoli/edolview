@@ -51,7 +51,6 @@ fn generate_all_icons() -> Result<()> {
     }
 
     write_linux_app_run("packaging/linux/AppRun")?;
-    write_linux_wrapper("packaging/linux/edolview-wrapper.sh")?;
     write_linux_desktop(format!("packaging/{APP_NAME_LC}.desktop").as_str())?;
     write_linux_debian_maintainer_script("packaging/linux/debian/postinst")?;
     write_linux_debian_maintainer_script("packaging/linux/debian/postrm")?;
@@ -213,17 +212,6 @@ fn write_linux_app_run(path: &str) -> Result<()> {
         r#"#!/bin/sh
 SELF_DIR="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
 exec "$SELF_DIR/usr/bin/edolview" "$@"
-"#,
-    )?;
-    Ok(())
-}
-
-fn write_linux_wrapper(path: &str) -> Result<()> {
-    fs::create_dir_all(Path::new(path).parent().unwrap())?;
-    fs::write(
-        path,
-        r#"#!/bin/sh
-exec /opt/edolview/edolview "$@"
 "#,
     )?;
     Ok(())

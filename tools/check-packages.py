@@ -1,5 +1,7 @@
 """Validate final portable payloads, target architecture, and package checksums."""
 import hashlib
+import json
+import tempfile
 import os
 from pathlib import Path
 import plistlib
@@ -20,11 +22,15 @@ with zipfile.ZipFile(DIST / f"{app}-{suffix}.zip") as archive:
     if suffix == "mac":
         display = {"edolview": "Edolview", "edolwave": "EdolWave", "edot": "Edot"}[app]
         prefix = f"{display}.app/Contents/"
+        assert all(name.startswith(f"{display}.app/") for name in names), names
         info = plistlib.loads(archive.read(prefix + "Info.plist"))
         assert info["CFBundleVersion"] == version
         assert info["CFBundleExecutable"] == app
         binary = archive.read(prefix + f"MacOS/{app}")
         assert binary[:4] == b"\xcf\xfa\xed\xfe" and struct.unpack_from("<I", binary, 4)[0] == 0x100000C, "Expected arm64 Mach-O"
+        with tempfile.TemporaryDirectory() as extracted:
+            subprocess.run(["ditto", "-x", "-k", str(DIST / f"{app}-mac.zip"), extracted], check=True)
+            subprocess.run(["codesign", "--verify", "--deep", "--strict", str(Path(extracted) / f"{display}.app")], check=True)
     else:
         executable = app + (".exe" if suffix == "windows" else "")
         assert executable in names
@@ -60,9 +66,11 @@ if suffix == "linux":
     path = DIST / f"{app}-installer-deb.deb"
     assert subprocess.check_output(["dpkg-deb", "-f", str(path), "Version"], text=True).strip() == version
     assert subprocess.check_output(["dpkg-deb", "-f", str(path), "Architecture"], text=True).strip() == "amd64"
+    listing = subprocess.check_output(["dpkg-deb", "-c", str(path)], text=True)
+    assert f"./usr/bin/{app}" in listing and f"./opt/{app}" not in listing, listing
+    assert not re.search(r"/(README(?:\.md)?|LICENSE)(?:\.gz)?$", listing, re.M), listing
     assert (DIST / f"{app}-installer-appimage.AppImage").read_bytes()[:4] == b"\x7fELF"
-manifest = DIST / f"SHA256SUMS-{suffix}.txt"
-for line in manifest.read_text(encoding="ascii").splitlines():
-    digest, name = line.split("  ", 1)
+manifest = DIST / f"package-checksums-{suffix}.json"
+for name, digest in json.loads(manifest.read_text(encoding="ascii")).items():
     assert hashlib.sha256((DIST / name).read_bytes()).hexdigest() == digest, name
 print(f"Verified {app} {version} {suffix} packages and checksums")

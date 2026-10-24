@@ -10,7 +10,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     model::{GpuImageTexture, Image, MinMaxTotal},
-    util::path_ext::exe_dir_or_cwd,
+    util::path_ext::colormap_file,
 };
 
 const IMAGE_SHADER_CODE: &str = include_str!("gpu_image.frag");
@@ -720,7 +720,7 @@ fn build_fragment_source(colormap: &str, is_mono: bool) -> Result<String> {
         format!("colormap/rgb/{colormap}.glsl")
     }
     .into();
-    let installed_path = exe_dir_or_cwd().join(&relative_path);
+    let installed_path = colormap_file(relative_path.strip_prefix("colormap").unwrap_or(&relative_path));
     let path = if installed_path.is_file() {
         installed_path
     } else {

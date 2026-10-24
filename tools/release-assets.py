@@ -13,21 +13,26 @@ app, version = package["name"], package["version"]
 dist = ROOT / "dist"
 names = [f"{app}-{os_name}.zip" for os_name in ("windows", "mac", "linux")]
 names += [f"{app}-installer-{kind}.{extension}" for kind, extension in (("exe", "exe"), ("dmg", "dmg"), ("deb", "deb"), ("appimage", "AppImage"))]
-if app == "edot":
-    # Transition assets allow existing manifest-based Windows clients to upgrade.
-    names += ["edot-update.txt", f"Edot-Setup-{version}-windows-x64.exe"]
 for name in names:
     path = dist / name
     if not path.is_file() or path.stat().st_size == 0:
         raise ValueError(f"Required release asset is missing: {name}")
-for suffix in ("windows", "mac", "linux"):
-    manifest = dist / f"SHA256SUMS-{suffix}.txt"
-    for line in manifest.read_text(encoding="ascii").splitlines():
-        digest, name = line.split("  ", 1)
-        if name not in names or hashlib.sha256((dist / name).read_bytes()).hexdigest() != digest:
-            raise ValueError(f"Artifact checksum mismatch: {name}")
+metadata = [f"package-checksums-{suffix}.json" for suffix in ("windows", "mac", "linux")]
+actual = {path.name for path in dist.iterdir()}
+if actual != set(names + metadata):
+    raise ValueError(f"Unexpected or missing release files: {actual.symmetric_difference(names + metadata)}")
+verified = set()
+for name in metadata:
+    manifest = dist / name
+    for asset, digest in json.loads(manifest.read_text(encoding="ascii")).items():
+        if asset not in names or hashlib.sha256((dist / asset).read_bytes()).hexdigest() != digest:
+            raise ValueError(f"Artifact checksum mismatch: {asset}")
+        if asset in verified:
+            raise ValueError(f"Duplicate checksum metadata: {asset}")
+        verified.add(asset)
     manifest.unlink()
-(dist / "SHA256SUMS.txt").write_text("".join(f"{hashlib.sha256((dist / name).read_bytes()).hexdigest()}  {name}\n" for name in names), encoding="ascii", newline="\n")
+if verified != set(names):
+    raise ValueError(f"Missing checksum metadata: {set(names) - verified}")
 result = subprocess.run(["gh", "api", f"repos/{os.environ['GITHUB_REPOSITORY']}/releases/latest"], capture_output=True, text=True)
 if result.returncode:
     if "404" not in result.stderr:

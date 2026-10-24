@@ -555,11 +555,8 @@ impl ViewerApp {
         self.colormap_folder_rx = Some(rx);
         let ctx = ctx.clone();
         thread::spawn(move || {
-            // Match the executable-relative directory used by AppState's colormap list.
-            let directory =
-                crate::util::path_ext::exe_dir_or_cwd()
-                    .join("colormap")
-                    .join(if is_mono { "mono" } else { "rgb" });
+            // Installed Linux defaults are read-only; custom colormaps belong to the user.
+            let directory = crate::util::path_ext::custom_colormap_dir().join(if is_mono { "mono" } else { "rgb" });
             let result = fs::create_dir_all(&directory)
                 .map_err(|error| format!("Failed to create colormap folder '{}': {error}", directory.display()))
                 .and_then(|()| {
