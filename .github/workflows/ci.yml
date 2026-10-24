@@ -97,7 +97,7 @@ jobs:
         run: |
           echo 'SYSTEM_DEPS_DAV1D_LINK=static' >> "$GITHUB_ENV"
           if [ "$RUNNER_OS" = Windows ]; then
-            echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/target/vcpkg/installed/x64-windows-static/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
+            echo "PKG_CONFIG_PATH=$(cygpath -m "$GITHUB_WORKSPACE")/target/vcpkg/installed/x64-windows-static/lib/pkgconfig" >> "$GITHUB_ENV"
           elif [ "$RUNNER_OS" = Linux ]; then
             echo 'SYSTEM_DEPS_DAV1D_BUILD_INTERNAL=always' >> "$GITHUB_ENV"
             echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/target/vcpkg/installed/x64-linux-release/lib/pkgconfig:${PKG_CONFIG_PATH:-}" >> "$GITHUB_ENV"
