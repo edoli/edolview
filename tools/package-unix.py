@@ -149,6 +149,14 @@ def linuxdeploy() -> Path:
 
 def package_deb(binary: Path, stage: Path, desktop: Path, build_version: str) -> Path:
     destination = DIST / f"{APP}-installer-deb.deb"
+    # Package-manager hooks are generated with the package, not kept as extra tools.
+    scripts = ROOT / "target/deb-maintainer-scripts"
+    scripts.mkdir(parents=True, exist_ok=True)
+    for event in ("postinst", "postrm"):
+        write_executable(scripts / event,
+            "#!/bin/sh\nset -e\n"
+            "if command -v update-desktop-database >/dev/null 2>&1; then update-desktop-database -q /usr/share/applications || true; fi\n"
+            "if command -v gtk-update-icon-cache >/dev/null 2>&1; then gtk-update-icon-cache -q -t /usr/share/icons/hicolor || true; fi\n")
     run("cargo", "deb", "--no-build", "--profile", "release-dist",
         "--deb-version", build_version, "--output", destination, cwd=ROOT)
     return destination

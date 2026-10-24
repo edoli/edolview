@@ -90,6 +90,7 @@ identifier = "kr.edoli.edolview"
 icon = ["icons/Edolview.icns"]
 
 [package.metadata.deb]
+maintainer-scripts = "target/deb-maintainer-scripts"
 name = "edolview"
 profile = "release-dist"
 maintainer = "Daniel Jeon <edoli.mia@gmail.com>"

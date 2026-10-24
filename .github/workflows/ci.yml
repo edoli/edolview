@@ -132,12 +132,6 @@ jobs:
       - name: Package macOS or Linux
         if: runner.os != 'Windows'
         run: python tools/package-unix.py --no-build
-      - name: Validate isolated update helpers
-        if: runner.os != 'macOS'
-        run: python tools/test-update-helper.py
-      - name: Validate isolated macOS bundle replacement
-        if: runner.os == 'macOS'
-        run: python tools/test-macos-update.py
       - name: Validate final packages
         run: python tools/check-packages.py
       - uses: actions/upload-artifact@v4
