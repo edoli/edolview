@@ -60,15 +60,17 @@ jobs:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
-            target/debug
-            target/release-dist
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ github.repository }}-cargo-${{ hashFiles('Cargo.lock', 'Cargo.toml', '.cargo/config.toml', '.github/workflows/ci.yml') }}
-          restore-keys: ${{ runner.os }}-${{ runner.arch }}-${{ github.repository }}-cargo-
+            target
+          key: ${{ runner.os }}-${{ github.repository }}-cargo-${{ hashFiles('Cargo.lock', 'Cargo.toml', '.cargo/config.toml', '.github/workflows/ci.yml') }}
+          restore-keys: ${{ runner.os }}-${{ github.repository }}-cargo-
       - uses: actions/cache/restore@v4
         id: native-cache
         with:
           path: target/vcpkg
           key: vcpkg-static-crt-${{ runner.os }}-${{ github.repository }}-${{ hashFiles('Cargo.toml') }}
+          restore-keys: |
+            vcpkg-static-crt-${{ runner.os }}-${{ github.repository }}-
+            vcpkg-${{ runner.os }}-${{ github.repository }}
       - name: Install native build dependencies (Linux)
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y build-essential clang cmake meson ninja-build git curl unzip pkg-config nasm desktop-file-utils zsync dpkg-dev patchelf squashfs-tools file
