@@ -1,5 +1,4 @@
 use color_eyre::eyre::Report;
-use core::f32;
 use eframe::egui::{self, pos2, vec2, Color32, Rangef};
 use rfd::FileDialog;
 use std::{
