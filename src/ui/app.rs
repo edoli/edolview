@@ -2174,25 +2174,56 @@ impl eframe::App for ViewerApp {
                                 slider_ui.spacing_mut().slider_width = desired_size_plot.y;
                                 let [low, high] = &mut self.plot_percentiles;
                                 let response = slider_ui.scope(|ui| {
-                                    // Inset the painted handles without shrinking the pointer target.
-                                    // Compensate their aspect ratio to preserve the handle height.
+                                    // Only restyle native painting; keep the handle geometry and input unchanged.
                                     let inset = 2.0;
                                     let radius = slider_width.max(ui.text_style_height(&egui::TextStyle::Body)) / 2.5;
-                                    let widgets = &mut ui.visuals_mut().widgets;
+                                    let rail_width = 8.0;
+                                    // egui shares the rail fill with the idle handle, so paint the rail separately.
+                                    // Native handles retain all input, focus, and per-handle hover behavior.
+                                    ui.spacing_mut().slider_rail_height = 0.0;
+                                    let rail_shape = ui.painter().add(egui::Shape::Noop);
+                                    let visuals = ui.visuals_mut();
+                                    let rail_fill = visuals.widgets.inactive.bg_fill;
+                                    let range_fill = visuals.selection.bg_fill;
+                                    let widgets = &mut visuals.widgets;
                                     for visuals in [
                                         &mut widgets.noninteractive,
                                         &mut widgets.inactive,
                                         &mut widgets.hovered,
                                         &mut widgets.active,
                                     ] {
-                                        visuals.expansion -= inset;
+                                        visuals.expansion = rail_width / 2.0 - radius;
+                                        visuals.corner_radius = egui::CornerRadius::same(1);
+                                        visuals.bg_fill = visuals.fg_stroke.color;
+                                        visuals.fg_stroke = egui::Stroke::NONE;
                                     }
-                                    range_slider_ui(ui, low, high, 0.0..=100.0, 1.0, |slider| {
+                                    let handle_expansion = widgets.inactive.expansion;
+                                    let response = range_slider_ui(ui, low, high, 0.0..=100.0, 1.0, |slider| {
                                         slider.vertical().show_value(false).smart_aim(false)
                                             .handle_shape(egui::style::HandleShape::Rect {
-                                                aspect_ratio: 0.4 + inset / radius,
+                                                aspect_ratio: 0.5 + inset / radius,
                                             })
-                                    })
+                                    });
+                                    if let (Some(low), Some(high)) = (
+                                        ui.ctx().read_response(response.id.with("low")),
+                                        ui.ctx().read_response(response.id.with("high")),
+                                    ) {
+                                        let rail = egui::Rect::from_center_size(
+                                            response.rect.center(),
+                                            // Native handles change their painted bounds by expansion at both ends.
+                                            // Match those bounds without changing value mapping or the hit target.
+                                            egui::vec2(rail_width, (response.rect.height() + 2.0 * handle_expansion).max(0.0)),
+                                        );
+                                        let range = egui::Rect::from_min_max(
+                                            egui::pos2(rail.left(), high.rect.center().y - 1.0),
+                                            egui::pos2(rail.right(), low.rect.center().y + 1.0),
+                                        ).intersect(rail);
+                                        ui.painter().set(rail_shape, egui::Shape::Vec(vec![
+                                            egui::Shape::rect_filled(rail, 1, rail_fill),
+                                            egui::Shape::rect_filled(range, 1, range_fill),
+                                        ]));
+                                    }
+                                    response
                                 }).inner;
                                 if response.changed() {
                                     ctx.request_repaint();
