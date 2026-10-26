@@ -164,6 +164,7 @@ EdolView accepts the following file extensions in the current build:
 * Netpbm family: `pbm`, `pgm`, `ppm`, `pnm`, `pxm`, `pam`
 * Optional AVIF support: `avif`
 * Optional HEIF support: `heic`, `heif`
+* Camera RAW (rawler): `3fr`, `ari`, `arw`, `cr2`, `cr3`, `crm`, `crw`, `dcr`, `dcs`, `dng`, `erf`, `fff`, `iiq`, `kdc`, `mef`, `mos`, `mrw`, `nef`, `nrw`, `orf`, `ori`, `pef`, `qtk`, `raf`, `raw`, `rw2`, `rwl`, `sr2`, `srf`, `srw`
 
 ## License
 EdolView is available under the MIT license.
