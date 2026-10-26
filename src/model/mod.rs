@@ -5,6 +5,7 @@ mod gpu_compute;
 mod image;
 mod image_io;
 mod image_processor;
+mod raw;
 mod recti;
 mod socket;
 mod statistics_worker;

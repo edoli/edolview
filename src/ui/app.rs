@@ -126,6 +126,7 @@ pub struct ViewerApp {
     last_path: Option<PathBuf>,
     startup_paths: Vec<PathBuf>,
     startup_path_rx: Option<mpsc::Receiver<StartupPathLoadResult>>,
+    pending_navigation_path: Option<PathBuf>,
     tmp_marquee_rect: Recti,
     marquee_rect_text: String,
     is_start_background_event_handlers_called: bool,
@@ -306,6 +307,7 @@ impl ViewerApp {
             last_path: None,
             startup_paths: Vec::new(),
             startup_path_rx: None,
+            pending_navigation_path: None,
 
             tmp_marquee_rect: marquee_rect,
             marquee_rect_text: marquee_rect.to_string(),
@@ -388,9 +390,12 @@ impl ViewerApp {
             for path in paths {
                 let result = match FileAsset::hash_from_path(&path) {
                     Ok(hash) => {
-                        if seen_hashes.insert(hash.clone()) {
+                        if !seen_hashes.contains(&hash) {
                             match ImageData::load_from_path(&path) {
-                                Ok(image) => StartupPathLoadResult::Loaded { path, hash, image },
+                                Ok(image) => {
+                                    seen_hashes.insert(hash.clone());
+                                    StartupPathLoadResult::Loaded { path, hash, image }
+                                }
                                 Err(err) => StartupPathLoadResult::Failed { path, error: err },
                             }
                         } else {
@@ -409,13 +414,61 @@ impl ViewerApp {
         });
     }
 
+    fn open_file_paths(&mut self, paths: Vec<PathBuf>, ctx: &egui::Context) {
+        // Share startup/external-open's sequential worker with the file dialog,
+        // drops and navigation. RAW development must never run on the UI thread.
+        self.startup_paths.extend(paths);
+        self.start_startup_path_loading(ctx);
+        ctx.request_repaint();
+    }
+
+    fn navigate_file(&mut self, forward: bool, ctx: &egui::Context) {
+        if !self
+            .state
+            .asset_primary
+            .as_ref()
+            .is_some_and(|asset| asset.asset_type() == AssetType::File)
+        {
+            return;
+        }
+        // Rapid arrow presses advance from the last requested file, even while
+        // an older RAW is still decoding and updating the displayed asset.
+        if let Some(path) = &self.pending_navigation_path {
+            self.state.file_nav.select_index_for_path(path);
+        }
+        let path = if forward {
+            self.state.file_nav.navigate_next()
+        } else {
+            self.state.file_nav.navigate_prev()
+        };
+        if let Some(path) = path {
+            self.pending_navigation_path = Some(path.clone());
+            self.open_file_paths(vec![path], ctx);
+        }
+    }
+
     fn load_fail(toasts: &mut Vec<Toast>, message: &str, path: Option<&PathBuf>, e: &Report) {
         eprintln!("{message}: {e}");
         let path_str = path.map_or("<invalid>", |p| p.to_str().unwrap_or("<invalid>"));
         toasts.add_error(format!("{message}: {path_str}"));
     }
 
-    fn open_from_clipboard(&mut self) {
+    fn open_from_clipboard(&mut self, ctx: &egui::Context) {
+        // Explorer can expose both a thumbnail and original files. Open RAW
+        // files through the worker rather than decoding them in the clipboard
+        // fallback on the UI thread.
+        use clipboard_rs::{Clipboard, ClipboardContext, ContentFormat};
+        if let Ok(clipboard) = ClipboardContext::new() {
+            if clipboard.has(ContentFormat::Files) {
+                if let Ok(files) = clipboard.get_files() {
+                    let paths: Vec<PathBuf> = files.into_iter().map(PathBuf::from).collect();
+                    if paths.iter().any(|path| crate::supported_image::is_raw_path(path)) {
+                        self.open_file_paths(paths, ctx);
+                        return;
+                    }
+                }
+            }
+        }
         self.state.load_from_clipboard().unwrap_or_else(|e| {
             Self::load_fail(&mut self.toasts, "Failed to load image from clipboard", None, &e);
         });
@@ -1366,16 +1419,29 @@ impl ViewerApp {
 
         if let Some(rx) = &self.startup_path_rx {
             let mut should_clear_rx = false;
+            let mut received = false;
 
             loop {
                 match rx.try_recv() {
                     Ok(StartupPathLoadResult::Loaded { path, hash, image }) => {
+                        received = true;
+                        if self.pending_navigation_path.as_ref() == Some(&path) {
+                            self.pending_navigation_path = None;
+                        }
                         self.state.apply_loaded_file_asset(path, hash, image);
                     }
                     Ok(StartupPathLoadResult::Reused { path, hash }) => {
+                        received = true;
+                        if self.pending_navigation_path.as_ref() == Some(&path) {
+                            self.pending_navigation_path = None;
+                        }
                         self.state.set_file_asset_primary_by_hash_and_path(&hash, &path);
                     }
                     Ok(StartupPathLoadResult::Failed { path, error }) => {
+                        received = true;
+                        if self.pending_navigation_path.as_ref() == Some(&path) {
+                            self.pending_navigation_path = None;
+                        }
                         Self::load_fail(&mut self.toasts, "Failed to load image", Some(&path), &error);
                     }
                     Err(mpsc::TryRecvError::Empty) => break,
@@ -1389,6 +1455,9 @@ impl ViewerApp {
             if should_clear_rx {
                 self.startup_path_rx = None;
                 self.start_startup_path_loading(ctx);
+            }
+            if received {
+                Self::request_root_repaint(ctx);
             }
         }
     }
@@ -1451,6 +1520,7 @@ impl ViewerApp {
         let mut navigate_prev_roi = false;
         let mut navigate_next_roi = false;
         let mut open_from_clipboard = false;
+        let mut navigate_file = None;
         ctx.input_mut(|i| {
             for slot in 0..crate::settings::VIEW_PRESET_COUNT {
                 if i.consume_shortcut(&crate::res::PRESET_SAVE_SHORTCUTS[slot]) {
@@ -1481,16 +1551,10 @@ impl ViewerApp {
             navigate_next_roi |= i.consume_shortcut(&crate::res::ROI_NEXT);
             open_from_clipboard |= Self::consume_open_from_clipboard_shortcut(i);
             if i.consume_shortcut(&crate::res::NAVIGATE_PREV) {
-                if let Err(e) = self.state.navigate_prev() {
-                    let path = self.state.file_nav.navigate_prev();
-                    Self::load_fail(&mut self.toasts, "Failed to load navigated file", path.as_ref(), &e);
-                }
+                navigate_file = Some(false);
             }
             if i.consume_shortcut(&crate::res::NAVIGATE_NEXT) {
-                if let Err(e) = self.state.navigate_next() {
-                    let path = self.state.file_nav.navigate_next();
-                    Self::load_fail(&mut self.toasts, "Failed to load navigated file", path.as_ref(), &e);
-                }
+                navigate_file = Some(true);
             }
             if i.consume_shortcut(&crate::res::NAVIGATE_ASSET_PREV)
                 || i.consume_shortcut(&crate::res::NAVIGATE_ASSET_PREV_TAB)
@@ -1533,7 +1597,10 @@ impl ViewerApp {
             self.navigate_roi(1, ctx);
         }
         if open_from_clipboard {
-            self.open_from_clipboard();
+            self.open_from_clipboard(ctx);
+        }
+        if let Some(forward) = navigate_file {
+            self.navigate_file(forward, ctx);
         }
     }
 
@@ -1543,15 +1610,7 @@ impl ViewerApp {
             return;
         }
 
-        for f in dropped_files {
-            let path = f.path().to_path_buf();
-            match self.state.load_from_path(path.clone()) {
-                Ok(_) => {}
-                Err(e) => {
-                    Self::load_fail(&mut self.toasts, "Failed to load dropped file", Some(&path), &e);
-                }
-            }
-        }
+        self.open_file_paths(dropped_files.into_iter().map(|file| file.path().to_path_buf()).collect(), ctx);
     }
 
     fn run_logic(&mut self, ctx: &egui::Context) {
@@ -1663,10 +1722,8 @@ impl eframe::App for ViewerApp {
                             .add_filter("Images", supported_extensions.as_slice())
                             .pick_file()
                         {
-                            match self.state.load_from_path(path.clone()) {
-                                Ok(_) => self.viewer.reset_view(),
-                                Err(e) => Self::load_fail(&mut self.toasts, "Failed to open file", Some(&path), &e),
-                            }
+                            self.viewer.reset_view();
+                            self.open_file_paths(vec![path], &ctx);
                         }
                     }
 
@@ -1678,7 +1735,7 @@ impl eframe::App for ViewerApp {
                         .on_hover_text("Load image from clipboard")
                         .clicked()
                     {
-                        self.open_from_clipboard();
+                        self.open_from_clipboard(&ctx);
                     }
 
                     if ui.button("Exit").clicked() {
@@ -1688,6 +1745,9 @@ impl eframe::App for ViewerApp {
                 });
 
                 ui.separator();
+                if self.startup_path_rx.is_some() || !self.startup_paths.is_empty() {
+                    ui.spinner().on_hover_text("Loading images...");
+                }
                 if ui
                     .button("Reset")
                     .on_hover_text(format!(

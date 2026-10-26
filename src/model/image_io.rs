@@ -455,9 +455,15 @@ impl DecodedImage {
 }
 
 pub fn decode_path(path: &Path) -> Result<DecodedImage> {
+    if crate::supported_image::is_raw_path(path) {
+        return super::raw::decode_path(path);
+    }
     ensure_decoder_hooks();
     let mut reader = BufReader::new(File::open(path)?);
     let magic = reader.fill_buf()?;
+    if super::raw::has_signature(magic) {
+        return super::raw::decode_path(path);
+    }
     if magic.starts_with(&EXR_MAGIC) {
         return decode_exr_reader(reader);
     }
@@ -478,6 +484,9 @@ pub fn decode_path(path: &Path) -> Result<DecodedImage> {
 }
 
 pub fn decode_bytes(bytes: &[u8]) -> Result<DecodedImage> {
+    if super::raw::has_signature(bytes) {
+        return super::raw::decode_bytes(bytes);
+    }
     ensure_decoder_hooks();
     if bytes.starts_with(&EXR_MAGIC) {
         return decode_exr_reader(Cursor::new(bytes));

@@ -42,6 +42,8 @@ impl FileNav {
 
     #[inline]
     pub fn is_supported_image(path: &Path) -> bool {
+        // File navigation shares the same RAW list as the decoder, file dialog
+        // and generated platform associations; it never initializes rawler.
         let ext = path
             .extension()
             .and_then(|s| s.to_str())
@@ -253,6 +255,23 @@ impl FileNav {
         self.dir_path = None;
         self.files_in_dir.clear();
         self.current_file_index = None;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn raw_navigation_uses_the_shared_supported_format_list() {
+        for format in crate::supported_image::RAW_SUPPORTED_IMAGE_FORMATS {
+            assert!(FileNav::is_supported_image(Path::new(&format!(
+                "sample.{}",
+                format.ext.to_ascii_uppercase()
+            ))));
+        }
+        assert!(!FileNav::is_supported_image(Path::new("sample.x3f")));
+        assert!(!FileNav::is_supported_image(Path::new("sample.gpr")));
     }
 }
 
