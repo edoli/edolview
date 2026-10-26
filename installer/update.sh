@@ -30,7 +30,7 @@ finish() {
     status=$?
     trap - EXIT
     if [ "$status" -ne 0 ]; then
-        printf 'Update failed. %s\n' "$(tail -c 2048 "$ROOT/install.log" 2>/dev/null || true)" > "$RESULT"
+        printf 'ERROR\nUpdate failed: %s\n' "$(tail -c 2048 "$ROOT/install.log" 2>/dev/null || true)" > "$RESULT"
         if [ "$replaced" -eq 1 ] && [ -n "$backup" ] && [ -e "$backup" ]; then
             mv "$backup" "$EXE" || true
         fi
@@ -38,8 +38,8 @@ finish() {
             if [ -d "$asset_target" ]; then mv "$asset_target" "$ROOT/failed-assets"; fi
             mv "$asset_backup" "$asset_target" || true
         fi
-    else
-        rm -f "$RESULT"
+    elif [ "$committed" -eq 1 ]; then
+        printf 'OK\nUpdate complete: Edolview v%s is ready to use.\n' "$EDOLVIEW_UPDATE_VERSION" > "$RESULT"
     fi
     if [ -n "$mount_dir" ]; then hdiutil detach "$mount_dir" -quiet || true; fi
     if [ "$committed" -eq 1 ]; then

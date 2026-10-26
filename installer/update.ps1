@@ -146,7 +146,7 @@ try {
         throw 'The installed version does not match the release.'
     }
     $succeeded = $true
-    Remove-Item -LiteralPath $resultFile -Force -ErrorAction SilentlyContinue
+    [IO.File]::WriteAllText($resultFile, ('OK' + [Environment]::NewLine + 'Update complete: Edolview v' + $context.version + ' is ready to use.'), (New-Object Text.UTF8Encoding($false)))
 } catch {
     foreach ($file in $rollback) {
         try {

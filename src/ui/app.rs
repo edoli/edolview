@@ -169,7 +169,7 @@ pub struct ViewerApp {
     font_rx: Option<mpsc::Receiver<LoadedFallbackFonts>>,
     fallback_font_applied: bool,
 
-    update_rx: Option<mpsc::Receiver<crate::update::UpdateCheck>>,
+    update_rx: Option<mpsc::Receiver<crate::update::UpdateEvent>>,
     update_apply_rx: Option<mpsc::Receiver<Result<crate::update::PreparedUpdate, String>>>,
     update_status: UpdateStatus,
     update_toast_shown: bool,
@@ -1279,12 +1279,11 @@ impl ViewerApp {
 
         let update_ctx = ctx.clone();
         thread::spawn(move || {
-            let previous_failure = crate::update::take_update_failure().unwrap_or_else(|error| Some(error));
+            // Show the previous update outcome without waiting for the network check.
+            let _ = update_tx.send(crate::update::UpdateEvent::PreviousResult(crate::update::take_update_result()));
+            Self::request_root_repaint(&update_ctx);
             let result = crate::update::check_for_update();
-            let _ = update_tx.send(crate::update::UpdateCheck {
-                available: result,
-                previous_failure,
-            });
+            let _ = update_tx.send(crate::update::UpdateEvent::Checked(result));
             Self::request_root_repaint(&update_ctx);
         });
     }
@@ -1384,13 +1383,17 @@ impl ViewerApp {
         }
 
         if let Some(rx) = &self.update_rx {
-            match rx.try_recv() {
-                Ok(check) => {
-                    if let Some(error) = check.previous_failure {
-                        eprintln!("{error}");
-                        self.toasts.add_error(error);
-                    }
-                    match check.available {
+            loop {
+                match rx.try_recv() {
+                    Ok(crate::update::UpdateEvent::PreviousResult(result)) => match result {
+                        Ok(Some(crate::update::UpdateResult::Success(message))) => self.toasts.add_success(message),
+                        Ok(Some(crate::update::UpdateResult::Failure(error))) | Err(error) => {
+                            eprintln!("{error}");
+                            self.toasts.add_error(error);
+                        }
+                        Ok(None) => {}
+                    },
+                    Ok(crate::update::UpdateEvent::Checked(result)) => match result {
                         Ok(Some(update)) => {
                             if !self.update_toast_shown {
                                 self.toasts.add_info(format!("Update available: {}", update.version));
@@ -1406,12 +1409,13 @@ impl ViewerApp {
                             self.toasts.add_error(err.clone());
                             self.update_status = UpdateStatus::Error(err);
                         }
-                    }
-                }
-                Err(mpsc::TryRecvError::Empty) => {}
-                Err(mpsc::TryRecvError::Disconnected) => {
-                    if self.update_status == UpdateStatus::Checking {
-                        self.update_status = UpdateStatus::Error("Update check disconnected".to_string());
+                    },
+                    Err(mpsc::TryRecvError::Empty) => break,
+                    Err(mpsc::TryRecvError::Disconnected) => {
+                        if self.update_status == UpdateStatus::Checking {
+                            self.update_status = UpdateStatus::Error("Update check disconnected".to_string());
+                        }
+                        break;
                     }
                 }
             }

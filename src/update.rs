@@ -40,9 +40,15 @@ pub struct AvailableUpdate {
     pub target: UpdateTarget,
 }
 
-pub struct UpdateCheck {
-    pub available: Result<Option<AvailableUpdate>, String>,
-    pub previous_failure: Option<String>,
+pub enum UpdateEvent {
+    PreviousResult(Result<Option<UpdateResult>, String>),
+    Checked(Result<Option<AvailableUpdate>, String>),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum UpdateResult {
+    Success(String),
+    Failure(String),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -271,16 +277,29 @@ fn windows_update_target(exe: &Path) -> UpdateTarget {
     }
 }
 
-pub fn take_update_failure() -> Result<Option<String>, String> {
-    read_update_failure(&app_config_dir().join(RESULT_FILE))
+pub fn take_update_result() -> Result<Option<UpdateResult>, String> {
+    read_update_result(&app_config_dir().join(RESULT_FILE))
 }
 
-fn read_update_failure(path: &Path) -> Result<Option<String>, String> {
+fn read_update_result(path: &Path) -> Result<Option<UpdateResult>, String> {
     match fs::read_to_string(path) {
         Ok(result) => {
             fs::remove_file(path).map_err(|e| format!("Failed to clear update result: {e}"))?;
-            let message = result.strip_prefix("ERROR\n").unwrap_or(&result).trim();
-            Ok((!message.is_empty()).then(|| message.chars().take(4096).collect()))
+            let (status, body) = result.split_once('\n').unwrap_or(("", &result));
+            // Both helpers use OK/ERROR; accept Windows CRLF and legacy bare failures.
+            let (success, message) = match status.trim_end_matches('\r') {
+                "OK" => (true, body),
+                "ERROR" => (false, body),
+                _ => (false, result.as_str()),
+            };
+            let message = message.trim().chars().take(4096).collect::<String>();
+            Ok((!message.is_empty()).then(|| {
+                if success {
+                    UpdateResult::Success(message)
+                } else {
+                    UpdateResult::Failure(message)
+                }
+            }))
         }
         Err(error) if error.kind() == io::ErrorKind::NotFound => Ok(None),
         Err(error) => Err(format!("Failed to read update result: {error}")),
@@ -433,8 +452,10 @@ fn prepare_handoff(
     let deadline = Instant::now() + Duration::from_secs(30);
     loop {
         if handoff.child.as_mut().unwrap().try_wait().map_err(|e| e.to_string())?.is_some() {
-            return Err(read_update_failure(&config.join(RESULT_FILE))?
-                .unwrap_or_else(|| "Update helper exited before it was ready".into()));
+            return Err(match read_update_result(&config.join(RESULT_FILE))? {
+                Some(UpdateResult::Failure(message)) => message,
+                _ => "Update helper exited before it was ready".into(),
+            });
         }
         if directory.join("ready").is_file() {
             return Ok(handoff);
@@ -515,6 +536,58 @@ mod tests {
     use super::is_newer_version;
 
     #[test]
+    fn update_results_handle_both_platform_line_endings_and_legacy_results_once() {
+        use super::*;
+        let directory = create_update_temp_dir().unwrap();
+        let path = directory.join(RESULT_FILE);
+        let message = "Update complete: Edolview v1.1.4 is ready to use.";
+        for contents in [format!("OK\n{message}\n"), format!("OK\r\n{message}")] {
+            fs::write(&path, contents).unwrap();
+            assert_eq!(read_update_result(&path).unwrap(), Some(UpdateResult::Success(message.into())));
+            assert_eq!(read_update_result(&path).unwrap(), None);
+        }
+        for (contents, expected) in [
+            (
+                "OK\nUpdated to v1.0.2.",
+                Some(UpdateResult::Success("Updated to v1.0.2.".into())),
+            ),
+            (
+                "ERROR\nUpdate failed: canceled\n",
+                Some(UpdateResult::Failure("Update failed: canceled".into())),
+            ),
+            (
+                "ERROR\r\nUpdate failed: canceled",
+                Some(UpdateResult::Failure("Update failed: canceled".into())),
+            ),
+            (
+                "Update failed. details",
+                Some(UpdateResult::Failure("Update failed. details".into())),
+            ),
+            ("Unknown\nresult", Some(UpdateResult::Failure("Unknown\nresult".into()))),
+            ("OK\n  ", None),
+            ("", None),
+        ] {
+            fs::write(&path, contents).unwrap();
+            assert_eq!(read_update_result(&path).unwrap(), expected);
+            assert_eq!(read_update_result(&path).unwrap(), None);
+        }
+        fs::remove_dir(directory).unwrap();
+    }
+
+    #[test]
+    fn update_result_messages_are_bounded_without_splitting_unicode() {
+        use super::*;
+        let directory = create_update_temp_dir().unwrap();
+        let path = directory.join(RESULT_FILE);
+        fs::write(&path, format!("ERROR\n{}", "실패".repeat(4096))).unwrap();
+        assert_eq!(
+            read_update_result(&path).unwrap(),
+            Some(UpdateResult::Failure("실패".repeat(2048)))
+        );
+        fs::remove_dir(directory).unwrap();
+    }
+
+    #[test]
     fn update_assets_require_size_and_sha256_and_reject_corruption() {
         use super::*;
         let digest = format!("{:x}", Sha256::digest(b"abc"));
@@ -577,6 +650,7 @@ mod tests {
         assert!(!directory.join("go").exists());
         drop(rx); // Closing the app before consuming the result cancels it.
         assert!(!directory.exists());
+        assert!(!config.join(RESULT_FILE).exists()); // A canceled handoff is not a completed update.
 
         fs::create_dir(&directory).unwrap();
         fs::write(directory.join("edolview-windows.zip"), b"hello").unwrap();
