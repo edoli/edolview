@@ -7,10 +7,13 @@ description = "Image viewer for visualization and analysis"
 license = "MIT"
 
 [dependencies]
-# Enable image-rs' complete default decoder set. Native AVIF decoding is kept
-# behind the `avif` feature because it requires the system dav1d library. 
+# Keep the default decoder set without the unused AVIF encoder.
+# Native AVIF decoding remains behind the independent `avif` feature.
 # EXR, TIFF, and JPEG 2000 use dedicated paths to preserve layout and precision.
-image = "0.25.10"
+image = { version = "0.25.10", default-features = false, features = [
+    "rayon", "bmp", "dds", "exr", "ff", "gif", "hdr", "ico", "jpeg", "png",
+    "pnm", "qoi", "tga", "tiff", "webp",
+] }
 exr = { version = "1.74.2", default-features = false, features = ["rayon"] }
 hayro-jpeg2000 = "0.4.0"
 tiff = { version = "0.11.3", features = ["webp", "zstd"] }
@@ -36,7 +39,8 @@ ureq = "3.3.0"
 indexmap = "2.14.0"
 opener = "0.8.5"
 flate2 = { version = "1.1.9", features = ["zlib-rs"], default-features = false }
-clipboard-rs = "0.3.5"
+# Only file-list access uses clipboard-rs; arboard handles image copy/paste.
+clipboard-rs = { version = "0.3.5", default-features = false }
 dunce = "1.0.5"
 libheif-sys = { version = "5.3.0", features = ["v1_23"], optional = true }
 serde = { version = "1.0.228", features = ["derive"] }

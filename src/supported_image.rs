@@ -58,6 +58,10 @@ pub const BASE_SUPPORTED_IMAGE_FORMATS: &[SupportedImageFormat] = &[
         mime: "image/bmp",
     },
     SupportedImageFormat {
+        ext: "dds",
+        mime: "image/vnd-ms.dds",
+    },
+    SupportedImageFormat {
         ext: "exr",
         mime: "image/x-exr",
     },

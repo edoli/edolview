@@ -1644,14 +1644,11 @@ fn save_rendered_image(path: &Path, width: i32, height: i32, rgba_bytes: Vec<u8>
         .unwrap_or_else(|| "png".to_owned());
 
     match extension.as_str() {
-        "png" => image::save_buffer_with_format(
-            path,
-            &rgba_bytes,
-            width as u32,
-            height as u32,
-            image::ColorType::Rgba8,
-            image::ImageFormat::Png,
-        )?,
+        "png" => {
+            let file = std::fs::File::create(path)?;
+            let encoder = image::codecs::png::PngEncoder::new(BufWriter::new(file));
+            encoder.write_image(&rgba_bytes, width as u32, height as u32, image::ExtendedColorType::Rgba8)?;
+        }
         "jpg" | "jpeg" => {
             let mut rgb = Vec::with_capacity(width as usize * height as usize * 3);
             for pixel in rgba_bytes.chunks_exact(4) {
@@ -1760,6 +1757,40 @@ fn rect_with_handle_at(rect: Recti, handle: ResizeHandle, handle_pos: egui::Pos2
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn rendered_image_exports_preserve_png_pixels_and_jpeg_dimensions() {
+        let directory = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("target")
+            .join(format!("image-export-test-{}", std::process::id()));
+        std::fs::create_dir_all(&directory).unwrap();
+        let rgba = vec![255, 0, 0, 0, 0, 255, 0, 64, 0, 0, 255, 128, 255, 255, 255, 255];
+        for name in ["export.PNG", "export-no-extension"] {
+            let path = directory.join(name);
+            save_rendered_image(&path, 2, 2, rgba.clone()).unwrap();
+            let bytes = std::fs::read(&path).unwrap();
+            assert_eq!(image::guess_format(&bytes).unwrap(), image::ImageFormat::Png);
+            assert_eq!(image::load_from_memory(&bytes).unwrap().to_rgba8().into_raw(), rgba);
+            std::fs::remove_file(path).unwrap();
+        }
+        for name in ["export.jpg", "export.JPEG"] {
+            let path = directory.join(name);
+            save_rendered_image(&path, 2, 2, rgba.clone()).unwrap();
+            let bytes = std::fs::read(&path).unwrap();
+            assert_eq!(image::guess_format(&bytes).unwrap(), image::ImageFormat::Jpeg);
+            let decoded = image::load_from_memory(&bytes).unwrap();
+            assert_eq!((decoded.width(), decoded.height()), (2, 2));
+            assert_eq!(decoded.color(), image::ColorType::Rgb8);
+            std::fs::remove_file(path).unwrap();
+        }
+        let unsupported = directory.join("unsupported.webp");
+        assert!(save_rendered_image(&unsupported, 2, 2, rgba.clone()).is_err());
+        assert!(!unsupported.exists());
+        let invalid = directory.join("invalid.png");
+        assert!(save_rendered_image(&invalid, 0, 2, rgba).is_err());
+        assert!(!invalid.exists());
+        std::fs::remove_dir(directory).unwrap();
+    }
 
     #[test]
     fn minimap_visibility_follows_view_area_independently_of_pan_and_keeps_an_active_drag() {

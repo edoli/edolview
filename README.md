@@ -159,7 +159,7 @@ cargo run
 ## Supported file formats
 EdolView accepts the following file extensions in the current build:
 
-* Common image formats: `png`, `apng`, `jpg`, `jpeg`, `jpe`, `jfif`, `jp2`, `j2k`, `j2c`, `jpc`, `jpf`, `bmp`, `dib`, `tif`, `tiff`, `webp`, `gif`, `tga`, `ico`, `qoi`, `ff`
+* Common image formats: `png`, `apng`, `jpg`, `jpeg`, `jpe`, `jfif`, `jp2`, `j2k`, `j2c`, `jpc`, `jpf`, `bmp`, `dib`, `dds`, `tif`, `tiff`, `webp`, `gif`, `tga`, `ico`, `qoi`, `ff`
 * HDR and analysis formats: `exr`, `hdr`, `pic`, `pfm`, `flo`
 * Netpbm family: `pbm`, `pgm`, `ppm`, `pnm`, `pxm`, `pam`
 * Optional AVIF support: `avif`
