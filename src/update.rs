@@ -1,5 +1,7 @@
 use std::{
-    env, fs, io,
+    env,
+    ffi::OsString,
+    fs, io,
     path::{Path, PathBuf},
     process::Command,
     sync::atomic::{AtomicU64, Ordering},
@@ -393,11 +395,14 @@ fn prepare_handoff(
     fs::create_dir_all(config).map_err(|e| e.to_string())?;
     let version = version.trim().trim_start_matches(['v', 'V']);
     let package = directory.join(asset);
+    let working_directory = env::current_dir().map_err(|e| format!("Failed to locate current directory: {e}"))?;
+    let arguments = restart_image_paths(env::args_os().skip(1), &working_directory);
     fs::write(
         directory.join("context.json"),
         serde_json::to_vec(&serde_json::json!({
             "executable": exe, "package": package, "version": version, "sha256": hash,
-            "parent": std::process::id(), "arguments": env::args_os().skip(1).collect::<Vec<_>>(), "config": config,
+            // PathBuf serializes as a path string; OsString serializes as an OS-specific object.
+            "parent": std::process::id(), "arguments": arguments, "config": config,
         }))
         .map_err(|e| e.to_string())?,
     )
@@ -420,14 +425,14 @@ fn prepare_handoff(
         fs::write(directory.join("update.sh"), include_str!("../installer/update.sh")).map_err(|e| e.to_string())?;
         fs::write(
             directory.join("restart.sh"),
-            format!(
-                "#!/bin/sh\nexec {}\n",
-                sh_quote(if asset == "edolview-installer-deb.deb" {
-                    "/usr/bin/edolview"
+            restart_script(
+                if asset == "edolview-installer-deb.deb" {
+                    Path::new("/usr/bin/edolview")
                 } else {
-                    exe.to_str().ok_or("Invalid executable path")?
-                })
-            ),
+                    exe
+                },
+                &arguments,
+            )?,
         )
         .map_err(|e| e.to_string())?;
         let mut command = Command::new("sh");
@@ -465,6 +470,31 @@ fn prepare_handoff(
         }
         std::thread::sleep(Duration::from_millis(25));
     }
+}
+
+fn restart_image_paths(arguments: impl IntoIterator<Item = OsString>, working_directory: &Path) -> Vec<PathBuf> {
+    let mut positional_only = false;
+    arguments
+        .into_iter()
+        .filter_map(|argument| {
+            if !positional_only && argument == "--" {
+                positional_only = true;
+                return None;
+            }
+            // Restart helpers run from the installation directory, not the original cwd.
+            Some(working_directory.join(argument))
+        })
+        .collect()
+}
+
+fn restart_script(exe: &Path, arguments: &[PathBuf]) -> Result<String, String> {
+    let mut script = format!("#!/bin/sh\nexec {}", sh_quote(exe.to_str().ok_or("Invalid executable path")?));
+    for path in arguments {
+        script.push(' ');
+        script.push_str(&sh_quote(path.to_str().ok_or("Invalid restart image path")?));
+    }
+    script.push('\n');
+    Ok(script)
 }
 
 fn normalize_version_label(version: &str) -> String {
@@ -509,7 +539,6 @@ fn compare_versions(left: &[u64], right: &[u64]) -> std::cmp::Ordering {
     std::cmp::Ordering::Equal
 }
 
-#[cfg(unix)]
 fn sh_quote(value: &str) -> String {
     format!("'{}'", value.replace('\'', "'\\''"))
 }
@@ -534,6 +563,47 @@ fn app_bundle_path(_path: &Path) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::is_newer_version;
+
+    #[test]
+    fn restart_paths_are_absolute_json_strings_including_unicode_and_spaces() {
+        use super::*;
+        let directory = env::current_dir().unwrap();
+        let absolute = directory.join("already absolute.png");
+        let arguments = restart_image_paths(
+            [
+                OsString::from("images/한글 O'Brien.png"),
+                absolute.clone().into_os_string(),
+                OsString::from("--"),
+                OsString::from("-dash.png"),
+                OsString::from("--"),
+            ],
+            &directory,
+        );
+        let expected = vec![
+            directory.join("images/한글 O'Brien.png"),
+            absolute,
+            directory.join("-dash.png"),
+            directory.join("--"),
+        ];
+        assert_eq!(arguments, expected);
+        assert!(arguments.iter().all(|path| path.is_absolute()));
+        let json = serde_json::to_value(&arguments).unwrap();
+        let decoded: Vec<String> = serde_json::from_value(json).unwrap();
+        assert_eq!(decoded, expected.iter().map(|path| path.to_str().unwrap()).collect::<Vec<_>>());
+        assert!(restart_image_paths(Vec::<OsString>::new(), &directory).is_empty());
+    }
+
+    #[test]
+    fn unix_restart_preserves_each_argument_and_quotes_shell_characters() {
+        use super::*;
+        assert_eq!(
+            restart_script(Path::new("/opt/edolview"), &[]).unwrap(),
+            "#!/bin/sh\nexec '/opt/edolview'\n"
+        );
+        assert_eq!(restart_script(Path::new("/opt/viewer's bin/edolview"), &[
+            PathBuf::from("/images/한글 test.png"), PathBuf::from("/images/O'Brien $(touch file).png")
+        ]).unwrap(), "#!/bin/sh\nexec '/opt/viewer'\\''s bin/edolview' '/images/한글 test.png' '/images/O'\\''Brien $(touch file).png'\n");
+    }
 
     #[test]
     fn update_results_handle_both_platform_line_endings_and_legacy_results_once() {
@@ -638,6 +708,13 @@ mod tests {
             &config,
         )
         .unwrap();
+        let context: serde_json::Value =
+            serde_json::from_slice(&fs::read(directory.join("context.json")).unwrap()).unwrap();
+        assert!(context["arguments"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|argument| { argument.as_str().is_some_and(|path| Path::new(path).is_absolute()) }));
         // The worker may finish while the UI is blocked in a native dialog.
         let (tx, rx) = std::sync::mpsc::channel();
         tx.send(PreparedUpdate {
