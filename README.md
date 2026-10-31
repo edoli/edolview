@@ -168,17 +168,3 @@ EdolView accepts the following file extensions in the current build:
 
 ## License
 EdolView is available under the MIT license.
-
-## 배포
-
-GitHub Actions의 `.github/workflows/ci.yml`은 main push, main 대상 PR, 수동 실행과 `v*` 태그 push에서 동작합니다. CI가 Cargo 버전의 숫자 세 부분(각 0~65535, 선행 0 없음)을 검사하고 태그가 있으면 정확히 `v<Cargo 버전>`인지 확인합니다. 버전 검사 → stable Rust의 `release-dist` 빌드 → OS별 패키징을 수행하며 태그 실행만 GitHub Release를 공개합니다.
-
-Windows x64, macOS Apple Silicon, Linux x64를 배포합니다. Windows CRT는 정적으로 링크하고 Linux 앱 라이브러리는 정적으로 묶되 GUI·GPU·libc 등 시스템 라이브러리는 사용합니다. macOS 앱은 인증서 없이 ad-hoc 서명하며 Apple 공증은 수행하지 않습니다.
-
-파일명은 `edolview-windows.zip`, `edolview-mac.zip`, `edolview-linux.zip`, `edolview-installer-exe.exe`, `edolview-installer-dmg.dmg`, `edolview-installer-deb.deb`, `edolview-installer-appimage.AppImage`으로 고정합니다. Windows/Linux ZIP은 실행 파일과 필수 asset만, macOS ZIP은 `.app` 번들을 포함합니다. 최종 배포 파일의 `SHA256SUMS.txt`를 발행하며 모든 OS의 필수 파일이 준비되어야 Release를 공개합니다. 이전 버전을 재배포해도 더 높은 버전의 latest를 대체하지 않습니다.
-
-앱 업데이트는 GitHub Releases API에서 대상 파일과 SHA-256·크기를 읽어 검증합니다. 설치형은 기존 설치 경로·범위를 유지하고 포터블은 ZIP의 파일을 교체한 뒤 다시 실행합니다. 검증 정보가 없거나 다운로드 검증에 실패하면 업데이트하지 않습니다.
-
-릴리스 준비는 Cargo.toml 버전 변경 → Cargo.lock 갱신 → 검증 → 두 파일을 포함한 커밋 → 같은 버전의 태그 생성 → main과 태그 push 순서로 수행합니다. 별도 버전 변경·커밋·태그 자동화는 없습니다.
-
-로컬 Windows 패키징은 `tools/install_inno.ps1` 후 `tools/package.ps1`로 실행하며 기본적으로 HEIF·AVIF 추가 셋업을 요구하지 않습니다. CI 배포 빌드는 네이티브 코덱을 준비하고 `--features heif,avif`를 사용합니다.
