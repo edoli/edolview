@@ -2686,6 +2686,20 @@ impl eframe::App for ViewerApp {
                                                         });
                                                     ui.close();
                                                 }
+                                                if ui.button("Copy Name").clicked() {
+                                                    let name = std::path::Path::new(asset.name())
+                                                        .file_name()
+                                                        .unwrap_or_default()
+                                                        .to_string_lossy()
+                                                        .into_owned();
+                                                    if let Err(e) = arboard::Clipboard::new()
+                                                        .and_then(|mut cb| cb.set_text(name))
+                                                    {
+                                                        eprintln!("Failed to copy name to clipboard: {e}");
+                                                        self.toasts.add_error("Failed to copy name to clipboard".to_string());
+                                                    }
+                                                    ui.close();
+                                                }
                                                 if ui.button("Reveal in File Explorer").clicked() {
                                                     let path = asset.name();
                                                     let path_buf = PathBuf::from(path);
