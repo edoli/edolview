@@ -8,10 +8,12 @@
 
 ## UI verification
 
-- For UI changes, use temporary automation scripts with tools supported by the development OS, not Computer Use tools unless explicitly requested.
-- Run a separate debug app instance and preserve the user's existing instances and settings. If loading fixtures by socket, use the test instance's address from stderr.
-- Reproduce relevant hover, drag, scroll, and boundary states; account for DPI and window focus. Capture using an OS-appropriate tool (for example `PrintWindow` on Windows) and directly inspect the screenshots before claiming the UI is correct. If automation or capture is unavailable, report the limitation.
-- Keep temporary scripts and captures under `target/`. Remove scripts and close the test instance after verification; screenshots may remain for review. Report what was checked and any limitations.
+- Use `egui_inspection` for UI verification. Build with `cargo build --features eframe/inspection`, then set `EGUI_INSPECTION=127.0.0.1:<test-port>` in the test process's environment only. The feature and inspection listener are opt-in.
+- Run a separate debug app instance without activating its window, isolate its settings/config directory, and preserve the user's existing instances and settings. Connect only to that instance's inspection port. If loading fixtures by image socket, use the test instance's address from stderr.
+- Query the AccessKit tree to find widgets and inject egui input through inspection `ApplyEvents` for clicks, hover, drag, scroll, and keyboard input. Account for logical coordinates and pixels-per-point, and reproduce relevant boundary states.
+- Never move the OS mouse, send global keyboard input, or steal window focus for UI verification. Do not use native input automation or Computer Use tools unless explicitly requested.
+- Request captures through inspection `GetScreenshot` and directly inspect them before claiming visual correctness. Fully occluded or minimized windows may not render screenshots; report the limitation instead of bringing the test window to the foreground or falling back to native capture.
+- Keep temporary inspection clients and captures under `target/`. Remove temporary clients and close only the test instance after verification; screenshots may remain for review. Report what was checked and any limitations.
 
 ## Generated assets and packaging
 
