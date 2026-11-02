@@ -7,6 +7,8 @@ pub const IS_MAC: bool = cfg!(target_os = "macos");
 pub const SELECT_ALL_SC: Ksc = Ksc::new(Modifiers::COMMAND, Key::A);
 pub const SELECT_NONE_SC: Ksc = Ksc::new(Modifiers::NONE, Key::Escape);
 pub const COPY_SC: Ksc = Ksc::new(Modifiers::COMMAND, Key::C);
+pub const CUT_SC: Ksc = Ksc::new(Modifiers::COMMAND, Key::X);
+pub const PASTE_SC: Ksc = Ksc::new(Modifiers::COMMAND, Key::V);
 pub const OPEN_FROM_CLIPBOARD_SC: Ksc = Ksc::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::V);
 pub const SAVE_IMAGE_SC: Ksc = Ksc::new(Modifiers::COMMAND, Key::S);
 pub const ROI_PANEL_TOGGLE: Ksc = Ksc::new(Modifiers::NONE, Key::R);

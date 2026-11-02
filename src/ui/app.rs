@@ -2942,6 +2942,13 @@ impl eframe::App for ViewerApp {
                 ui.add(ToastUi::new(&mut self.toasts));
             });
 
+        #[cfg(target_os = "windows")]
+        for error in self.viewer.show_ocr(&ctx) {
+            eprintln!("{error}");
+            self.toasts.add_error(error);
+            ctx.request_repaint();
+        }
+
         let request_copy = !ctx.egui_wants_keyboard_input()
             && !Self::egui_has_label_text_selection(&ctx)
             && (ctx.input(|i| i.events.iter().any(|event| matches!(event, egui::Event::Copy)))

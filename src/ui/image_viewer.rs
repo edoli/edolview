@@ -14,8 +14,8 @@ use crate::res::{
 use crate::ui::component::egui_ext::UiExt;
 use crate::ui::component::{ContextValueCopy, ImageContextInfo, ViewportMinimap};
 use crate::ui::gpu::{
-    ExportRequest, GpuRenderer, ImagePaintCallback, ImageSlot, MinMaxOverlay, PaneDraw, MINIMAP_PRIMARY_UNIFORM_SLOT,
-    MINIMAP_SECONDARY_UNIFORM_SLOT,
+    ExportCompletion, ExportRequest, GpuRenderer, ImagePaintCallback, ImageSlot, MinMaxOverlay, PaneDraw,
+    MINIMAP_PRIMARY_UNIFORM_SLOT, MINIMAP_SECONDARY_UNIFORM_SLOT,
 };
 use crate::util::func_ext::FuncExt;
 use crate::util::math_ext::vec2i;
@@ -79,6 +79,10 @@ pub struct ImageViewer {
 
     last_shader_error: Option<String>,
     last_reported_shader_error: Option<String>,
+    #[cfg(target_os = "windows")]
+    ocr: super::ocr::OcrUi,
+    #[cfg(target_os = "windows")]
+    context_menu_position: Option<egui::Pos2>,
 }
 
 impl ImageViewer {
@@ -97,6 +101,10 @@ impl ImageViewer {
             last_viewport_size_px: None,
             last_shader_error: None,
             last_reported_shader_error: None,
+            #[cfg(target_os = "windows")]
+            ocr: super::ocr::OcrUi::default(),
+            #[cfg(target_os = "windows")]
+            context_menu_position: None,
         }
     }
 
@@ -254,7 +262,9 @@ impl ImageViewer {
             let selection_rect_secondary_clipped =
                 secondary_selection_rect_view.map(|selection_rect_view| selection_rect_view.intersect(right_pane_rect));
 
-            // Detect if the built-in context menu popup for this response is open
+            #[cfg(target_os = "windows")]
+            let context_menu_open = self.context_menu_position.is_some();
+            #[cfg(not(target_os = "windows"))]
             let context_menu_open = resp.context_menu_opened();
 
             if resp.hovered()
@@ -316,63 +326,100 @@ impl ImageViewer {
 
             // Context menu (right-click)
             let mut context_popup = egui::Popup::context_menu(&resp);
+            let close_behavior = egui::PopupCloseBehavior::CloseOnClickOutside;
+            #[cfg(target_os = "windows")]
+            let mut keep_context_menu_open = context_menu_open;
+            #[cfg(target_os = "windows")]
+            let close_behavior = {
+                // egui's memory supports one popup at a time. Keep this menu's
+                // state separately so the language ComboBox can open inside it.
+                if resp.secondary_clicked() && !pointer_over_minimap {
+                    self.context_menu_position = resp.interact_pointer_pos();
+                    keep_context_menu_open = self.context_menu_position.is_some();
+                    egui::Popup::close_all(ui.ctx());
+                } else if resp.clicked() {
+                    keep_context_menu_open = false;
+                }
+                context_popup = context_popup
+                    .open_bool(&mut keep_context_menu_open)
+                    .at_position(self.context_menu_position.unwrap_or_default());
+                // Choosing an item in the dropdown must keep the scan row open.
+                if egui::Popup::is_any_open(ui.ctx()) {
+                    egui::PopupCloseBehavior::IgnoreClicks
+                } else {
+                    close_behavior
+                }
+            };
             if pointer_over_minimap && !context_menu_open {
                 context_popup = context_popup.open(false);
             }
-            context_popup
-                .close_behavior(egui::PopupCloseBehavior::CloseOnClickOutside)
-                .show(|ui| {
-                    let active_image = if split_view && app_state.cursor_on_secondary {
-                        secondary_image.unwrap_or(primary_image)
+            context_popup.close_behavior(close_behavior).show(|ui| {
+                let active_image = if split_view && app_state.cursor_on_secondary {
+                    secondary_image.unwrap_or(primary_image)
+                } else if split_view {
+                    primary_image
+                } else {
+                    image
+                };
+                let has_selection = !app_state.marquee_rect.empty();
+                let copy_label = if has_selection {
+                    format!("Copy Selected Image ({})", crate::res::COPY_SC.format_sys())
+                } else {
+                    format!("Copy Image ({})", crate::res::COPY_SC.format_sys())
+                };
+                if ui.button(copy_label).clicked() {
+                    self.request_copy(if split_view && app_state.cursor_on_secondary {
+                        "secondary".to_string()
                     } else if split_view {
-                        primary_image
+                        "primary".to_string()
                     } else {
-                        image
-                    };
-                    let has_selection = !app_state.marquee_rect.empty();
-                    let copy_label = if has_selection {
-                        format!("Copy Selected Image ({})", crate::res::COPY_SC.format_sys())
+                        "image".to_string()
+                    });
+                    ui.ctx().request_repaint();
+                    ui.close();
+                }
+                let save_label = if has_selection {
+                    format!("Save Selected Image As... ({})", crate::res::SAVE_IMAGE_SC.format_sys())
+                } else {
+                    format!("Save Image As... ({})", crate::res::SAVE_IMAGE_SC.format_sys())
+                };
+                if ui.button(save_label).clicked() {
+                    self.request_save_dialog();
+                    ui.close();
+                }
+                #[cfg(target_os = "windows")]
+                self.ocr.context_menu(
+                    ui,
+                    if split_view && app_state.cursor_on_secondary {
+                        "secondary"
                     } else {
-                        format!("Copy Image ({})", crate::res::COPY_SC.format_sys())
-                    };
-                    if ui.button(copy_label).clicked() {
-                        self.request_copy(if split_view && app_state.cursor_on_secondary {
-                            "secondary".to_string()
-                        } else if split_view {
-                            "primary".to_string()
-                        } else {
-                            "image".to_string()
-                        });
-                        ui.ctx().request_repaint();
-                        ui.close();
+                        "primary"
                     }
-                    let save_label = if has_selection {
-                        format!("Save Selected Image As... ({})", crate::res::SAVE_IMAGE_SC.format_sys())
-                    } else {
-                        format!("Save Image As... ({})", crate::res::SAVE_IMAGE_SC.format_sys())
-                    };
-                    if ui.button(save_label).clicked() {
-                        self.request_save_dialog();
-                        ui.close();
+                    .to_string(),
+                    app_state.marquee_rect,
+                );
+                // Capture once per right-click so live image updates do not
+                // change these values or start repeated background reductions.
+                let errors = if resp.secondary_clicked() || !context_menu_open {
+                    self.context_info
+                        .update(ui.ctx(), active_image, app_state.cursor_pos, app_state.marquee_rect)
+                } else {
+                    self.context_info.poll()
+                };
+                for error in errors {
+                    eprintln!("{error}");
+                    if let Ok(mut toasts) = self.export_toasts.lock() {
+                        toasts.push(ExportToast::Error(error));
                     }
-                    // Capture once per right-click so live image updates do not
-                    // change these values or start repeated background reductions.
-                    let errors = if resp.secondary_clicked() || !context_menu_open {
-                        self.context_info
-                            .update(ui.ctx(), active_image, app_state.cursor_pos, app_state.marquee_rect)
-                    } else {
-                        self.context_info.poll()
-                    };
-                    for error in errors {
-                        eprintln!("{error}");
-                        if let Ok(mut toasts) = self.export_toasts.lock() {
-                            toasts.push(ExportToast::Error(error));
-                        }
-                    }
-                    if let Some(copy) = self.context_info.show(ui, icons) {
-                        self.copy_context_value(ui.ctx(), copy);
-                    }
-                });
+                }
+                if let Some(copy) = self.context_info.show(ui, icons) {
+                    self.copy_context_value(ui.ctx(), copy);
+                }
+            });
+            #[cfg(target_os = "windows")]
+            if !keep_context_menu_open {
+                self.context_menu_position = None;
+            }
 
             // Begin interactions
             // 1) If the primary mouse button was just pressed on a handle, start resizing immediately (no drag threshold).
@@ -558,23 +605,46 @@ impl ImageViewer {
 
             // Queue clipboard/save export operations for the wgpu callback.
             let mut export_request: Option<PendingExportRequest> = None;
-            let copy_requested = self.copy_requested.take();
-            let save_requested = self.save_requested.take();
-            if copy_requested.is_some() || save_requested.is_some() {
-                let export_rect = self.copy_rect(app_state, spec.width, spec.height);
-                if !export_rect.empty() {
-                    let scale_for_export = if app_state.copy_use_original_size {
-                        1.0
-                    } else {
-                        self.zoom()
-                    };
-                    let out_w = (export_rect.width() as f32 * scale_for_export).round().max(1.0) as i32;
-                    let out_h = (export_rect.height() as f32 * scale_for_export).round().max(1.0) as i32;
-                    let position = egui::vec2(
-                        -(export_rect.min.x as f32) * scale_for_export,
-                        -(export_rect.min.y as f32) * scale_for_export,
-                    );
-                    export_request = Some((copy_requested, save_requested, out_w, out_h, position, scale_for_export));
+            #[cfg(target_os = "windows")]
+            let ocr_export: Option<(String, Recti, f32, ExportCompletion)> = self
+                .ocr
+                .take_export()
+                .map(|job| (job.source, job.rect, job.scale, job.completion));
+            #[cfg(not(target_os = "windows"))]
+            let ocr_export: Option<(String, Recti, f32, ExportCompletion)> = None;
+            if let Some((_, rect, scale, _)) = &ocr_export {
+                // OCR uses image pixels independently of zoom/copy preferences.
+                // Bound capture dimensions to the engine limit before GPU allocation.
+                export_request = Some((
+                    None,
+                    None,
+                    (rect.width() as f32 * scale).round().max(1.0) as i32,
+                    (rect.height() as f32 * scale).round().max(1.0) as i32,
+                    egui::vec2(-(rect.min.x as f32) * scale, -(rect.min.y as f32) * scale),
+                    *scale,
+                ));
+                // Keep simultaneous copy/save requests queued for the next frame.
+                ui.ctx().request_repaint();
+            } else {
+                let copy_requested = self.copy_requested.take();
+                let save_requested = self.save_requested.take();
+                if copy_requested.is_some() || save_requested.is_some() {
+                    let export_rect = self.copy_rect(app_state, spec.width, spec.height);
+                    if !export_rect.empty() {
+                        let scale_for_export = if app_state.copy_use_original_size {
+                            1.0
+                        } else {
+                            self.zoom()
+                        };
+                        let out_w = (export_rect.width() as f32 * scale_for_export).round().max(1.0) as i32;
+                        let out_h = (export_rect.height() as f32 * scale_for_export).round().max(1.0) as i32;
+                        let position = egui::vec2(
+                            -(export_rect.min.x as f32) * scale_for_export,
+                            -(export_rect.min.y as f32) * scale_for_export,
+                        );
+                        export_request =
+                            Some((copy_requested, save_requested, out_w, out_h, position, scale_for_export));
+                    }
                 }
             }
 
@@ -670,7 +740,10 @@ impl ImageViewer {
                                 .as_ref()
                                 .map(|(_, source)| source == "secondary")
                                 .or_else(|| copy_requested.as_ref().map(|source| source == "secondary"))
-                                .unwrap_or(false);
+                                .unwrap_or_else(|| {
+                                    ocr_export.as_ref().is_some_and(|(source, _, _, _)| source == "secondary")
+                                });
+                            let ocr_completion = ocr_export.as_ref().map(|(_, _, _, completion)| completion.clone());
                             let slot = if export_secondary {
                                 ImageSlot::Secondary
                             } else {
@@ -702,16 +775,38 @@ impl ImageViewer {
                                 height: out_h as u32,
                                 slot,
                                 completion: Arc::new(move |result| match result {
-                                    Ok(rgba) => match (&copy_requested, &save_requested) {
-                                        (Some(copy_source), Some((path, save_source))) => {
-                                            copy_image_to_clipboard(
+                                    Ok(rgba) => {
+                                        if let Some(completion) = &ocr_completion {
+                                            completion(Ok(rgba));
+                                            return;
+                                        }
+                                        match (&copy_requested, &save_requested) {
+                                            (Some(copy_source), Some((path, save_source))) => {
+                                                copy_image_to_clipboard(
+                                                    out_w,
+                                                    out_h,
+                                                    rgba.clone(),
+                                                    &completion_toasts,
+                                                    copy_source,
+                                                );
+                                                save_image_async(
+                                                    path.clone(),
+                                                    out_w,
+                                                    out_h,
+                                                    rgba,
+                                                    completion_toasts.clone(),
+                                                    completion_repaint.clone(),
+                                                    save_source.clone(),
+                                                );
+                                            }
+                                            (Some(copy_source), None) => copy_image_to_clipboard(
                                                 out_w,
                                                 out_h,
-                                                rgba.clone(),
+                                                rgba,
                                                 &completion_toasts,
                                                 copy_source,
-                                            );
-                                            save_image_async(
+                                            ),
+                                            (None, Some((path, save_source))) => save_image_async(
                                                 path.clone(),
                                                 out_w,
                                                 out_h,
@@ -719,23 +814,15 @@ impl ImageViewer {
                                                 completion_toasts.clone(),
                                                 completion_repaint.clone(),
                                                 save_source.clone(),
-                                            );
+                                            ),
+                                            (None, None) => {}
                                         }
-                                        (Some(copy_source), None) => {
-                                            copy_image_to_clipboard(out_w, out_h, rgba, &completion_toasts, copy_source)
-                                        }
-                                        (None, Some((path, save_source))) => save_image_async(
-                                            path.clone(),
-                                            out_w,
-                                            out_h,
-                                            rgba,
-                                            completion_toasts.clone(),
-                                            completion_repaint.clone(),
-                                            save_source.clone(),
-                                        ),
-                                        (None, None) => {}
-                                    },
+                                    }
                                     Err(error) => {
+                                        if let Some(completion) = &ocr_completion {
+                                            completion(Err(error));
+                                            return;
+                                        }
                                         if let Ok(mut toasts) = completion_toasts.lock() {
                                             toasts.push(ExportToast::Error(error));
                                         }
@@ -1441,6 +1528,11 @@ impl ImageViewer {
             }
             ctx.request_repaint();
         });
+    }
+
+    #[cfg(target_os = "windows")]
+    pub fn show_ocr(&mut self, ctx: &egui::Context) -> Vec<String> {
+        self.ocr.show(ctx)
     }
 
     pub fn take_export_toasts(&mut self) -> Vec<(bool, String)> {
