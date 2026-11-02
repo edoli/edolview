@@ -101,6 +101,20 @@ windows = { version = "0.62.2", features = [
 [target.'cfg(target_os = "linux")'.dependencies]
 eframe = { version = "0.37.0", default-features = false, features = ["x11"] }
 
+[target.'cfg(target_os = "macos")'.dependencies]
+objc2 = "0.6.3"
+objc2-foundation = { version = "0.3.2", default-features = false, features = [
+    "std", "NSArray", "NSData", "NSDictionary", "NSEnumerator", "NSError", "NSLocale", "NSString",
+    "block2", "objc2-core-foundation",
+] }
+objc2-core-graphics = { version = "0.3.2", default-features = false, features = [
+    "std", "CGColorSpace", "CGDataProvider", "CGImage",
+] }
+objc2-vision = { version = "0.3.2", default-features = false, features = [
+    "std", "VNRequest", "VNRecognizeTextRequest", "VNRequestHandler", "VNObservation",
+    "objc2-core-graphics",
+] }
+
 [package.metadata.bundle]
 name = "Edolview"
 identifier = "kr.edoli.edolview"

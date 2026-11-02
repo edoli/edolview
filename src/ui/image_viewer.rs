@@ -79,9 +79,9 @@ pub struct ImageViewer {
 
     last_shader_error: Option<String>,
     last_reported_shader_error: Option<String>,
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
     ocr: super::ocr::OcrUi,
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
     context_menu_position: Option<egui::Pos2>,
 }
 
@@ -101,9 +101,9 @@ impl ImageViewer {
             last_viewport_size_px: None,
             last_shader_error: None,
             last_reported_shader_error: None,
-            #[cfg(target_os = "windows")]
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
             ocr: super::ocr::OcrUi::default(),
-            #[cfg(target_os = "windows")]
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
             context_menu_position: None,
         }
     }
@@ -262,9 +262,9 @@ impl ImageViewer {
             let selection_rect_secondary_clipped =
                 secondary_selection_rect_view.map(|selection_rect_view| selection_rect_view.intersect(right_pane_rect));
 
-            #[cfg(target_os = "windows")]
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
             let context_menu_open = self.context_menu_position.is_some();
-            #[cfg(not(target_os = "windows"))]
+            #[cfg(not(any(target_os = "windows", target_os = "macos")))]
             let context_menu_open = resp.context_menu_opened();
 
             if resp.hovered()
@@ -327,9 +327,9 @@ impl ImageViewer {
             // Context menu (right-click)
             let mut context_popup = egui::Popup::context_menu(&resp);
             let close_behavior = egui::PopupCloseBehavior::CloseOnClickOutside;
-            #[cfg(target_os = "windows")]
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
             let mut keep_context_menu_open = context_menu_open;
-            #[cfg(target_os = "windows")]
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
             let close_behavior = {
                 // egui's memory supports one popup at a time. Keep this menu's
                 // state separately so the language ComboBox can open inside it.
@@ -387,7 +387,7 @@ impl ImageViewer {
                     self.request_save_dialog();
                     ui.close();
                 }
-                #[cfg(target_os = "windows")]
+                #[cfg(any(target_os = "windows", target_os = "macos"))]
                 self.ocr.context_menu(
                     ui,
                     if split_view && app_state.cursor_on_secondary {
@@ -416,7 +416,7 @@ impl ImageViewer {
                     self.copy_context_value(ui.ctx(), copy);
                 }
             });
-            #[cfg(target_os = "windows")]
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
             if !keep_context_menu_open {
                 self.context_menu_position = None;
             }
@@ -605,12 +605,12 @@ impl ImageViewer {
 
             // Queue clipboard/save export operations for the wgpu callback.
             let mut export_request: Option<PendingExportRequest> = None;
-            #[cfg(target_os = "windows")]
+            #[cfg(any(target_os = "windows", target_os = "macos"))]
             let ocr_export: Option<(String, Recti, f32, ExportCompletion)> = self
                 .ocr
                 .take_export()
                 .map(|job| (job.source, job.rect, job.scale, job.completion));
-            #[cfg(not(target_os = "windows"))]
+            #[cfg(not(any(target_os = "windows", target_os = "macos")))]
             let ocr_export: Option<(String, Recti, f32, ExportCompletion)> = None;
             if let Some((_, rect, scale, _)) = &ocr_export {
                 // OCR uses image pixels independently of zoom/copy preferences.
@@ -1530,9 +1530,14 @@ impl ImageViewer {
         });
     }
 
-    #[cfg(target_os = "windows")]
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
     pub fn show_ocr(&mut self, ctx: &egui::Context) -> Vec<String> {
         self.ocr.show(ctx)
+    }
+
+    #[cfg(any(target_os = "windows", target_os = "macos"))]
+    pub fn ocr_text_has_focus(&self, ctx: &egui::Context) -> bool {
+        self.ocr.has_text_focus(ctx)
     }
 
     pub fn take_export_toasts(&mut self) -> Vec<(bool, String)> {

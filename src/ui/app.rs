@@ -1672,6 +1672,12 @@ impl ViewerApp {
 
 impl eframe::App for ViewerApp {
     fn raw_input_hook(&mut self, _ctx: &egui::Context, raw_input: &mut egui::RawInput) {
+        #[cfg(any(target_os = "windows", target_os = "macos"))]
+        if self.viewer.ocr_text_has_focus(_ctx) {
+            // OCR results are free-form Unicode text; numeric expression fields
+            // still use the existing ASCII and IME filtering below.
+            return;
+        }
         super::field_input::filter_field_input(raw_input);
     }
 
@@ -2942,7 +2948,7 @@ impl eframe::App for ViewerApp {
                 ui.add(ToastUi::new(&mut self.toasts));
             });
 
-        #[cfg(target_os = "windows")]
+        #[cfg(any(target_os = "windows", target_os = "macos"))]
         for error in self.viewer.show_ocr(&ctx) {
             eprintln!("{error}");
             self.toasts.add_error(error);

@@ -7,7 +7,7 @@ mod app;
 mod asset_list_selection;
 mod field_input;
 mod image_viewer;
-#[cfg(target_os = "windows")]
+#[cfg(any(target_os = "windows", target_os = "macos"))]
 mod ocr;
 mod style;
 

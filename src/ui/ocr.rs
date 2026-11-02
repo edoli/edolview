@@ -2,14 +2,14 @@ use std::sync::{mpsc, Arc};
 
 use color_eyre::eyre::{eyre, Result};
 use eframe::egui;
-use windows::{
-    core::HSTRING,
-    Globalization::Language,
-    Graphics::Imaging::{BitmapPixelFormat, SoftwareBitmap},
-    Media::Ocr::OcrEngine,
-    Security::Cryptography::CryptographicBuffer,
-    Win32::System::WinRT::{RoInitialize, RoUninitialize, RO_INIT_MULTITHREADED},
-};
+#[cfg(target_os = "macos")]
+#[path = "ocr/macos.rs"]
+mod backend;
+#[cfg(target_os = "windows")]
+#[path = "ocr/windows.rs"]
+mod backend;
+
+use backend::Backend;
 
 use crate::{
     model::Recti,
@@ -44,6 +44,18 @@ struct OcrJob {
     language: String,
 }
 
+impl OcrJob {
+    fn validate(&self) -> Result<()> {
+        let expected = (self.width as usize)
+            .checked_mul(self.height as usize)
+            .and_then(|pixels| pixels.checked_mul(4));
+        if self.width == 0 || self.height == 0 || expected != Some(self.rgba.len()) {
+            return Err(eyre!("Invalid OCR image dimensions or pixel data"));
+        }
+        Ok(())
+    }
+}
+
 enum WorkerEvent {
     Ready(Result<(Vec<OcrLanguage>, String, u32), String>),
     Finished(Result<String, String>),
@@ -63,6 +75,7 @@ pub(super) struct OcrUi {
     open: bool,
     text: String,
     has_text_result: bool,
+    text_editor_id: Option<egui::Id>,
     error: Option<String>,
 }
 
@@ -84,13 +97,14 @@ impl Default for OcrUi {
             open: false,
             text: String::new(),
             has_text_result: false,
+            text_editor_id: None,
             error: None,
         }
     }
 }
 
 impl OcrUi {
-    /// Lazily initialize WinRT on its own thread; never activate OCR on the UI thread.
+    /// Initialize and retain native OCR objects only on their dedicated worker.
     fn start(&mut self, ctx: &egui::Context) {
         if self.started {
             return;
@@ -101,23 +115,25 @@ impl OcrUi {
         let event_tx = self.event_tx.clone();
         let ctx = ctx.clone();
         std::thread::spawn(move || {
-            let apartment = WinRtApartment::new();
-            let ready = apartment
-                .as_ref()
-                .map_err(|error| eyre!("{error:#}"))
-                .and_then(|_| available_languages());
-            let usable = ready.is_ok();
-            let _ = event_tx.send(WorkerEvent::Ready(
-                ready.map_err(|error| format!("Windows OCR unavailable: {error:#}")),
-            ));
+            let initialized =
+                Backend::new().and_then(|backend| backend.available_languages().map(|ready| (backend, ready)));
+            let mut backend = match initialized {
+                Ok((backend, ready)) => {
+                    let _ = event_tx.send(WorkerEvent::Ready(Ok(ready)));
+                    backend
+                }
+                Err(error) => {
+                    let _ = event_tx.send(WorkerEvent::Ready(Err(format!("OCR unavailable: {error:#}"))));
+                    ctx.request_repaint();
+                    return;
+                }
+            };
             ctx.request_repaint();
-            if !usable {
-                return;
-            }
-            // Engines are created and retained only on this initialized worker thread.
-            let mut engine: Option<(String, OcrEngine)> = None;
             while let Ok(job) = job_rx.recv() {
-                let result = recognize(job, &mut engine).map_err(|error| format!("OCR failed: {error:#}"));
+                let result = job
+                    .validate()
+                    .and_then(|_| backend.recognize(job))
+                    .map_err(|error| format!("OCR failed: {error:#}"));
                 let _ = event_tx.send(WorkerEvent::Finished(result));
                 ctx.request_repaint();
             }
@@ -129,11 +145,11 @@ impl OcrUi {
         let rect = rect.validate();
         let ready = self.max_dimension > 0 && !self.languages.is_empty();
         let tooltip = self.initialization_error.as_deref().unwrap_or(if !ready {
-            "Loading installed Windows OCR languages..."
+            "Loading available OCR languages..."
         } else if rect.empty() {
             "Select an image region first."
         } else {
-            "Recognize the selected region using Windows OCR and the current display settings."
+            "Recognize the selected region using native OCR and the current display settings."
         });
         let row_height = ui.spacing().interact_size.y;
         // A popup's sizing pass must measure content, not reserve the window's
@@ -221,7 +237,7 @@ impl OcrUi {
                             language: language.clone(),
                         })
                         .err()
-                        .map(|_| "Windows OCR worker disconnected".to_string()),
+                        .map(|_| "OCR worker disconnected".to_string()),
                     Err(error) => Some(format!("Could not capture OCR region: {error}")),
                 };
                 if let Some(error) = error {
@@ -239,6 +255,13 @@ impl OcrUi {
 
     pub fn take_export(&mut self) -> Option<OcrExport> {
         self.pending.take()
+    }
+
+    pub fn has_text_focus(&self, ctx: &egui::Context) -> bool {
+        self.open
+            && !self.busy
+            && self.has_text_result
+            && self.text_editor_id.is_some_and(|id| ctx.memory(|memory| memory.has_focus(id)))
     }
 
     /// Returns user-visible failures for the app's existing toast and stderr flow.
@@ -288,7 +311,7 @@ impl OcrUi {
                         ctx.copy_text(self.text.clone());
                     }
                     egui::ScrollArea::vertical().show(ui, |ui| {
-                        show_text_editor(ui, &mut self.text, &mut errors);
+                        self.text_editor_id = Some(show_text_editor(ui, &mut self.text, &mut errors));
                     });
                 }
             });
@@ -388,71 +411,6 @@ fn show_text_editor(ui: &mut egui::Ui, text: &mut String, errors: &mut Vec<Strin
         ui.ctx().request_repaint();
     }
     editor.response.id
-}
-
-struct WinRtApartment(std::marker::PhantomData<std::rc::Rc<()>>);
-
-impl WinRtApartment {
-    fn new() -> Result<Self> {
-        // SAFETY: called once on a dedicated worker thread with no existing COM
-        // apartment; the guard balances this successful initialization on that thread.
-        unsafe { RoInitialize(RO_INIT_MULTITHREADED)? };
-        Ok(Self(Default::default()))
-    }
-}
-
-impl Drop for WinRtApartment {
-    fn drop(&mut self) {
-        // SAFETY: the guard never leaves its worker and outlives all WinRT objects.
-        unsafe { RoUninitialize() };
-    }
-}
-
-fn available_languages() -> Result<(Vec<OcrLanguage>, String, u32)> {
-    let mut languages = Vec::new();
-    for language in OcrEngine::AvailableRecognizerLanguages()? {
-        languages.push(OcrLanguage {
-            tag: language.LanguageTag()?.to_string(),
-            label: format!("{} ({})", language.DisplayName()?, language.LanguageTag()?),
-        });
-    }
-    let first = languages
-        .first()
-        .ok_or_else(|| eyre!("No OCR language packs installed. Add an OCR language in Windows language settings."))?;
-    let language = OcrEngine::TryCreateFromUserProfileLanguages()
-        .and_then(|engine| engine.RecognizerLanguage()?.LanguageTag())
-        .map(|tag| tag.to_string())
-        .unwrap_or_else(|_| first.tag.clone());
-    let limit = OcrEngine::MaxImageDimension()?.min(4096);
-    if limit == 0 {
-        return Err(eyre!("Windows OCR reported an invalid image size limit"));
-    }
-    Ok((languages, language, limit))
-}
-
-fn recognize(mut job: OcrJob, cached: &mut Option<(String, OcrEngine)>) -> Result<String> {
-    if job.width == 0 || job.height == 0 || job.rgba.len() != job.width as usize * job.height as usize * 4 {
-        return Err(eyre!("Invalid OCR image dimensions or pixel data"));
-    }
-    if cached.as_ref().is_none_or(|(language, _)| language != &job.language) {
-        let language = Language::CreateLanguage(&HSTRING::from(&job.language))?;
-        *cached = Some((job.language, OcrEngine::TryCreateFromLanguage(&language)?));
-    }
-    let engine = &cached.as_ref().ok_or_else(|| eyre!("Could not initialize OCR engine"))?.1;
-    // GPU exports are RGBA; Windows OCR accepts BGRA8 (or Gray8).
-    for pixel in job.rgba.chunks_exact_mut(4) {
-        pixel.swap(0, 2);
-    }
-    let buffer = CryptographicBuffer::CreateFromByteArray(&job.rgba)?;
-    let bitmap =
-        SoftwareBitmap::CreateCopyFromBuffer(&buffer, BitmapPixelFormat::Bgra8, job.width as i32, job.height as i32)?;
-    let result = engine.RecognizeAsync(&bitmap)?.join()?;
-    let mut lines = Vec::new();
-    for line in result.Lines()? {
-        lines.push(line.Text()?.to_string());
-    }
-    bitmap.Close()?;
-    Ok(lines.join("\n"))
 }
 
 #[cfg(test)]
@@ -582,13 +540,13 @@ mod tests {
     }
 
     #[test]
-    fn malformed_pixels_are_rejected_before_calling_windows() {
+    fn malformed_pixels_are_rejected_before_calling_native_ocr() {
         let job = OcrJob {
             width: 40,
             height: 20,
             rgba: vec![0; 10],
             language: "en-US".into(),
         };
-        assert!(recognize(job, &mut None).unwrap_err().to_string().contains("Invalid OCR image"));
+        assert!(job.validate().unwrap_err().to_string().contains("Invalid OCR image"));
     }
 }
