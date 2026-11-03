@@ -18,7 +18,7 @@ const LANGUAGE_TIMEOUT: Duration = Duration::from_secs(10);
 const SCAN_TIMEOUT: Duration = Duration::from_secs(60);
 const MAX_STDOUT: usize = 4 * 1024 * 1024;
 const MAX_STDERR: usize = 64 * 1024;
-const INSTALL_HINT: &str = "Install Tesseract and its language data (Ubuntu/Debian: sudo apt install tesseract-ocr tesseract-ocr-eng tesseract-ocr-kor), then restart Edolview.";
+const INSTALL_HINT: &str = "Install Tesseract and its language data following the official installation guide linked in OCR Setup, then use Check Again or restart Edolview.";
 
 pub(super) struct Backend {
     executable: PathBuf,

@@ -21,7 +21,7 @@ use backend::Backend;
 
 use crate::{
     model::Recti,
-    res::{KeyboardShortcutExt, COPY_SC, CUT_SC, NOTICE_ERROR_TEXT, PASTE_SC, SELECT_ALL_SC},
+    res::{icons::Icons, KeyboardShortcutExt, COPY_SC, CUT_SC, NOTICE_ERROR_TEXT, PASTE_SC, SELECT_ALL_SC},
     ui::gpu::ExportCompletion,
 };
 
@@ -78,6 +78,7 @@ pub(super) struct OcrUi {
     language: String,
     max_dimension: u32,
     initialization_error: Option<String>,
+    help_open: bool,
     pending: Option<OcrExport>,
     busy: bool,
     open: bool,
@@ -100,6 +101,7 @@ impl Default for OcrUi {
             language: String::new(),
             max_dimension: 0,
             initialization_error: None,
+            help_open: false,
             pending: None,
             busy: false,
             open: false,
@@ -148,22 +150,19 @@ impl OcrUi {
         });
     }
 
-    pub fn context_menu(&mut self, ui: &mut egui::Ui, source: String, rect: Recti) {
+    pub fn context_menu(&mut self, ui: &mut egui::Ui, icons: &Icons, source: String, rect: Recti) {
         self.start(ui.ctx());
         let rect = rect.validate();
-        let ready = self.max_dimension > 0 && !self.languages.is_empty();
-        // Linux OCR is optional. Show this row only after Tesseract and at least
-        // one text-recognition language have been found by the background probe.
-        #[cfg(target_os = "linux")]
-        if !ready {
-            return;
-        }
+        let ready = self.ready();
+        let can_scan = ready && !self.busy && !rect.empty();
         let tooltip = self.initialization_error.as_deref().unwrap_or(if !ready {
             "Loading available OCR languages..."
+        } else if self.busy {
+            "Wait for the current text scan to finish."
         } else if rect.empty() {
-            "Select an image region first."
+            "No image area is available to scan."
         } else {
-            "Recognize the selected region locally using the current display settings."
+            "Recognize text in the image or selected region locally using the current display settings."
         });
         let row_height = ui.spacing().interact_size.y;
         // A popup's sizing pass must measure content, not reserve the window's
@@ -173,59 +172,129 @@ impl OcrUi {
         } else {
             ui.available_width()
         };
+        let mut help_clicked = false;
         let scan_clicked = ui
             .allocate_ui_with_layout(
                 egui::vec2(row_width, row_height),
                 egui::Layout::right_to_left(egui::Align::Center),
                 |ui| {
-                    // Reserve the right edge first; the rest of the row is the scan button.
+                    // Reserve right-side controls first. Only the scan action is
+                    // disabled; its setup button must always remain clickable.
                     ui.spacing_mut().item_spacing.x = 0.0;
-                    ui.allocate_ui_with_layout(
-                        egui::vec2(110.0, row_height),
-                        egui::Layout::left_to_right(egui::Align::Center),
-                        |ui| {
-                            // Context menus remove widget fills/strokes. Use the same
-                            // app style as the channel and colormap dropdowns instead.
-                            ui.set_style(ui.ctx().global_style());
-                            ui.add_enabled_ui(ready && !self.busy, |ui| {
-                                let selected_language = self
-                                    .languages
-                                    .iter()
-                                    .find(|language| language.tag == self.language)
-                                    .map(|language| language.label.as_str())
-                                    .unwrap_or("Loading...");
-                                egui::ComboBox::from_id_salt("ocr_language")
-                                    .width(110.0)
-                                    .truncate()
-                                    .selected_text(selected_language)
-                                    .show_ui(ui, |ui| {
-                                        for language in &self.languages {
-                                            ui.selectable_value(
-                                                &mut self.language,
-                                                language.tag.clone(),
-                                                &language.label,
-                                            );
-                                        }
-                                    })
-                                    .response
-                                    .on_hover_text("OCR language");
-                            });
-                        },
-                    );
+                    if !can_scan {
+                        let icon = icons
+                            .get_info(ui.ctx())
+                            .tint(ui.visuals().text_color())
+                            .alt_text("OCR setup and help");
+                        let info =
+                            ui.add_sized(egui::vec2(row_height, row_height), egui::Button::image(icon).frame(false));
+                        info.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, true, "OCR setup and help"));
+                        help_clicked = info.on_hover_text("How to enable OCR").clicked();
+                    }
+                    if ready {
+                        ui.allocate_ui_with_layout(
+                            egui::vec2(110.0, row_height),
+                            egui::Layout::left_to_right(egui::Align::Center),
+                            |ui| {
+                                // Context menus remove widget fills/strokes. Use the same
+                                // app style as the channel and colormap dropdowns instead.
+                                ui.set_style(ui.ctx().global_style());
+                                ui.add_enabled_ui(ready && !self.busy, |ui| {
+                                    let selected_language = self
+                                        .languages
+                                        .iter()
+                                        .find(|language| language.tag == self.language)
+                                        .map(|language| language.label.as_str())
+                                        .unwrap_or("Loading...");
+                                    egui::ComboBox::from_id_salt("ocr_language")
+                                        .width(110.0)
+                                        .truncate()
+                                        .selected_text(selected_language)
+                                        .show_ui(ui, |ui| {
+                                            for language in &self.languages {
+                                                ui.selectable_value(
+                                                    &mut self.language,
+                                                    language.tag.clone(),
+                                                    &language.label,
+                                                );
+                                            }
+                                        })
+                                        .response
+                                        .on_hover_text("OCR language");
+                                });
+                            },
+                        );
+                    }
                     let scan_size = egui::vec2(ui.available_width(), row_height);
-                    ui.add_enabled(
-                        ready && !self.busy && !rect.empty(),
-                        egui::Button::new(()).left_text("Text Scan (OCR)").min_size(scan_size),
-                    )
-                    .on_disabled_hover_text(tooltip)
-                    .on_hover_text(tooltip)
-                    .clicked()
+                    ui.add_enabled(can_scan, egui::Button::new(()).left_text("Text Scan (OCR)").min_size(scan_size))
+                        .on_disabled_hover_text(tooltip)
+                        .on_hover_text(tooltip)
+                        .clicked()
                 },
             )
             .inner;
         if scan_clicked {
             self.request(ui.ctx(), source, rect);
             ui.close();
+        } else if help_clicked {
+            self.help_open = true;
+            ui.close();
+        }
+    }
+
+    fn ready(&self) -> bool {
+        self.max_dimension > 0 && !self.languages.is_empty()
+    }
+
+    fn check_again(&mut self, ctx: &egui::Context) {
+        // Retry only after initialization or a scan has completed. Replacing
+        // job_tx in start() disconnects the previous idle worker so it exits
+        // and releases its platform resources on its own thread.
+        if self.busy || (!self.ready() && self.initialization_error.is_none()) {
+            return;
+        }
+        self.started = false;
+        self.languages.clear();
+        self.max_dimension = 0;
+        self.initialization_error = None;
+        self.start(ctx);
+    }
+
+    fn show_setup_help(&mut self, ctx: &egui::Context) {
+        let ready = self.ready();
+        let loading = !ready && self.initialization_error.is_none();
+        let mut check_again = false;
+        egui::Window::new("OCR Setup")
+            .open(&mut self.help_open)
+            .collapsible(false)
+            .default_width(480.0)
+            .show(ctx, |ui| {
+                egui::ScrollArea::vertical().max_height(480.0).show(ui, |ui| {
+                    if loading || self.busy {
+                        ui.horizontal(|ui| {
+                            ui.spinner();
+                            ui.label(if self.busy { "Text recognition is in progress. Wait for it to finish." }
+                                else { "Checking available OCR languages..." });
+                        });
+                    } else if self.initialization_error.is_some() {
+                        ui.strong("OCR is unavailable. Follow the setup steps below, then check again.");
+                    } else {
+                        ui.label("Choose Text Scan (OCR) to scan the entire image. Use Shift + drag to limit the scan to a rectangle, and the language dropdown beside the scan button to select a language.");
+                    }
+                    ui.separator();
+                    show_platform_setup(ui);
+                    if let Some(error) = &self.initialization_error {
+                        ui.add_space(8.0);
+                        ui.collapsing("Details", |ui| { ui.add(egui::Label::new(error).wrap().selectable(true)); });
+                    }
+                });
+                ui.separator();
+                check_again = ui.add_enabled(!loading && !self.busy, egui::Button::new("Check Again"))
+                    .on_hover_text("Refresh the OCR engine and available languages after setup.")
+                    .clicked();
+            });
+        if check_again {
+            self.check_again(ctx);
         }
     }
 
@@ -285,7 +354,9 @@ impl OcrUi {
             match event {
                 WorkerEvent::Ready(Ok((languages, language, max_dimension))) => {
                     self.languages = languages;
-                    self.language = language;
+                    if !self.languages.iter().any(|candidate| candidate.tag == self.language) {
+                        self.language = language;
+                    }
                     self.max_dimension = max_dimension;
                 }
                 WorkerEvent::Ready(Err(error)) => {
@@ -314,7 +385,7 @@ impl OcrUi {
                 if self.busy {
                     ui.horizontal(|ui| {
                         ui.spinner();
-                        ui.label("Recognizing selected text...");
+                        ui.label("Recognizing text...");
                     });
                 } else if let Some(error) = &self.error {
                     ui.colored_label(NOTICE_ERROR_TEXT, error);
@@ -329,8 +400,50 @@ impl OcrUi {
                     });
                 }
             });
+        self.show_setup_help(ctx);
         errors
     }
+}
+
+fn show_platform_setup(ui: &mut egui::Ui) {
+    match std::env::consts::OS {
+        "windows" => {
+            ui.label("Windows OCR requires at least one installed OCR language pack.");
+            ui.label(
+                "Install the OCR language feature in Windows Settings, or open PowerShell as Administrator and run:",
+            );
+            setup_command(ui, "Add-WindowsCapability -Online -Name Language.OCR~~~en-US~0.0.1.0");
+            ui.label("Replace en-US with preferred OCR language code. After installation, click Check Again.");
+            ui.hyperlink_to(
+                "Windows OCR language pack instructions",
+                "https://learn.microsoft.com/en-us/windows/powertoys/text-extractor#supported-languages",
+            );
+        }
+        "macos" => {
+            ui.label("OCR is provided by the built-in macOS Vision framework (macOS 11 or later). No separate OCR engine installation is needed.");
+            ui.label("Supported languages depend on your macOS version. Update macOS if the required language is missing, then restart Edolview.");
+            ui.label("For an initialization failure, click Check Again. If it still fails, expand Details to see the reported error.");
+        }
+        "linux" => {
+            ui.label("Install Tesseract and the OCR language data you want. Refer to the official installation guide for your Linux distribution:");
+            ui.hyperlink_to(
+                "Tesseract installation guide",
+                "https://tesseract-ocr.github.io/tessdoc/Installation.html",
+            );
+            ui.label("Make sure tesseract is available on the PATH used to launch Edolview, then click Check Again. Restart Edolview if its launch environment changed.");
+        }
+        _ => {
+            ui.label("OCR is not supported on this platform.");
+        }
+    }
+}
+
+fn setup_command(ui: &mut egui::Ui, command: &str) {
+    ui.add(
+        egui::Label::new(egui::RichText::new(command).monospace())
+            .wrap()
+            .selectable(true),
+    );
 }
 
 fn show_text_editor(ui: &mut egui::Ui, text: &mut String, errors: &mut Vec<String>) -> egui::Id {
@@ -431,6 +544,32 @@ fn show_text_editor(ui: &mut egui::Ui, text: &mut String, errors: &mut Vec<Strin
 mod tests {
     use super::*;
     use crate::util::math_ext::vec2i;
+
+    #[test]
+    fn refreshing_languages_keeps_the_selection_unless_it_was_removed() {
+        let ctx = egui::Context::default();
+        let mut ocr = OcrUi {
+            language: "kor".into(),
+            ..Default::default()
+        };
+        for (tags, expected) in [(&["eng", "kor"][..], "kor"), (&["eng"][..], "eng")] {
+            let languages = tags
+                .iter()
+                .map(|tag| OcrLanguage {
+                    tag: (*tag).into(),
+                    label: (*tag).into(),
+                })
+                .collect();
+            ocr.event_tx
+                .send(WorkerEvent::Ready(Ok((languages, "eng".into(), 4096))))
+                .unwrap();
+            ctx.begin_pass(egui::RawInput::default());
+            assert!(ocr.show(&ctx).is_empty());
+            ctx.end_pass().textures_delta.clear();
+            assert_eq!(ocr.language, expected);
+            assert!(ocr.ready());
+        }
+    }
 
     #[test]
     fn text_editor_cut_and_paste_preserve_unicode_and_work_when_empty() {

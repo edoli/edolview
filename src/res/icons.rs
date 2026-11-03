@@ -29,6 +29,7 @@ const REDUCE_AUTO: &[u8] = include_bytes!("icons/reduce_auto.svg");
 
 const DELETE: &[u8] = include_bytes!("icons/delete.svg");
 const COPY: &[u8] = include_bytes!("icons/copy.svg");
+const INFO: &[u8] = include_bytes!("icons/info.svg");
 const ARROW_UP: &[u8] = include_bytes!("icons/arrow_up.svg");
 const ARROW_DOWN: &[u8] = include_bytes!("icons/arrow_down.svg");
 
@@ -53,6 +54,7 @@ pub struct Icons {
 
     delete: OnceLock<egui::TextureHandle>,
     copy: OnceLock<egui::TextureHandle>,
+    info: OnceLock<egui::TextureHandle>,
     arrow_up: OnceLock<egui::TextureHandle>,
     arrow_down: OnceLock<egui::TextureHandle>,
 }
@@ -80,6 +82,7 @@ impl Icons {
 
             delete: OnceLock::new(),
             copy: OnceLock::new(),
+            info: OnceLock::new(),
             arrow_up: OnceLock::new(),
             arrow_down: OnceLock::new(),
         }
@@ -216,6 +219,13 @@ impl Icons {
     pub fn get_copy<'c>(&self, ctx: &egui::Context) -> egui::Image<'c> {
         self.copy
             .get_or_init(|| icon::load_svg_icon_texture(ctx, "copy", COPY))
+            .to_icon()
+    }
+
+    #[inline]
+    pub fn get_info<'c>(&self, ctx: &egui::Context) -> egui::Image<'c> {
+        self.info
+            .get_or_init(|| icon::load_svg_icon_texture(ctx, "info", INFO))
             .to_icon()
     }
 

@@ -173,15 +173,15 @@ impl ImageContextInfo {
             let bound = self.mean_key.map(|(_, rect)| rect.to_string());
             let cursor_placeholder = self.placeholder(self.cursor_key.is_some(), &self.cursor, "Outside image");
             let mean_placeholder = self.placeholder(self.mean_key.is_some(), &self.mean, "No selection");
-            let columns = ReadoutColumns::new(
-                ui,
-                [
-                    (cursor_color.map(|color| color.display_text.as_str()), cursor_placeholder),
-                    (position.as_deref(), "Outside image"),
-                    (mean_color.map(|color| color.display_text.as_str()), mean_placeholder),
-                    (bound.as_deref(), "No selection"),
-                ],
-            );
+            let has_rectangle = self.mean_key.is_some();
+            let values = [
+                (cursor_color.map(|color| color.display_text.as_str()), cursor_placeholder),
+                (position.as_deref(), "Outside image"),
+                (mean_color.map(|color| color.display_text.as_str()), mean_placeholder),
+                (bound.as_deref(), "No selection"),
+            ];
+            // Hidden rectangle rows must not contribute to the menu's width.
+            let columns = ReadoutColumns::new(ui, &values[..if has_rectangle { 4 } else { 2 }]);
             let mut copy = None;
             ui.separator();
             ui.strong("Cursor");
@@ -214,35 +214,37 @@ impl ImageContextInfo {
                 });
             }
 
-            ui.separator();
-            ui.strong("Rectangle");
-            if columns.value_row(
-                ui,
-                icons,
-                "Color",
-                mean_color.map(|color| color.display_text.as_str()),
-                mean_color.map(|color| color.swatch),
-                mean_placeholder,
-                "Mean source values inside the selected rectangle",
-            ) {
-                copy = mean_color.map(|color| ContextValueCopy {
-                    label: "rectangle mean color",
-                    text: color.copy_text.clone(),
-                });
-            }
-            if columns.value_row(
-                ui,
-                icons,
-                "Bound",
-                bound.as_deref(),
-                None,
-                "No selection",
-                "x, y, width, height in pixels",
-            ) {
-                copy = bound.map(|text| ContextValueCopy {
-                    label: "rectangle bound",
-                    text,
-                });
+            if has_rectangle {
+                ui.separator();
+                ui.strong("Rectangle");
+                if columns.value_row(
+                    ui,
+                    icons,
+                    "Color",
+                    mean_color.map(|color| color.display_text.as_str()),
+                    mean_color.map(|color| color.swatch),
+                    mean_placeholder,
+                    "Mean source values inside the selected rectangle",
+                ) {
+                    copy = mean_color.map(|color| ContextValueCopy {
+                        label: "rectangle mean color",
+                        text: color.copy_text.clone(),
+                    });
+                }
+                if columns.value_row(
+                    ui,
+                    icons,
+                    "Bound",
+                    bound.as_deref(),
+                    None,
+                    "No selection",
+                    "x, y, width, height in pixels",
+                ) {
+                    copy = bound.map(|text| ContextValueCopy {
+                        label: "rectangle bound",
+                        text,
+                    });
+                }
             }
             copy
         })
@@ -271,7 +273,7 @@ struct ReadoutColumns {
 }
 
 impl ReadoutColumns {
-    fn new(ui: &egui::Ui, values: [(Option<&str>, &str); 4]) -> Self {
+    fn new(ui: &egui::Ui, values: &[(Option<&str>, &str)]) -> Self {
         let measure = |text: &str, style: egui::TextStyle| {
             ui.painter()
                 .layout_no_wrap(text.to_owned(), style.resolve(ui.style()), ui.visuals().text_color())
@@ -282,7 +284,7 @@ impl ReadoutColumns {
         Self {
             label_width: measure("Position", egui::TextStyle::Body),
             text_width: values
-                .into_iter()
+                .iter()
                 .map(|(value, placeholder)| match value {
                     Some(text) => measure(text, egui::TextStyle::Monospace),
                     None => measure(placeholder, egui::TextStyle::Body),

@@ -390,13 +390,19 @@ impl ImageViewer {
                 #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
                 self.ocr.context_menu(
                     ui,
+                    icons,
                     if split_view && app_state.cursor_on_secondary {
                         "secondary"
                     } else {
                         "primary"
                     }
                     .to_string(),
-                    app_state.marquee_rect,
+                    if has_selection {
+                        app_state.marquee_rect
+                    } else {
+                        let active_spec = active_image.spec();
+                        Recti::from_x_y_ranges(0..active_spec.width, 0..active_spec.height)
+                    },
                 );
                 // Capture once per right-click so live image updates do not
                 // change these values or start repeated background reductions.
