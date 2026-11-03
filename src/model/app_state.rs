@@ -3,8 +3,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use clipboard_rs::{Clipboard, ClipboardContext, ContentFormat};
-use color_eyre::eyre::{eyre, Result};
 use indexmap::IndexMap;
 
 use crate::{
@@ -117,22 +115,6 @@ impl AppState {
         }
     }
 
-    pub fn load_from_path(&mut self, path: PathBuf) -> Result<()> {
-        #[cfg(debug_assertions)]
-        let _timer = crate::util::timer::ScopedTimer::new("Total image load time [from path]");
-
-        let hash_str = FileAsset::hash_from_path(&path)?;
-
-        if self.assets.contains_key(&hash_str) {
-            self.set_file_asset_primary_by_hash_and_path(&hash_str, &path);
-            return Ok(());
-        }
-
-        let image = ImageData::load_from_path(&path)?;
-        self.apply_loaded_file_asset(path, hash_str, image);
-        Ok(())
-    }
-
     pub fn apply_loaded_file_asset(&mut self, path: PathBuf, hash: String, image: ImageData) {
         let path_str = path.to_string_lossy().to_string();
         let asset: SharedAsset = Arc::new(FileAsset::new(path_str, hash.clone(), image));
@@ -181,42 +163,9 @@ impl AppState {
         }
     }
 
-    pub fn load_from_clipboard(&mut self) -> Result<()> {
-        #[cfg(debug_assertions)]
-        let _timer = crate::util::timer::ScopedTimer::new("Total image load time [from clipboard]");
-
-        let image = ImageData::load_from_clipboard()
-            .or_else(|_| ImageData::load_from_url(arboard::Clipboard::new().unwrap().get_text()?.as_str()));
-
-        if image.is_err() {
-            let ctx = ClipboardContext::new().unwrap();
-
-            if !ctx.has(ContentFormat::Files) {
-                return Err(eyre!("Clipboard does not contain files"));
-            }
-            let uris = ctx.get_files().unwrap();
-            if uris.is_empty() {
-                return Err(eyre!("Clipboard does not contain image or file data"));
-            }
-
-            let paths: Vec<PathBuf> = uris.iter().map(PathBuf::from).collect();
-
-            for path in &paths {
-                if path.exists() && path.is_file() {
-                    let image = ImageData::load_from_path(path)?;
-                    let path_str = path.to_string_lossy().to_string();
-                    let hash_str = FileAsset::hash_from_path(path)?;
-                    self.set_primary_asset(Arc::new(FileAsset::new(path_str, hash_str, image)));
-                }
-            }
-        } else {
-            self.set_primary_asset(Arc::new(ClipboardAsset::new(image?)));
-        }
-
-        self.path = None;
+    pub fn apply_loaded_clipboard_image(&mut self, image: ImageData) {
+        self.set_primary_asset(Arc::new(ClipboardAsset::new(image)));
         self.file_nav.clear();
-
-        Ok(())
     }
 
     pub fn set_asset_primary_by_hash(&mut self, hash: &str) {
@@ -380,36 +329,6 @@ impl AppState {
 
     pub fn reset_marquee_rect(&mut self) {
         self.marquee_rect = Recti::ZERO;
-    }
-
-    pub fn navigate_next(&mut self) -> Result<Option<PathBuf>> {
-        if let Some(asset) = &self.asset {
-            match asset.asset_type() {
-                AssetType::File => {
-                    if let Some(path) = self.file_nav.navigate_next() {
-                        self.load_from_path(path.clone())?;
-                        return Ok(Some(path));
-                    }
-                }
-                _ => return Ok(None),
-            }
-        }
-        Ok(None)
-    }
-
-    pub fn navigate_prev(&mut self) -> Result<Option<PathBuf>> {
-        if let Some(asset) = &self.asset {
-            match asset.asset_type() {
-                AssetType::File => {
-                    if let Some(path) = self.file_nav.navigate_prev() {
-                        self.load_from_path(path.clone())?;
-                        return Ok(Some(path));
-                    }
-                }
-                _ => return Ok(None),
-            }
-        }
-        Ok(None)
     }
 
     pub fn navigate_asset_next(&mut self) -> bool {

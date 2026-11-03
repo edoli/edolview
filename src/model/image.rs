@@ -496,7 +496,14 @@ impl ImageData {
         #[cfg(debug_assertions)]
         let _timer = crate::util::timer::ScopedTimer::new("Image download");
 
-        let bytes = ureq::get(url).call()?.body_mut().read_to_vec()?;
+        // A stalled server must not block subsequent queued image loads indefinitely.
+        let bytes = ureq::get(url)
+            .config()
+            .timeout_global(Some(std::time::Duration::from_secs(30)))
+            .build()
+            .call()?
+            .body_mut()
+            .read_to_vec()?;
 
         Self::from_bytes(&bytes)
     }

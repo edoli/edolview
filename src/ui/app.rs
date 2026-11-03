@@ -12,12 +12,13 @@ use std::{
 };
 
 use super::asset_list_selection::AssetListSelection;
+use super::image_loader::{ImageLoadRequest, ImageLoadResult, ImageLoader};
 #[cfg(debug_assertions)]
 use crate::util::timer::ScopedTimer;
 use crate::{
     model::{
-        start_server_with_retry, AppState, AssetType, ComparisonMode, FileAsset, Image, ImageData, MeanDim, Recti,
-        SocketAsset, StatisticsScope, StatisticsType, StatisticsUpdate, StatisticsWorker,
+        start_server_with_retry, AppState, AssetType, ComparisonMode, Image, MeanDim, Recti, SocketAsset,
+        StatisticsScope, StatisticsType, StatisticsUpdate, StatisticsWorker,
     },
     res::{
         icons::Icons, KeyboardShortcutExt, ASSET_MULTI_SELECTION_FILL, ASSET_MULTI_SELECTION_HOVER_STROKE,
@@ -65,22 +66,6 @@ struct PendingImageSaveDialog {
     rx: mpsc::Receiver<Option<(PathBuf, String)>>,
 }
 
-enum StartupPathLoadResult {
-    Loaded {
-        path: PathBuf,
-        hash: String,
-        image: ImageData,
-    },
-    Reused {
-        path: PathBuf,
-        hash: String,
-    },
-    Failed {
-        path: PathBuf,
-        error: Report,
-    },
-}
-
 #[derive(Clone, Copy)]
 enum MarqueeAngleDisplay {
     Degrees(f32),
@@ -124,8 +109,7 @@ pub struct ViewerApp {
     mono_colormap_previews: MonoColormapPreviews,
     asset_list_selection: AssetListSelection,
     last_path: Option<PathBuf>,
-    startup_paths: Vec<PathBuf>,
-    startup_path_rx: Option<mpsc::Receiver<StartupPathLoadResult>>,
+    image_loader: ImageLoader,
     pending_navigation_path: Option<PathBuf>,
     tmp_marquee_rect: Recti,
     marquee_rect_text: String,
@@ -305,8 +289,7 @@ impl ViewerApp {
             asset_list_selection: AssetListSelection::default(),
 
             last_path: None,
-            startup_paths: Vec::new(),
-            startup_path_rx: None,
+            image_loader: ImageLoader::default(),
             pending_navigation_path: None,
 
             tmp_marquee_rect: marquee_rect,
@@ -371,54 +354,19 @@ impl ViewerApp {
 
     #[inline]
     pub fn with_paths(mut self, paths: Vec<PathBuf>) -> Self {
-        self.startup_paths = paths;
+        if !paths.is_empty() {
+            self.image_loader.enqueue(ImageLoadRequest::Files(paths));
+        }
         self
     }
 
-    fn start_startup_path_loading(&mut self, ctx: &egui::Context) {
-        if self.startup_path_rx.is_some() || self.startup_paths.is_empty() {
-            return;
-        }
-
-        let paths = std::mem::take(&mut self.startup_paths);
-        let (tx, rx) = mpsc::channel();
-        self.startup_path_rx = Some(rx);
-
-        let load_ctx = ctx.clone();
-        let mut seen_hashes: HashSet<_> = self.state.assets.keys().cloned().collect();
-        thread::spawn(move || {
-            for path in paths {
-                let result = match FileAsset::hash_from_path(&path) {
-                    Ok(hash) => {
-                        if !seen_hashes.contains(&hash) {
-                            match ImageData::load_from_path(&path) {
-                                Ok(image) => {
-                                    seen_hashes.insert(hash.clone());
-                                    StartupPathLoadResult::Loaded { path, hash, image }
-                                }
-                                Err(err) => StartupPathLoadResult::Failed { path, error: err },
-                            }
-                        } else {
-                            StartupPathLoadResult::Reused { path, hash }
-                        }
-                    }
-                    Err(err) => StartupPathLoadResult::Failed { path, error: err },
-                };
-
-                if tx.send(result).is_err() {
-                    break;
-                }
-
-                Self::request_root_repaint(&load_ctx);
-            }
-        });
+    fn start_image_loading(&mut self, ctx: &egui::Context) {
+        self.image_loader.start(ctx, self.state.assets.keys().cloned());
     }
 
     fn open_file_paths(&mut self, paths: Vec<PathBuf>, ctx: &egui::Context) {
-        // Share startup/external-open's sequential worker with the file dialog,
-        // drops and navigation. RAW development must never run on the UI thread.
-        self.startup_paths.extend(paths);
-        self.start_startup_path_loading(ctx);
+        self.image_loader.enqueue(ImageLoadRequest::Files(paths));
+        self.start_image_loading(ctx);
         ctx.request_repaint();
     }
 
@@ -449,36 +397,14 @@ impl ViewerApp {
 
     fn load_fail(toasts: &mut Vec<Toast>, message: &str, path: Option<&PathBuf>, e: &Report) {
         eprintln!("{message}: {e}");
-        let path_str = path.map_or("<invalid>", |p| p.to_str().unwrap_or("<invalid>"));
-        toasts.add_error(format!("{message}: {path_str}"));
+        let detail = path.map_or_else(|| e.to_string(), |path| path.display().to_string());
+        toasts.add_error(format!("{message}: {detail}"));
     }
 
     fn open_from_clipboard(&mut self, ctx: &egui::Context) {
-        // Explorer can expose both a thumbnail and original files. Always open
-        // the original files through the worker so file navigation is preserved.
-        use clipboard_rs::{Clipboard, ClipboardContext, ContentFormat};
-        if let Ok(clipboard) = ClipboardContext::new() {
-            if clipboard.has(ContentFormat::Files) {
-                if let Ok(files) = clipboard.get_files() {
-                    let paths: Vec<PathBuf> = files.into_iter().map(PathBuf::from).collect();
-                    if !paths.is_empty() {
-                        self.open_file_paths(paths, ctx);
-                        return;
-                    }
-                }
-            }
-            // Copied paths and file links are local files, not HTTP downloads. Keep their
-            // decoding on the same worker as files opened through the dialog.
-            if let Ok(text) = clipboard.get_text() {
-                if let Some(path) = crate::util::path_ext::clipboard_text_to_path(&text) {
-                    self.open_file_paths(vec![path], ctx);
-                    return;
-                }
-            }
-        }
-        self.state.load_from_clipboard().unwrap_or_else(|e| {
-            Self::load_fail(&mut self.toasts, "Failed to load image from clipboard", None, &e);
-        });
+        self.image_loader.enqueue(ImageLoadRequest::Clipboard);
+        self.start_image_loading(ctx);
+        ctx.request_repaint();
     }
 
     // egui-winit turns Ctrl+V key-down into Paste before app shortcuts see it.
@@ -1351,12 +1277,11 @@ impl ViewerApp {
                     // Acknowledge a responsive UI before decoding. Reuse the
                     // background loader so a large image cannot prevent the
                     // window from being shown or accepting the next request.
-                    self.startup_paths.extend(paths);
+                    self.open_file_paths(paths, ctx);
                     ctx.send_viewport_cmd(egui::ViewportCommand::Visible(true));
                     ctx.send_viewport_cmd(egui::ViewportCommand::Minimized(false));
                     ctx.send_viewport_cmd(egui::ViewportCommand::Focus);
                     ctx.request_repaint();
-                    self.start_startup_path_loading(ctx);
                     if let Some(control_instance) = &self.control_instance {
                         if let Err(err) = control_instance.touch_active() {
                             eprintln!("Failed to update active window registry after external open: {err}");
@@ -1428,49 +1353,35 @@ impl ViewerApp {
             }
         }
 
-        if let Some(rx) = &self.startup_path_rx {
-            let mut should_clear_rx = false;
-            let mut received = false;
-
-            loop {
-                match rx.try_recv() {
-                    Ok(StartupPathLoadResult::Loaded { path, hash, image }) => {
-                        received = true;
-                        if self.pending_navigation_path.as_ref() == Some(&path) {
-                            self.pending_navigation_path = None;
-                        }
-                        self.state.apply_loaded_file_asset(path, hash, image);
-                    }
-                    Ok(StartupPathLoadResult::Reused { path, hash }) => {
-                        received = true;
-                        if self.pending_navigation_path.as_ref() == Some(&path) {
-                            self.pending_navigation_path = None;
-                        }
-                        self.state.set_file_asset_primary_by_hash_and_path(&hash, &path);
-                    }
-                    Ok(StartupPathLoadResult::Failed { path, error }) => {
-                        received = true;
-                        if self.pending_navigation_path.as_ref() == Some(&path) {
-                            self.pending_navigation_path = None;
-                        }
-                        Self::load_fail(&mut self.toasts, "Failed to load image", Some(&path), &error);
-                    }
-                    Err(mpsc::TryRecvError::Empty) => break,
-                    Err(mpsc::TryRecvError::Disconnected) => {
-                        should_clear_rx = true;
-                        break;
-                    }
+        while let Some(result) = self.image_loader.poll() {
+            let path = match &result {
+                ImageLoadResult::FileLoaded { path, .. } | ImageLoadResult::FileReused { path, .. } => Some(path),
+                ImageLoadResult::Failed { path, .. } => path.as_ref(),
+                ImageLoadResult::ClipboardLoaded(_) => None,
+            };
+            if path.is_some() && self.pending_navigation_path.as_ref() == path {
+                self.pending_navigation_path = None;
+            }
+            match result {
+                ImageLoadResult::FileLoaded { path, hash, image } => {
+                    self.state.apply_loaded_file_asset(path, hash, image)
+                }
+                ImageLoadResult::FileReused { path, hash } => {
+                    self.state.set_file_asset_primary_by_hash_and_path(&hash, &path)
+                }
+                ImageLoadResult::ClipboardLoaded(image) => self.state.apply_loaded_clipboard_image(image),
+                ImageLoadResult::Failed { path, error } => {
+                    let message = if path.is_some() {
+                        "Failed to load image"
+                    } else {
+                        "Failed to load image from clipboard"
+                    };
+                    Self::load_fail(&mut self.toasts, message, path.as_ref(), &error);
                 }
             }
-
-            if should_clear_rx {
-                self.startup_path_rx = None;
-                self.start_startup_path_loading(ctx);
-            }
-            if received {
-                Self::request_root_repaint(ctx);
-            }
+            Self::request_root_repaint(ctx);
         }
+        self.start_image_loading(ctx);
     }
 
     fn handle_window_commands(&mut self, ctx: &egui::Context) {
@@ -1638,7 +1549,7 @@ impl ViewerApp {
             self.is_start_background_event_handlers_called = true;
         }
 
-        self.start_startup_path_loading(ctx);
+        self.start_image_loading(ctx);
         self.handle_event(ctx);
         self.refresh_control_registration(ctx);
         self.handle_window_commands(ctx);
@@ -1762,7 +1673,7 @@ impl eframe::App for ViewerApp {
                 });
 
                 ui.separator();
-                if self.startup_path_rx.is_some() || !self.startup_paths.is_empty() {
+                if self.image_loader.is_loading() {
                     ui.spinner().on_hover_text("Loading images...");
                 }
                 if ui
