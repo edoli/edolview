@@ -454,18 +454,25 @@ impl ViewerApp {
     }
 
     fn open_from_clipboard(&mut self, ctx: &egui::Context) {
-        // Explorer can expose both a thumbnail and original files. Open RAW
-        // files through the worker rather than decoding them in the clipboard
-        // fallback on the UI thread.
+        // Explorer can expose both a thumbnail and original files. Always open
+        // the original files through the worker so file navigation is preserved.
         use clipboard_rs::{Clipboard, ClipboardContext, ContentFormat};
         if let Ok(clipboard) = ClipboardContext::new() {
             if clipboard.has(ContentFormat::Files) {
                 if let Ok(files) = clipboard.get_files() {
                     let paths: Vec<PathBuf> = files.into_iter().map(PathBuf::from).collect();
-                    if paths.iter().any(|path| crate::supported_image::is_raw_path(path)) {
+                    if !paths.is_empty() {
                         self.open_file_paths(paths, ctx);
                         return;
                     }
+                }
+            }
+            // Copied paths and file links are local files, not HTTP downloads. Keep their
+            // decoding on the same worker as files opened through the dialog.
+            if let Ok(text) = clipboard.get_text() {
+                if let Some(path) = crate::util::path_ext::clipboard_text_to_path(&text) {
+                    self.open_file_paths(vec![path], ctx);
+                    return;
                 }
             }
         }

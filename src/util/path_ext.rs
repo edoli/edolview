@@ -2,6 +2,19 @@ use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
+/// Read a copied absolute path or file URI without treating ordinary text as a file.
+pub fn clipboard_text_to_path(text: &str) -> Option<PathBuf> {
+    let text = text.trim();
+    // Explorer's "Copy as path" surrounds the path with double quotes.
+    let text = text.strip_prefix('"').and_then(|text| text.strip_suffix('"')).unwrap_or(text);
+    let path = PathBuf::from(text);
+    if path.is_absolute() {
+        // Literal paths may contain '%' and '#'; only decode escapes in URIs.
+        return Some(path);
+    }
+    url::Url::parse(text).ok()?.to_file_path().ok()
+}
+
 pub fn is_ascii_path(path: &Path) -> bool {
     match path.to_str() {
         Some(s) => s.is_ascii(),
@@ -144,5 +157,71 @@ pub fn colormap_file(relative: &Path) -> PathBuf {
         custom
     } else {
         colormap_dir().join(relative)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn file_uri_decodes_escaped_path_characters() {
+        let path = if cfg!(windows) {
+            PathBuf::from("D:/images/한 글/100% #1.png")
+        } else {
+            PathBuf::from("/images/한 글/100% #1.png")
+        };
+        let uri = url::Url::from_file_path(&path).unwrap();
+        assert_eq!(clipboard_text_to_path(&format!("  {uri}\r\n")), Some(path));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn file_uri_opens_windows_drive_and_unc_paths() {
+        assert_eq!(
+            clipboard_text_to_path("file:///D:/workspace/hg-hsi-line-spread-correction/artifacts/line_spread/endpoint_investigation/244_common_ghost/assets/ghost_3709547.png"),
+            Some(PathBuf::from(r"D:\workspace\hg-hsi-line-spread-correction\artifacts\line_spread\endpoint_investigation\244_common_ghost\assets\ghost_3709547.png"))
+        );
+        assert_eq!(
+            clipboard_text_to_path("file://server/share/image%20one.png"),
+            Some(PathBuf::from(r"\\server\share\image one.png"))
+        );
+    }
+
+    #[test]
+    fn other_clipboard_content_is_not_a_local_path() {
+        for text in [
+            "",
+            "hello",
+            "https://example.com/image.png",
+            "data:image/png;base64,AA==",
+            "images/example.png",
+            "D:example.png",
+        ] {
+            assert_eq!(clipboard_text_to_path(text), None, "{text}");
+        }
+    }
+
+    #[test]
+    fn clipboard_absolute_path_preserves_literal_characters_and_quotes() {
+        let text = if cfg!(windows) {
+            "D:/images/한 글/100%20 #1.png"
+        } else {
+            "/images/한 글/100%20 #1.png"
+        };
+        assert_eq!(clipboard_text_to_path(text), Some(PathBuf::from(text)));
+        assert_eq!(clipboard_text_to_path(&format!(" \"{text}\"\r\n")), Some(PathBuf::from(text)));
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn clipboard_windows_paths_accept_both_separators_and_unc() {
+        for text in [
+            "D:/workspace/hg-hsi-line-spread-correction/artifacts/line_spread/endpoint_investigation/244_common_ghost/assets/ghost_3709547.png",
+            r"D:\images\image.png",
+            r"\\server\share\image one.png",
+        ] {
+            assert_eq!(clipboard_text_to_path(text), Some(PathBuf::from(text)));
+        }
     }
 }
