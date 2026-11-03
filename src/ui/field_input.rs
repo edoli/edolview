@@ -9,10 +9,14 @@ fn allowed_character(character: char) -> bool {
 }
 
 pub(super) fn filter_field_input(input: &mut RawInput) {
+    filter_field_events(&mut input.events);
+}
+
+pub(super) fn filter_field_events(events: &mut Vec<Event>) {
     // All current in-app editors contain numeric expressions or rectangles.
     // Filter before egui so this also covers DragValue's internal text editor.
     // File paths, displayed labels and keyboard/mouse events are unaffected.
-    input.events.retain_mut(|event| match event {
+    events.retain_mut(|event| match event {
         Event::Text(text) | Event::Paste(text) => {
             text.retain(allowed_character);
             // Ignore rejected input entirely so it cannot delete a selection.

@@ -5,6 +5,7 @@ pub mod icon;
 
 mod app;
 mod asset_list_selection;
+mod clipboard_input;
 mod field_input;
 mod image_loader;
 mod image_viewer;

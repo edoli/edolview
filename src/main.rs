@@ -240,6 +240,9 @@ fn run() -> Result<()> {
             .with_min_inner_size(egui::vec2(720.0, 480.0))
             .with_icon(icon),
         renderer: eframe::Renderer::Wgpu,
+        // Let the app route paste to a text editor or the background image loader.
+        // egui-winit's automatic paste would read clipboard images on the UI thread.
+        clipboard_shortcuts: false,
         ..Default::default()
     };
     configure_wgpu(&mut native_options);

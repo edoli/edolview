@@ -12,6 +12,7 @@ use std::{
 };
 
 use super::asset_list_selection::AssetListSelection;
+use super::clipboard_input::{clipboard_action, translate_text_clipboard_shortcuts, ClipboardAction};
 use super::image_loader::{ImageLoadRequest, ImageLoadResult, ImageLoader};
 #[cfg(debug_assertions)]
 use crate::util::timer::ScopedTimer;
@@ -407,10 +408,10 @@ impl ViewerApp {
         ctx.request_repaint();
     }
 
-    // egui-winit turns Ctrl+V key-down into Paste before app shortcuts see it.
-    // The key-up still arrives, so use it as a fallback for the more specific Ctrl+Shift+V command.
+    // Native clipboard translation is disabled so Ctrl/Cmd+V arrives on key-down,
+    // including when the clipboard contains only a file list. Never load on release.
     fn consume_open_from_clipboard_shortcut(input: &mut egui::InputState) -> bool {
-        let shortcut = crate::res::OPEN_FROM_CLIPBOARD_SC;
+        let legacy = crate::res::OPEN_FROM_CLIPBOARD_LEGACY_SC;
         let mut triggered = false;
         input.events.retain(|event| {
             if let egui::Event::Key {
@@ -421,12 +422,17 @@ impl ViewerApp {
                 ..
             } = event
             {
-                if *key == shortcut.logical_key && modifiers.matches_logically(shortcut.modifiers) {
+                if clipboard_action(*key, *modifiers) == Some(ClipboardAction::Paste)
+                    || (*key == legacy.logical_key && modifiers.matches_exact(legacy.modifiers))
+                {
                     // Consume auto-repeat too, but load only on the initial key-down.
-                    // Ctrl+Shift+V is preserved as a key event by egui-winit.
                     triggered |= !repeat;
                     return false;
                 }
+            }
+            if matches!(event, egui::Event::Paste(_) | egui::Event::PasteImage(_)) {
+                triggered = true;
+                return false;
             }
             true
         });
@@ -1430,6 +1436,9 @@ impl ViewerApp {
     }
 
     fn handle_global_shortcuts(&mut self, ctx: &egui::Context) {
+        if !ctx.text_edit_focused() && ctx.input_mut(Self::consume_open_from_clipboard_shortcut) {
+            self.open_from_clipboard(ctx);
+        }
         if ctx.egui_wants_keyboard_input() {
             return;
         }
@@ -1441,7 +1450,6 @@ impl ViewerApp {
         let mut add_roi = false;
         let mut navigate_prev_roi = false;
         let mut navigate_next_roi = false;
-        let mut open_from_clipboard = false;
         let mut navigate_file = None;
         ctx.input_mut(|i| {
             for slot in 0..crate::settings::VIEW_PRESET_COUNT {
@@ -1471,7 +1479,6 @@ impl ViewerApp {
             add_roi |= i.consume_shortcut(&crate::res::ROI_ADD);
             navigate_prev_roi |= i.consume_shortcut(&crate::res::ROI_PREV);
             navigate_next_roi |= i.consume_shortcut(&crate::res::ROI_NEXT);
-            open_from_clipboard |= Self::consume_open_from_clipboard_shortcut(i);
             if i.consume_shortcut(&crate::res::NAVIGATE_PREV) {
                 navigate_file = Some(false);
             }
@@ -1518,9 +1525,6 @@ impl ViewerApp {
         } else if navigate_next_roi {
             self.navigate_roi(1, ctx);
         }
-        if open_from_clipboard {
-            self.open_from_clipboard(ctx);
-        }
         if let Some(forward) = navigate_file {
             self.navigate_file(forward, ctx);
         }
@@ -1539,6 +1543,7 @@ impl ViewerApp {
         #[cfg(debug_assertions)]
         let _timer = ScopedTimer::new("ui.app.logic");
 
+        self.prepare_clipboard_input(ctx);
         self.poll_pending_image_save_dialog(ctx);
         self.poll_colormap_folder_open();
 
@@ -1588,10 +1593,34 @@ impl ViewerApp {
     }
 }
 
-impl eframe::App for ViewerApp {
-    fn raw_input_hook(&mut self, _ctx: &egui::Context, raw_input: &mut egui::RawInput) {
+impl ViewerApp {
+    fn prepare_clipboard_input(&mut self, ctx: &egui::Context) {
+        let text_edit_focused = ctx.text_edit_focused();
         #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
-        if self.viewer.ocr_text_has_focus(_ctx) {
+        let unicode_editor = self.viewer.ocr_text_has_focus(ctx);
+        #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+        let unicode_editor = false;
+        let error = ctx.input_mut(|input| {
+            let error = translate_text_clipboard_shortcuts(&mut input.events, text_edit_focused, || {
+                arboard::Clipboard::new().and_then(|mut clipboard| clipboard.get_text())
+            });
+            if !unicode_editor {
+                // Key-based text paste is translated after RawInput's filter.
+                super::field_input::filter_field_events(&mut input.events);
+            }
+            error
+        });
+        if let Some(error) = error {
+            eprintln!("Could not paste clipboard text: {error}");
+            self.toasts.add_error(format!("Could not paste clipboard text: {error}"));
+        }
+    }
+}
+
+impl eframe::App for ViewerApp {
+    fn raw_input_hook(&mut self, ctx: &egui::Context, raw_input: &mut egui::RawInput) {
+        #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
+        if self.viewer.ocr_text_has_focus(ctx) {
             // OCR results are free-form Unicode text; numeric expression fields
             // still use the existing ASCII and IME filtering below.
             return;
@@ -2958,10 +2987,16 @@ mod clipboard_shortcut_tests {
     }
 
     #[test]
-    fn clipboard_shortcut_ignores_plain_paste() {
+    fn clipboard_shortcut_accepts_native_paste_events_and_legacy_binding() {
         let ctx = egui::Context::default();
-        assert!(!frame(&ctx, vec![key(true, egui::Modifiers::CTRL)]));
-        assert!(!frame(&ctx, vec![key(false, egui::Modifiers::CTRL)]));
-        assert!(!frame(&ctx, vec![egui::Event::Paste("123".into())]));
+        assert!(frame(&ctx, vec![egui::Event::Paste("123".into())]));
+        let legacy = crate::res::OPEN_FROM_CLIPBOARD_LEGACY_SC.modifiers;
+        assert!(frame(&ctx, vec![key(true, legacy), key(false, legacy)]));
+        assert!(!frame(
+            &ctx,
+            vec![key(true, egui::Modifiers::NONE), key(false, egui::Modifiers::NONE)]
+        ));
+        let alt = crate::res::OPEN_FROM_CLIPBOARD_SC.modifiers.plus(egui::Modifiers::ALT);
+        assert!(!frame(&ctx, vec![key(true, alt), key(false, alt)]));
     }
 }

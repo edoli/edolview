@@ -9,7 +9,26 @@ pub const SELECT_NONE_SC: Ksc = Ksc::new(Modifiers::NONE, Key::Escape);
 pub const COPY_SC: Ksc = Ksc::new(Modifiers::COMMAND, Key::C);
 pub const CUT_SC: Ksc = Ksc::new(Modifiers::COMMAND, Key::X);
 pub const PASTE_SC: Ksc = Ksc::new(Modifiers::COMMAND, Key::V);
-pub const OPEN_FROM_CLIPBOARD_SC: Ksc = Ksc::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::V);
+pub const OPEN_FROM_CLIPBOARD_SC: Ksc = PASTE_SC;
+pub const OPEN_FROM_CLIPBOARD_LEGACY_SC: Ksc = Ksc::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::V);
+pub const COPY_SHORTCUTS: &[Ksc] = &[
+    COPY_SC,
+    Ksc::new(Modifiers::NONE, Key::Copy),
+    #[cfg(windows)]
+    Ksc::new(Modifiers::CTRL, Key::Insert),
+];
+pub const CUT_SHORTCUTS: &[Ksc] = &[
+    CUT_SC,
+    Ksc::new(Modifiers::NONE, Key::Cut),
+    #[cfg(windows)]
+    Ksc::new(Modifiers::SHIFT, Key::Delete),
+];
+pub const PASTE_SHORTCUTS: &[Ksc] = &[
+    PASTE_SC,
+    Ksc::new(Modifiers::NONE, Key::Paste),
+    #[cfg(windows)]
+    Ksc::new(Modifiers::SHIFT, Key::Insert),
+];
 pub const SAVE_IMAGE_SC: Ksc = Ksc::new(Modifiers::COMMAND, Key::S);
 pub const ROI_PANEL_TOGGLE: Ksc = Ksc::new(Modifiers::NONE, Key::R);
 pub const ROI_ADD: Ksc = Ksc::new(Modifiers::COMMAND, Key::R);
