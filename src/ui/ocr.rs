@@ -2,12 +2,20 @@ use std::sync::{mpsc, Arc};
 
 use color_eyre::eyre::{eyre, Result};
 use eframe::egui;
+#[cfg(target_os = "linux")]
+#[path = "ocr/linux.rs"]
+mod backend;
 #[cfg(target_os = "macos")]
 #[path = "ocr/macos.rs"]
 mod backend;
 #[cfg(target_os = "windows")]
 #[path = "ocr/windows.rs"]
 mod backend;
+
+// Exercise the portable CLI parsing/error paths on other desktop build hosts, too.
+#[cfg(all(test, not(target_os = "linux")))]
+#[path = "ocr/linux.rs"]
+mod linux_backend_tests;
 
 use backend::Backend;
 
@@ -104,7 +112,7 @@ impl Default for OcrUi {
 }
 
 impl OcrUi {
-    /// Initialize and retain native OCR objects only on their dedicated worker.
+    /// Initialize the platform backend only on its dedicated worker, on first use.
     fn start(&mut self, ctx: &egui::Context) {
         if self.started {
             return;
@@ -144,12 +152,18 @@ impl OcrUi {
         self.start(ui.ctx());
         let rect = rect.validate();
         let ready = self.max_dimension > 0 && !self.languages.is_empty();
+        // Linux OCR is optional. Show this row only after Tesseract and at least
+        // one text-recognition language have been found by the background probe.
+        #[cfg(target_os = "linux")]
+        if !ready {
+            return;
+        }
         let tooltip = self.initialization_error.as_deref().unwrap_or(if !ready {
             "Loading available OCR languages..."
         } else if rect.empty() {
             "Select an image region first."
         } else {
-            "Recognize the selected region using native OCR and the current display settings."
+            "Recognize the selected region locally using the current display settings."
         });
         let row_height = ui.spacing().interact_size.y;
         // A popup's sizing pass must measure content, not reserve the window's
