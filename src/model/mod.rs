@@ -1,5 +1,6 @@
 mod app_state;
 mod asset;
+mod clipboard_image;
 mod file_nav;
 mod gpu_compute;
 mod image;

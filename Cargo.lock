@@ -1011,6 +1011,7 @@ dependencies = [
  "bytemuck",
  "clap",
  "clipboard-rs",
+ "clipboard-win",
  "color-eyre",
  "dunce",
  "eframe",

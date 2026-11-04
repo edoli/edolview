@@ -470,26 +470,7 @@ impl ImageData {
         #[cfg(debug_assertions)]
         let _timer = crate::util::timer::ScopedTimer::new("Clipboard read");
 
-        let mut clipboard = arboard::Clipboard::new().map_err(|e| eyre!("Failed to open clipboard: {e}"))?;
-        let image_data = clipboard
-            .get_image()
-            .map_err(|e| eyre!("Failed to get image from clipboard: {e}"))?;
-
-        let width = image_data.width as i32;
-        let height = image_data.height as i32;
-        let bytes = std::borrow::Cow::into_owned(image_data.bytes);
-        let channels = (bytes.len() / (width as usize) / (height as usize)) as i32;
-        if width <= 0 || height <= 0 || channels <= 0 || channels > 4 {
-            return Err(eyre!("Invalid clipboard image dimensions or channels"));
-        }
-
-        Self::from_decoded(crate::model::image_io::DecodedImage::new(
-            width as u32,
-            height as u32,
-            channels,
-            PixelType::U8,
-            crate::model::image_io::DecodedPixels::U8(bytes),
-        )?)
+        Self::from_decoded(super::clipboard_image::read_image()?)
     }
 
     pub fn load_from_url(url: &str) -> Result<ImageData> {

@@ -177,10 +177,11 @@ fn read_clipboard() -> Result<ClipboardInput> {
     if let Some(path) = text.as_deref().and_then(clipboard_text_to_path) {
         return Ok(ClipboardInput::Files(vec![path]));
     }
-    if let Ok(image) = ImageData::load_from_clipboard() {
-        return Ok(ClipboardInput::Image(image));
-    }
-    let text = text.ok_or_else(|| eyre!("Clipboard does not contain an image, files, or an image URL"))?;
+    let image_error = match ImageData::load_from_clipboard() {
+        Ok(image) => return Ok(ClipboardInput::Image(image)),
+        Err(error) => error,
+    };
+    let text = text.ok_or(image_error)?;
     let url = url::Url::parse(text.trim()).wrap_err("Clipboard text is not an image path or URL")?;
     if !matches!(url.scheme(), "http" | "https") {
         return Err(eyre!("Clipboard image URL must use HTTP or HTTPS"));

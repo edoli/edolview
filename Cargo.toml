@@ -93,6 +93,7 @@ winres = "0.1"
 pollster = "0.4"
 
 [target.'cfg(windows)'.dependencies]
+clipboard-win = "5.4.1"
 windows-sys = { version = "0.61.2", features = ["Win32_UI_Shell", "Win32_System_Registry"] }
 windows = { version = "0.62.2", features = [
     "Globalization", "Graphics_Imaging", "Media_Ocr", "Security_Cryptography",
