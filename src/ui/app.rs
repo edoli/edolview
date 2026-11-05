@@ -1702,21 +1702,26 @@ impl eframe::App for ViewerApp {
                 });
 
                 ui.separator();
-                if self.image_loader.is_loading() {
-                    ui.spinner().on_hover_text("Loading images...");
-                }
-                if ui
-                    .button("Reset")
+                let reset_button = ui
+                    .add(egui::Button::image(
+                        self.icons.get_reset_view(&ctx).tint(ui.visuals().text_color()),
+                    ))
                     .on_hover_text(format!(
                         "Reset zoom and pan to original ({})",
                         crate::res::RESET_VIEW.format_sys()
-                    ))
-                    .clicked()
-                {
+                    ));
+                reset_button.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Reset"));
+                if reset_button.clicked() {
                     self.viewer.reset_view();
                 }
 
-                if ui.button("Fit").on_hover_text("Fit marquee to view").clicked() {
+                let fit_button = ui
+                    .add(egui::Button::image(
+                        self.icons.get_fit_view(&ctx).tint(ui.visuals().text_color()),
+                    ))
+                    .on_hover_text("Fit image or marquee to view");
+                fit_button.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Fit"));
+                if fit_button.clicked() {
                     let rect = self.state.marquee_rect.validate();
                     if rect.empty() {
                         if let Some(asset) = &self.state.asset {
@@ -1728,7 +1733,13 @@ impl eframe::App for ViewerApp {
                         self.viewer.fit_rect(rect);
                     }
                 }
-                if ui.button("Center").on_hover_text("Center marquee in view").clicked() {
+                let center_button = ui
+                    .add(egui::Button::image(
+                        self.icons.get_center_view(&ctx).tint(ui.visuals().text_color()),
+                    ))
+                    .on_hover_text("Center image or marquee in view");
+                center_button.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Center"));
+                if center_button.clicked() {
                     let rect = self.state.marquee_rect.validate();
                     if rect.empty() {
                         if let Some(asset) = &self.state.asset {
@@ -1745,17 +1756,20 @@ impl eframe::App for ViewerApp {
                 ui.toggle_icon(
                     &mut self.state.is_show_pixel_value,
                     self.icons.get_show_pixel_value(&ctx),
-                    "Show Pixel Value (Zoom in to see values)",
+                    "Show Pixel Value",
+                    Some("Zoom in to see values"),
                 );
                 ui.toggle_icon(
                     &mut self.state.is_show_crosshair,
                     self.icons.get_show_crosshair(&ctx),
                     "Show Crosshair",
+                    None,
                 );
                 ui.toggle_icon(
                     &mut self.state.is_show_minimap,
                     self.icons.get_show_minimap(&ctx),
-                    "Show Minimap (current visible region)",
+                    "Show Minimap",
+                    Some("Current visible region"),
                 );
                 let background_button = ui
                     .add(egui::Button::image(self.icons.get_background(
@@ -1811,6 +1825,28 @@ impl eframe::App for ViewerApp {
                     self.icons.get_downloading(&ctx),
                     "Image Receiving",
                 );
+                // Both states paint into the same slot so loading never shifts the toolbar.
+                let (loading_rect, loading_response) = ui.allocate_exact_size(
+                    egui::Vec2::splat(crate::res::icons::IMAGE_LOADING_ICON_SIZE),
+                    egui::Sense::hover(),
+                );
+                let is_loading = self.image_loader.is_loading();
+                if is_loading {
+                    egui::Spinner::new().paint_at(ui, loading_rect);
+                } else {
+                    self.icons
+                        .get_image_ready(&ctx)
+                        .tint(ui.visuals().weak_text_color())
+                        .paint_at(ui, loading_rect);
+                }
+                loading_response.widget_info(|| {
+                    egui::WidgetInfo::labeled(egui::Role::ProgressIndicator, ui.is_enabled(), "Image Loading")
+                });
+                loading_response.on_hover_text(if is_loading {
+                    "Loading images..."
+                } else {
+                    "No images loading"
+                });
 
                 // Right end: panel visibility toggles
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
@@ -1823,11 +1859,17 @@ impl eframe::App for ViewerApp {
                         ui.painter().circle_filled(indicator_center, 2.0, UPDATE_ACCENT_TEXT);
                     }
 
-                    ui.spacing_mut().button_padding.x = 4.0;
-                    ui.toggle_value(&mut self.state.is_show_statusbar, "Status Bar");
-                    ui.toggle_value(&mut self.state.is_show_sidebar, "Sidebar");
-                    ui.toggle_value(&mut self.show_rois_modal, "ROIs")
-                        .on_hover_text(format!("Show ROIs panel ({})", crate::res::ROI_PANEL_TOGGLE.format_sys()));
+                    let statusbar_icon = self.icons.get_statusbar_panel(&ctx, self.state.is_show_statusbar);
+                    ui.toggle_icon(&mut self.state.is_show_statusbar, statusbar_icon, "Status Bar", None);
+                    let sidebar_icon = self.icons.get_sidebar_panel(&ctx, self.state.is_show_sidebar);
+                    ui.toggle_icon(&mut self.state.is_show_sidebar, sidebar_icon, "Sidebar", None);
+                    let rois_icon = self.icons.get_rois_panel(&ctx, self.show_rois_modal);
+                    ui.toggle_icon(
+                        &mut self.show_rois_modal,
+                        rois_icon,
+                        "ROIs",
+                        Some(&crate::res::ROI_PANEL_TOGGLE.format_sys()),
+                    );
                 });
             });
         });

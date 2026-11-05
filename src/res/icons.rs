@@ -11,9 +11,25 @@ use crate::ui::icon::{self, IconExt};
 const BACKGROUND_ICON_SIZE: usize = 24;
 const BACKGROUND_ICON_INSET: usize = 3;
 const BACKGROUND_ICON_CELL_SIZE: usize = 6;
+pub const IMAGE_LOADING_ICON_SIZE: f32 = 16.0;
 const SHOW_PIXEL_VALUE: &[u8] = include_bytes!("icons/show_pixel_value.svg");
 const SHOW_CROSSHAIR: &[u8] = include_bytes!("icons/show_crosshair.svg");
 const SHOW_MINIMAP: &[u8] = include_bytes!("icons/show_minimap.svg");
+const RESET_VIEW: &[u8] = include_bytes!("icons/reset_view.svg");
+const FIT_VIEW: &[u8] = include_bytes!("icons/fit_view.svg");
+const CENTER_VIEW: &[u8] = include_bytes!("icons/center_view.svg");
+const ROIS_PANEL: [&[u8]; 2] = [
+    include_bytes!("icons/rois_hidden.svg"),
+    include_bytes!("icons/rois_shown.svg"),
+];
+const SIDEBAR_PANEL: [&[u8]; 2] = [
+    include_bytes!("icons/sidebar_hidden.svg"),
+    include_bytes!("icons/sidebar_shown.svg"),
+];
+const STATUSBAR_PANEL: [&[u8]; 2] = [
+    include_bytes!("icons/statusbar_hidden.svg"),
+    include_bytes!("icons/statusbar_shown.svg"),
+];
 
 const SCALE_LINEAR: &[u8] = include_bytes!("icons/scale_linear.svg");
 const SCALE_INVERSE: &[u8] = include_bytes!("icons/scale_inverse.svg");
@@ -22,6 +38,7 @@ const SCALE_ABSOLUTE: &[u8] = include_bytes!("icons/scale_absolute.svg");
 
 const NORMALIZE: &[u8] = include_bytes!("icons/normalize.svg");
 const DOWNLOADING: &[u8] = include_bytes!("icons/downloading.svg");
+const IMAGE_READY: &[u8] = include_bytes!("icons/image_ready.svg");
 
 const REDUCE_COLUMN: &[u8] = include_bytes!("icons/reduce_column.svg");
 const REDUCE_ROW: &[u8] = include_bytes!("icons/reduce_row.svg");
@@ -38,6 +55,12 @@ pub struct Icons {
     show_pixel_value: OnceLock<egui::TextureHandle>,
     show_crosshair: OnceLock<egui::TextureHandle>,
     show_minimap: OnceLock<egui::TextureHandle>,
+    reset_view: OnceLock<egui::TextureHandle>,
+    fit_view: OnceLock<egui::TextureHandle>,
+    center_view: OnceLock<egui::TextureHandle>,
+    rois_panel: [OnceLock<egui::TextureHandle>; 2],
+    sidebar_panel: [OnceLock<egui::TextureHandle>; 2],
+    statusbar_panel: [OnceLock<egui::TextureHandle>; 2],
 
     scale_linear: OnceLock<egui::TextureHandle>,
     scale_inverse: OnceLock<egui::TextureHandle>,
@@ -47,6 +70,7 @@ pub struct Icons {
     normalize: OnceLock<egui::TextureHandle>,
 
     downloading: OnceLock<egui::TextureHandle>,
+    image_ready: OnceLock<egui::TextureHandle>,
 
     reduce_column: OnceLock<egui::TextureHandle>,
     reduce_row: OnceLock<egui::TextureHandle>,
@@ -66,6 +90,12 @@ impl Icons {
             show_pixel_value: OnceLock::new(),
             show_crosshair: OnceLock::new(),
             show_minimap: OnceLock::new(),
+            reset_view: OnceLock::new(),
+            fit_view: OnceLock::new(),
+            center_view: OnceLock::new(),
+            rois_panel: [const { OnceLock::new() }; 2],
+            sidebar_panel: [const { OnceLock::new() }; 2],
+            statusbar_panel: [const { OnceLock::new() }; 2],
 
             scale_linear: OnceLock::new(),
             scale_inverse: OnceLock::new(),
@@ -75,6 +105,7 @@ impl Icons {
             normalize: OnceLock::new(),
 
             downloading: OnceLock::new(),
+            image_ready: OnceLock::new(),
 
             reduce_column: OnceLock::new(),
             reduce_row: OnceLock::new(),
@@ -146,6 +177,53 @@ impl Icons {
     }
 
     #[inline]
+    pub fn get_reset_view<'c>(&self, ctx: &egui::Context) -> egui::Image<'c> {
+        self.reset_view
+            .get_or_init(|| icon::load_svg_icon_texture(ctx, "reset_view", RESET_VIEW))
+            .to_icon()
+    }
+
+    #[inline]
+    pub fn get_fit_view<'c>(&self, ctx: &egui::Context) -> egui::Image<'c> {
+        self.fit_view
+            .get_or_init(|| icon::load_svg_icon_texture(ctx, "fit_view", FIT_VIEW))
+            .to_icon()
+    }
+
+    #[inline]
+    pub fn get_center_view<'c>(&self, ctx: &egui::Context) -> egui::Image<'c> {
+        self.center_view
+            .get_or_init(|| icon::load_svg_icon_texture(ctx, "center_view", CENTER_VIEW))
+            .to_icon()
+    }
+
+    #[inline]
+    pub fn get_rois_panel<'c>(&self, ctx: &egui::Context, shown: bool) -> egui::Image<'c> {
+        let index = usize::from(shown);
+        self.rois_panel[index]
+            .get_or_init(|| icon::load_svg_icon_texture(ctx, format!("rois_panel_{shown}"), ROIS_PANEL[index]))
+            .to_icon()
+    }
+
+    #[inline]
+    pub fn get_sidebar_panel<'c>(&self, ctx: &egui::Context, shown: bool) -> egui::Image<'c> {
+        let index = usize::from(shown);
+        self.sidebar_panel[index]
+            .get_or_init(|| icon::load_svg_icon_texture(ctx, format!("sidebar_panel_{shown}"), SIDEBAR_PANEL[index]))
+            .to_icon()
+    }
+
+    #[inline]
+    pub fn get_statusbar_panel<'c>(&self, ctx: &egui::Context, shown: bool) -> egui::Image<'c> {
+        let index = usize::from(shown);
+        self.statusbar_panel[index]
+            .get_or_init(|| {
+                icon::load_svg_icon_texture(ctx, format!("statusbar_panel_{shown}"), STATUSBAR_PANEL[index])
+            })
+            .to_icon()
+    }
+
+    #[inline]
     pub fn get_scale_linear<'c>(&self, ctx: &egui::Context) -> egui::Image<'c> {
         self.scale_linear
             .get_or_init(|| icon::load_svg_icon_texture(ctx, "scale_linear", SCALE_LINEAR))
@@ -184,6 +262,13 @@ impl Icons {
     pub fn get_downloading<'c>(&self, ctx: &egui::Context) -> egui::Image<'c> {
         self.downloading
             .get_or_init(|| icon::load_svg_icon_texture(ctx, "downloading", DOWNLOADING))
+            .to_icon()
+    }
+
+    #[inline]
+    pub fn get_image_ready<'c>(&self, ctx: &egui::Context) -> egui::Image<'c> {
+        self.image_ready
+            .get_or_init(|| icon::load_svg_icon_texture(ctx, "image_ready", IMAGE_READY))
             .to_icon()
     }
 

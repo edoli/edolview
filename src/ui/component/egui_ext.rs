@@ -96,7 +96,13 @@ pub trait UiExt {
         value: &mut T,
         last_value: &mut T,
     ) -> Response;
-    fn toggle_icon<'a>(&mut self, selected: &mut bool, icon: impl Into<Image<'a>>, name: &str) -> Response;
+    fn toggle_icon<'a>(
+        &mut self,
+        selected: &mut bool,
+        icon: impl Into<Image<'a>>,
+        name: &str,
+        description: Option<&str>,
+    ) -> Response;
     fn indicator_icon<'a>(&mut self, is_on: bool, icon: impl Into<Image<'a>>, name: &str) -> Response;
     fn radio_icon<'a, Value: PartialEq>(
         &mut self,
@@ -243,20 +249,26 @@ impl UiExt for Ui {
         self.text_edit_value(display_value, value)
     }
 
-    fn toggle_icon<'a>(&mut self, selected: &mut bool, icon: impl Into<Image<'a>>, name: &str) -> Response {
+    fn toggle_icon<'a>(
+        &mut self,
+        selected: &mut bool,
+        icon: impl Into<Image<'a>>,
+        name: &str,
+        description: Option<&str>,
+    ) -> Response {
         let tint_color = if *selected {
             self.style().visuals.selection.bg_fill.linear_multiply(1.2)
         } else {
             self.style().visuals.text_color()
         };
+        let hover_text = description.map_or_else(|| name.to_owned(), |description| format!("{name} ({description})"));
         let image_button = egui::Button::image(icon.into().tint(tint_color));
-
-        let resp = self.add(image_button).on_hover_text(name);
+        let resp = self.add(image_button);
         if resp.clicked() {
             *selected = !*selected;
         }
-
-        resp
+        resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, self.is_enabled(), *selected, name));
+        resp.on_hover_text(format!("{hover_text}\n{}", if *selected { "On" } else { "Off" }))
     }
 
     fn indicator_icon<'a>(&mut self, is_on: bool, icon: impl Into<Image<'a>>, name: &str) -> Response {
