@@ -13,6 +13,7 @@ mod image_viewer;
 mod ocr;
 mod status_bar;
 mod style;
+mod toolbar;
 
 pub use app::ViewerApp;
 pub use image_viewer::ImageViewer;
