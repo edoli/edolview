@@ -1671,35 +1671,36 @@ impl eframe::App for ViewerApp {
 
         egui::Panel::top("top").show(ui, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
-                ui.menu_button("File", |ui| {
-                    if ui.button("Open...").clicked() {
-                        ui.close();
-                        let supported_extensions = crate::supported_image::supported_image_extensions();
-                        if let Some(path) = FileDialog::new()
-                            .add_filter("Images", supported_extensions.as_slice())
-                            .pick_file()
-                        {
-                            self.viewer.reset_view();
-                            self.open_file_paths(vec![path], &ctx);
-                        }
-                    }
-
-                    if ui
-                        .button(format!(
-                            "Open from clipboard ({})",
-                            crate::res::OPEN_FROM_CLIPBOARD_SC.format_sys()
-                        ))
-                        .on_hover_text("Load image from clipboard")
-                        .clicked()
+                let open_button = ui
+                    .add(egui::Button::image(
+                        self.icons.get_open_file(&ctx).tint(ui.visuals().text_color()),
+                    ))
+                    .on_hover_text("Open image file...");
+                open_button.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Open"));
+                if open_button.clicked() {
+                    let supported_extensions = crate::supported_image::supported_image_extensions();
+                    if let Some(path) = FileDialog::new()
+                        .add_filter("Images", supported_extensions.as_slice())
+                        .pick_file()
                     {
-                        self.open_from_clipboard(&ctx);
+                        self.viewer.reset_view();
+                        self.open_file_paths(vec![path], &ctx);
                     }
-
-                    if ui.button("Exit").clicked() {
-                        ui.close();
-                        ctx.send_viewport_cmd(egui::ViewportCommand::Close);
-                    }
+                }
+                let clipboard_button = ui
+                    .add(egui::Button::image(
+                        self.icons.get_open_clipboard(&ctx).tint(ui.visuals().text_color()),
+                    ))
+                    .on_hover_text(format!(
+                        "Open from clipboard ({})",
+                        crate::res::OPEN_FROM_CLIPBOARD_SC.format_sys()
+                    ));
+                clipboard_button.widget_info(|| {
+                    egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Open from clipboard")
                 });
+                if clipboard_button.clicked() {
+                    self.open_from_clipboard(&ctx);
+                }
 
                 ui.separator();
                 let reset_button = ui

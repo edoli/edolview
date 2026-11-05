@@ -12,6 +12,8 @@ const BACKGROUND_ICON_SIZE: usize = 24;
 const BACKGROUND_ICON_INSET: usize = 3;
 const BACKGROUND_ICON_CELL_SIZE: usize = 6;
 pub const IMAGE_LOADING_ICON_SIZE: f32 = 16.0;
+const OPEN_FILE: &[u8] = include_bytes!("icons/open_file.svg");
+const OPEN_CLIPBOARD: &[u8] = include_bytes!("icons/open_clipboard.svg");
 const SHOW_PIXEL_VALUE: &[u8] = include_bytes!("icons/show_pixel_value.svg");
 const SHOW_CROSSHAIR: &[u8] = include_bytes!("icons/show_crosshair.svg");
 const SHOW_MINIMAP: &[u8] = include_bytes!("icons/show_minimap.svg");
@@ -53,6 +55,8 @@ const ARROW_DOWN: &[u8] = include_bytes!("icons/arrow_down.svg");
 
 pub struct Icons {
     background: Mutex<HashMap<[egui::Color32; 2], egui::TextureHandle>>,
+    open_file: OnceLock<egui::TextureHandle>,
+    open_clipboard: OnceLock<egui::TextureHandle>,
     show_pixel_value: OnceLock<egui::TextureHandle>,
     show_crosshair: OnceLock<egui::TextureHandle>,
     show_minimap: OnceLock<egui::TextureHandle>,
@@ -89,6 +93,8 @@ impl Icons {
     pub fn new() -> Self {
         Self {
             background: Mutex::new(HashMap::new()),
+            open_file: OnceLock::new(),
+            open_clipboard: OnceLock::new(),
             show_pixel_value: OnceLock::new(),
             show_crosshair: OnceLock::new(),
             show_minimap: OnceLock::new(),
@@ -120,6 +126,20 @@ impl Icons {
             arrow_up: OnceLock::new(),
             arrow_down: OnceLock::new(),
         }
+    }
+
+    #[inline]
+    pub fn get_open_file<'c>(&self, ctx: &egui::Context) -> egui::Image<'c> {
+        self.open_file
+            .get_or_init(|| icon::load_svg_icon_texture(ctx, "open_file", OPEN_FILE))
+            .to_icon()
+    }
+
+    #[inline]
+    pub fn get_open_clipboard<'c>(&self, ctx: &egui::Context) -> egui::Image<'c> {
+        self.open_clipboard
+            .get_or_init(|| icon::load_svg_icon_texture(ctx, "open_clipboard", OPEN_CLIPBOARD))
+            .to_icon()
     }
 
     #[inline]
