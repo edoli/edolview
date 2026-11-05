@@ -11,6 +11,7 @@ mod image_loader;
 mod image_viewer;
 #[cfg(any(target_os = "windows", target_os = "macos", target_os = "linux"))]
 mod ocr;
+mod status_bar;
 mod style;
 
 pub use app::ViewerApp;
