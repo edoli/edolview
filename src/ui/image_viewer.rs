@@ -64,6 +64,11 @@ fn min_max_compare_epsilon(dtype: PixelType) -> f32 {
     }
 }
 
+fn snap_crosshair_pos(image_pos: egui::Pos2) -> egui::Pos2 {
+    // Integer coordinates are pixel edges; half-integers are pixel centers.
+    egui::pos2((image_pos.x * 2.0).round() * 0.5, (image_pos.y * 2.0).round() * 0.5)
+}
+
 pub struct ImageViewer {
     zoom_level: f32,
     zoom_base: f32,
@@ -293,10 +298,13 @@ impl ImageViewer {
                 if let Some(pointer_pos) = mouse_pos {
                     let (image_pos, cursor_on_secondary) =
                         self.view_to_image_coords(pointer_pos, rect, pixel_per_point, split_view);
-                    let pixel_pos = vec2i(image_pos.x as i32, image_pos.y as i32);
                     // Check if coordinates are within image bounds
-                    if pixel_pos.x >= 0 && pixel_pos.x < spec.width && pixel_pos.y >= 0 && pixel_pos.y < spec.height {
-                        app_state.cursor_pos = Some(pixel_pos);
+                    if image_pos.x >= 0.0
+                        && image_pos.x < spec.width as f32
+                        && image_pos.y >= 0.0
+                        && image_pos.y < spec.height as f32
+                    {
+                        app_state.cursor_pos = Some(image_pos);
                         app_state.cursor_on_secondary = cursor_on_secondary;
                     } else {
                         app_state.cursor_pos = None;
@@ -407,8 +415,12 @@ impl ImageViewer {
                 // Capture once per right-click so live image updates do not
                 // change these values or start repeated background reductions.
                 let errors = if resp.secondary_clicked() || !context_menu_open {
-                    self.context_info
-                        .update(ui.ctx(), active_image, app_state.cursor_pos, app_state.marquee_rect)
+                    self.context_info.update(
+                        ui.ctx(),
+                        active_image,
+                        app_state.cursor_pixel_pos(),
+                        app_state.marquee_rect,
+                    )
                 } else {
                     self.context_info.poll()
                 };
@@ -938,7 +950,8 @@ impl ImageViewer {
 
                 // Draw crosshair
                 if app_state.is_show_crosshair {
-                    if let Some(cursor_px) = app_state.cursor_pos {
+                    if let Some(cursor_pos) = app_state.cursor_pos {
+                        let crosshair_pos = snap_crosshair_pos(cursor_pos);
                         // Draw a subtle shadow then a bright line for visibility
                         let painter = ui.painter();
                         let shadow = egui::Stroke {
@@ -953,20 +966,16 @@ impl ImageViewer {
                         for pane_rect in
                             std::iter::once(active_primary_rect).chain(split_view.then_some(right_pane_rect))
                         {
-                            // Center of the hovered image pixel in view points
-                            let center_px = egui::vec2(
-                                (cursor_px.x as f32 + 0.5) * self.zoom(),
-                                (cursor_px.y as f32 + 0.5) * self.zoom(),
-                            );
-                            let center_pt = pane_rect.min + (self.pan + center_px) / pixel_per_point;
+                            let crosshair_px = crosshair_pos.to_vec2() * self.zoom();
+                            let crosshair_pt = pane_rect.min + (self.pan + crosshair_px) / pixel_per_point;
 
                             let h1 = [
-                                egui::pos2(pane_rect.left(), center_pt.y),
-                                egui::pos2(pane_rect.right(), center_pt.y),
+                                egui::pos2(pane_rect.left(), crosshair_pt.y),
+                                egui::pos2(pane_rect.right(), crosshair_pt.y),
                             ];
                             let v1 = [
-                                egui::pos2(center_pt.x, pane_rect.top()),
-                                egui::pos2(center_pt.x, pane_rect.bottom()),
+                                egui::pos2(crosshair_pt.x, pane_rect.top()),
+                                egui::pos2(crosshair_pt.x, pane_rect.bottom()),
                             ];
 
                             painter.line_segment(h1, shadow);

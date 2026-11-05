@@ -3,6 +3,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use eframe::egui;
 use indexmap::IndexMap;
 
 use crate::{
@@ -24,7 +25,8 @@ pub struct AppState {
     pub comparison_blend: f32,
     pub comparison_notice: Option<String>,
     pub shader_params: ShaderParams,
-    pub cursor_pos: Option<Vec2i>,
+    /// Image coordinates before crosshair snapping or conversion to a pixel index.
+    pub cursor_pos: Option<egui::Pos2>,
     pub cursor_on_secondary: bool,
     pub marquee_rect: Recti,
 
@@ -113,6 +115,10 @@ impl AppState {
             socket_info: Arc::new(Mutex::new(SocketInfo::new())),
             assets: IndexMap::new(),
         }
+    }
+
+    pub fn cursor_pixel_pos(&self) -> Option<Vec2i> {
+        self.cursor_pos.map(|pos| vec2i(pos.x.floor() as i32, pos.y.floor() as i32))
     }
 
     pub fn apply_loaded_file_asset(&mut self, path: PathBuf, hash: String, image: ImageData) {

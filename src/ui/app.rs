@@ -1903,7 +1903,7 @@ impl eframe::App for ViewerApp {
                     |columns| {
                         let (cursor_row_height, selection_row_height) = columns[1]
                             .vertical(|ui| {
-                                let cursor_response = if let Some(cursor_pos) = self.state.cursor_pos {
+                                let cursor_response = if let Some(cursor_pos) = self.state.cursor_pixel_pos() {
                                     ui.label(format!("Cursor: {}, {}", cursor_pos.x, cursor_pos.y))
                                 } else {
                                     ui.label("Cursor: -, -")
@@ -1951,10 +1951,10 @@ impl eframe::App for ViewerApp {
                                 let spec = cursor_image.spec();
                                 let dtype = cursor_image.spec().dtype;
 
-                                let cursor_color = if let Ok(pixel) = cursor_image.get_pixel_at(
-                                    self.state.cursor_pos.map_or(-1, |p| p.x),
-                                    self.state.cursor_pos.map_or(-1, |p| p.y),
-                                ) {
+                                let cursor_pixel = self.state.cursor_pixel_pos();
+                                let cursor_color = if let Ok(pixel) = cursor_image
+                                    .get_pixel_at(cursor_pixel.map_or(-1, |p| p.x), cursor_pixel.map_or(-1, |p| p.y))
+                                {
                                     pixel.iter().cloned().collect()
                                 } else {
                                     vec![0.0; spec.channels as usize]
