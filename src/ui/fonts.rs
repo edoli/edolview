@@ -15,6 +15,20 @@ fn collect_fallback_font_sources() -> Vec<(String, PathBuf)> {
         }
     }
 
+    #[cfg(target_os = "windows")]
+    {
+        let fonts_dir = PathBuf::from(std::env::var_os("WINDIR").unwrap_or_else(|| r"C:\Windows".into())).join("Fonts");
+        // Prefer Windows 11's system glyphs; MDL2 provides the same caption
+        // codepoints on Windows versions without Segoe Fluent Icons.
+        sources.push((
+            crate::res::icons::WINDOW_ICON_FONT_FAMILY.to_owned(),
+            fonts_dir.join("SegoeIcons.ttf"),
+        ));
+        sources.push((
+            crate::res::icons::WINDOW_ICON_FONT_FAMILY.to_owned(),
+            fonts_dir.join("segmdl2.ttf"),
+        ));
+    }
     append_platform_cjk_font_sources(&mut sources);
     sources
 }
@@ -86,14 +100,18 @@ pub(crate) fn spawn_fallback_font_loader() -> Option<mpsc::Receiver<LoadedFallba
     thread::spawn(move || {
         let mut seen_paths = HashSet::new();
         let mut loaded_fonts = Vec::new();
+        let mut seen_keys = HashSet::new();
 
         for (font_key, font_path) in sources {
-            if !seen_paths.insert(font_path.clone()) || !font_path.is_file() {
+            if seen_keys.contains(&font_key) || !seen_paths.insert(font_path.clone()) || !font_path.is_file() {
                 continue;
             }
 
             match fs::read(&font_path) {
-                Ok(bytes) => loaded_fonts.push((font_key, FontData::from_owned(bytes))),
+                Ok(bytes) => {
+                    seen_keys.insert(font_key.clone());
+                    loaded_fonts.push((font_key, FontData::from_owned(bytes)));
+                }
                 Err(err) => {
                     eprintln!("Failed to read fallback font '{}': {err}", font_path.display());
                 }
@@ -115,6 +133,14 @@ pub(crate) fn apply_fallback_fonts(ctx: &egui::Context, fallback_fonts: LoadedFa
     let mut font_order = Vec::with_capacity(fallback_fonts.len());
 
     for (font_key, font_data) in fallback_fonts {
+        #[cfg(target_os = "windows")]
+        if font_key == crate::res::icons::WINDOW_ICON_FONT_FAMILY {
+            fonts
+                .families
+                .insert(egui::FontFamily::Name(font_key.clone().into()), vec![font_key.clone()]);
+            fonts.font_data.insert(font_key, font_data.into());
+            continue;
+        }
         font_order.push(font_key.clone());
         fonts.font_data.insert(font_key, font_data.into());
     }

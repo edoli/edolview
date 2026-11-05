@@ -1035,6 +1035,7 @@ dependencies = [
  "objc2-vision",
  "opener",
  "pollster 0.4.0",
+ "raw-window-handle",
  "rawler",
  "resvg",
  "rfd",

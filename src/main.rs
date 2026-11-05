@@ -250,7 +250,12 @@ fn run() -> Result<()> {
     if let Err(e) = eframe::run_native(
         "edolview",
         native_options,
-        Box::new(|_cc| Ok(Box::new(ViewerApp::new().with_paths(args.images)))),
+        Box::new(|_cc| {
+            let app = ViewerApp::new().with_paths(args.images);
+            #[cfg(target_os = "windows")]
+            let app = app.with_window_chrome(_cc);
+            Ok(Box::new(app))
+        }),
     ) {
         return Err(eyre!("eframe initialization failed: {e}"));
     }

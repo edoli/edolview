@@ -12,6 +12,40 @@ const BACKGROUND_ICON_SIZE: usize = 24;
 const BACKGROUND_ICON_INSET: usize = 3;
 const BACKGROUND_ICON_CELL_SIZE: usize = 6;
 pub const IMAGE_LOADING_ICON_SIZE: f32 = 16.0;
+#[cfg(target_os = "windows")]
+pub const WINDOW_BUTTON_SIZE: egui::Vec2 = egui::vec2(32.0, 32.0);
+#[cfg(target_os = "windows")]
+#[derive(Clone, Copy)]
+pub enum WindowControlIcon {
+    Minimize,
+    Maximize,
+    Restore,
+    Close,
+}
+#[cfg(target_os = "windows")]
+pub const WINDOW_ICON_FONT_FAMILY: &str = "Segoe Fluent Icons";
+#[cfg(target_os = "windows")]
+pub const WINDOW_ICON_FONT_SIZE: f32 = 10.0;
+#[cfg(target_os = "windows")]
+impl WindowControlIcon {
+    pub fn glyph(self) -> &'static str {
+        match self {
+            Self::Minimize => "\u{e921}",
+            Self::Maximize => "\u{e922}",
+            Self::Restore => "\u{e923}",
+            Self::Close => "\u{e8bb}",
+        }
+    }
+
+    pub fn fallback_glyph(self) -> &'static str {
+        match self {
+            Self::Minimize => "−",
+            Self::Maximize => "□",
+            Self::Restore => "❐",
+            Self::Close => "×",
+        }
+    }
+}
 const OPEN_FILE: &[u8] = include_bytes!("icons/open_file.svg");
 const OPEN_CLIPBOARD: &[u8] = include_bytes!("icons/open_clipboard.svg");
 const SHOW_PIXEL_VALUE: &[u8] = include_bytes!("icons/show_pixel_value.svg");

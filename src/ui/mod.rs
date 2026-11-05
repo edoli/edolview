@@ -14,6 +14,8 @@ mod ocr;
 mod status_bar;
 mod style;
 mod toolbar;
+#[cfg(target_os = "windows")]
+mod window_chrome;
 
 pub use app::ViewerApp;
 pub use image_viewer::ImageViewer;

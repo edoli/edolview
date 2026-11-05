@@ -109,6 +109,8 @@ pub struct ViewerApp {
     image_loader: ImageLoader,
     pending_navigation_path: Option<PathBuf>,
     status_bar: StatusBar,
+    #[cfg(target_os = "windows")]
+    native_chrome: Option<super::window_chrome::NativeChrome>,
     is_start_background_event_handlers_called: bool,
 
     // Marquee change callbacks
@@ -253,6 +255,8 @@ impl ViewerApp {
             pending_navigation_path: None,
 
             status_bar: StatusBar::new(marquee_rect),
+            #[cfg(target_os = "windows")]
+            native_chrome: None,
             is_start_background_event_handlers_called: false,
 
             last_marquee_rect_for_cb: marquee_rect,
@@ -309,6 +313,18 @@ impl ViewerApp {
             pending_image_save_dialog: None,
             colormap_folder_rx: None,
         }
+    }
+
+    #[cfg(target_os = "windows")]
+    pub fn with_window_chrome(mut self, cc: &eframe::CreationContext<'_>) -> Self {
+        match super::window_chrome::NativeChrome::attach(cc) {
+            Ok(chrome) => self.native_chrome = Some(chrome),
+            Err(error) => {
+                eprintln!("{error}");
+                self.toasts.add_error(error.to_string());
+            }
+        }
+        self
     }
 
     #[inline]
@@ -2625,6 +2641,14 @@ impl eframe::App for ViewerApp {
         }
         if current_asset_hash != self.last_marquee_asset_hash {
             self.last_marquee_asset_hash = current_asset_hash;
+        }
+
+        #[cfg(target_os = "windows")]
+        if let Some(chrome) = &self.native_chrome {
+            for error in chrome.update(&ctx) {
+                eprintln!("{error}");
+                self.toasts.add_error(error);
+            }
         }
 
         // Debug window

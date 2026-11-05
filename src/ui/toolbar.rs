@@ -40,8 +40,26 @@ impl Toolbar<'_> {
         } = self;
         let ctx = ui.ctx().clone();
         let mut action = None;
-        egui::Panel::top("top").show(ui, |ui| {
+        #[cfg(target_os = "windows")]
+        let mut regions = super::window_chrome::Regions {
+            title: egui::Rect::NOTHING,
+            buttons: [egui::Rect::NOTHING; 3],
+            layer: ui.layer_id(),
+        };
+        let panel = egui::Panel::top("top");
+        #[cfg(target_os = "windows")]
+        let panel = panel
+            .show_separator_line(true)
+            .frame(egui::Frame::side_top_panel(ui.style()).inner_margin(egui::Margin {
+                left: 8,
+                right: 0,
+                top: 0,
+                bottom: 0,
+            }));
+        panel.show(ui, |ui| {
             egui::MenuBar::new().ui(ui, |ui| {
+                #[cfg(target_os = "windows")]
+                ui.set_min_height(crate::res::icons::WINDOW_BUTTON_SIZE.y);
                 let open_button = ui
                     .add(egui::Button::image(icons.get_open_file(&ctx).tint(ui.visuals().text_color())))
                     .on_hover_text("Open image file...");
@@ -216,6 +234,10 @@ impl Toolbar<'_> {
 
                 // Right end: panel visibility toggles
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    #[cfg(target_os = "windows")]
+                    {
+                        regions.buttons = super::window_chrome::controls(ui);
+                    }
                     let settings_button = ui.toggle_icon(show_settings, icons.get_settings(&ctx), "Settings", None);
                     if update_available {
                         let indicator_center = settings_button.rect.right_bottom() + egui::vec2(-4.0, -4.0);
@@ -228,10 +250,16 @@ impl Toolbar<'_> {
                     ui.toggle_icon(&mut state.is_show_sidebar, sidebar_icon, "Sidebar", None);
                     let rois_icon = icons.get_rois_panel(&ctx, *show_rois);
                     ui.toggle_icon(show_rois, rois_icon, "ROIs", Some(&crate::res::ROI_PANEL_TOGGLE.format_sys()));
+                    #[cfg(target_os = "windows")]
+                    {
+                        regions.title = super::window_chrome::title(ui, state.asset.as_ref().map(|asset| asset.name()));
+                    }
                 });
             });
         });
 
+        #[cfg(target_os = "windows")]
+        super::window_chrome::store_regions(&ctx, regions);
         action
     }
 }
