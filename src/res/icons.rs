@@ -14,7 +14,7 @@ const BACKGROUND_ICON_CELL_SIZE: usize = 6;
 pub const IMAGE_LOADING_ICON_SIZE: f32 = 16.0;
 pub const SOCKET_ADDRESS_ICON_SIZE: f32 = 16.0;
 #[cfg(target_os = "windows")]
-pub const WINDOW_BUTTON_SIZE: egui::Vec2 = egui::vec2(32.0, 32.0);
+pub const WINDOW_BUTTON_SIZE: egui::Vec2 = egui::vec2(46.0, 32.0);
 #[cfg(target_os = "windows")]
 #[derive(Clone, Copy)]
 pub enum WindowControlIcon {

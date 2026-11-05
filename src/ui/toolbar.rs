@@ -263,7 +263,7 @@ fn socket_address_label(ui: &mut egui::Ui, icons: &Icons, address: &str, titleba
     } else {
         0.0
     };
-    let title = if titlebar.is_integrated { 120.0 } else { 0.0 };
+    let title = if titlebar.is_integrated { 320.0 } else { 0.0 };
     let compact =
         titlebar.is_integrated && ui.available_width() < text.size().x + toggles + indicators + caption + title;
     // One stable response keeps hover/context-menu state across both layouts.

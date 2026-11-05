@@ -1400,7 +1400,7 @@ impl ViewerApp {
         if self.state.path != self.last_path {
             self.last_path = self.state.path.clone();
             if let Some(p) = &self.state.path {
-                ctx.send_viewport_cmd(egui::ViewportCommand::Title(format!("{} - edolview", p.display()).to_owned()));
+                ctx.send_viewport_cmd(egui::ViewportCommand::Title(p.display().to_string()));
             } else {
                 ctx.send_viewport_cmd(egui::ViewportCommand::Title("edolview".to_owned()));
             }

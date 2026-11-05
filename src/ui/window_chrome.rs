@@ -96,7 +96,7 @@ pub(super) fn title(ui: &mut egui::Ui, image_name: Option<&str>) -> Rect {
         egui::Label::new(text).truncate().halign(egui::Align::Center).selectable(false),
     );
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Pane, ui.is_enabled(), "Window Title"));
-    response.on_hover_text(image_name.map_or(native_title, |name| format!("{name} - edolview")));
+    response.on_hover_text(image_name.map_or(native_title, str::to_owned));
     rect
 }
 
@@ -107,7 +107,7 @@ fn caption_title(native_title: &str, image_name: Option<&str>) -> String {
             let filename = std::path::Path::new(name)
                 .file_name()
                 .unwrap_or_else(|| std::ffi::OsStr::new(name));
-            format!("{} - edolview", filename.to_string_lossy())
+            filename.to_string_lossy().into_owned()
         },
     )
 }
