@@ -15,6 +15,7 @@ use super::asset_list_selection::AssetListSelection;
 use super::clipboard_input::{clipboard_action, translate_text_clipboard_shortcuts, ClipboardAction};
 use super::image_loader::{ImageLoadRequest, ImageLoadResult, ImageLoader};
 use super::status_bar::StatusBar;
+use super::toolbar::{Toolbar, ToolbarAction};
 #[cfg(debug_assertions)]
 use crate::util::timer::ScopedTimer;
 use crate::{
@@ -108,6 +109,8 @@ pub struct ViewerApp {
     image_loader: ImageLoader,
     pending_navigation_path: Option<PathBuf>,
     status_bar: StatusBar,
+    #[cfg(target_os = "windows")]
+    native_chrome: Option<super::window_chrome::NativeChrome>,
     is_start_background_event_handlers_called: bool,
 
     // Marquee change callbacks
@@ -252,6 +255,8 @@ impl ViewerApp {
             pending_navigation_path: None,
 
             status_bar: StatusBar::new(marquee_rect),
+            #[cfg(target_os = "windows")]
+            native_chrome: None,
             is_start_background_event_handlers_called: false,
 
             last_marquee_rect_for_cb: marquee_rect,
@@ -308,6 +313,22 @@ impl ViewerApp {
             pending_image_save_dialog: None,
             colormap_folder_rx: None,
         }
+    }
+
+    #[cfg(target_os = "windows")]
+    pub fn with_window_chrome(mut self, cc: &eframe::CreationContext<'_>) -> Self {
+        match super::window_chrome::NativeChrome::attach(cc) {
+            Ok(chrome) => {
+                self.native_chrome = Some(chrome);
+                self.state.titlebar =
+                    crate::model::TitlebarState::integrated(crate::res::icons::WINDOW_BUTTON_SIZE.x * 3.0);
+            }
+            Err(error) => {
+                eprintln!("{error}");
+                self.toasts.add_error(error.to_string());
+            }
+        }
+        self
     }
 
     #[inline]
@@ -1379,7 +1400,7 @@ impl ViewerApp {
         if self.state.path != self.last_path {
             self.last_path = self.state.path.clone();
             if let Some(p) = &self.state.path {
-                ctx.send_viewport_cmd(egui::ViewportCommand::Title(format!("{} - edolview", p.display()).to_owned()));
+                ctx.send_viewport_cmd(egui::ViewportCommand::Title(p.display().to_string()));
             } else {
                 ctx.send_viewport_cmd(egui::ViewportCommand::Title("edolview".to_owned()));
             }
@@ -1624,219 +1645,30 @@ impl eframe::App for ViewerApp {
                 });
         }
 
-        egui::Panel::top("top").show(ui, |ui| {
-            egui::MenuBar::new().ui(ui, |ui| {
-                let open_button = ui
-                    .add(egui::Button::image(
-                        self.icons.get_open_file(&ctx).tint(ui.visuals().text_color()),
-                    ))
-                    .on_hover_text("Open image file...");
-                open_button.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Open"));
-                if open_button.clicked() {
-                    let supported_extensions = crate::supported_image::supported_image_extensions();
-                    if let Some(path) = FileDialog::new()
-                        .add_filter("Images", supported_extensions.as_slice())
-                        .pick_file()
-                    {
-                        self.viewer.reset_view();
-                        self.open_file_paths(vec![path], &ctx);
-                    }
-                }
-                let clipboard_button = ui
-                    .add(egui::Button::image(
-                        self.icons.get_open_clipboard(&ctx).tint(ui.visuals().text_color()),
-                    ))
-                    .on_hover_text(format!(
-                        "Open from clipboard ({})",
-                        crate::res::OPEN_FROM_CLIPBOARD_SC.format_sys()
-                    ));
-                clipboard_button.widget_info(|| {
-                    egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Open from clipboard")
-                });
-                if clipboard_button.clicked() {
-                    self.open_from_clipboard(&ctx);
-                }
-
-                ui.separator();
-                let reset_button = ui
-                    .add(egui::Button::image(
-                        self.icons.get_reset_view(&ctx).tint(ui.visuals().text_color()),
-                    ))
-                    .on_hover_text(format!(
-                        "Reset zoom and pan to original ({})",
-                        crate::res::RESET_VIEW.format_sys()
-                    ));
-                reset_button.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Reset"));
-                if reset_button.clicked() {
+        let toolbar_action = Toolbar {
+            state: &mut self.state,
+            viewer: &mut self.viewer,
+            icons: &self.icons,
+            show_settings: &mut self.show_settings_modal,
+            show_rois: &mut self.show_rois_modal,
+            is_loading: self.image_loader.is_loading(),
+            update_available: matches!(self.update_status, UpdateStatus::Available(_)),
+        }
+        .show(ui);
+        match toolbar_action {
+            Some(ToolbarAction::OpenFile) => {
+                let supported_extensions = crate::supported_image::supported_image_extensions();
+                if let Some(path) = FileDialog::new()
+                    .add_filter("Images", supported_extensions.as_slice())
+                    .pick_file()
+                {
                     self.viewer.reset_view();
+                    self.open_file_paths(vec![path], &ctx);
                 }
-
-                let fit_button = ui
-                    .add(egui::Button::image(
-                        self.icons.get_fit_view(&ctx).tint(ui.visuals().text_color()),
-                    ))
-                    .on_hover_text("Fit image or marquee to view");
-                fit_button.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Fit"));
-                if fit_button.clicked() {
-                    let rect = self.state.marquee_rect.validate();
-                    if rect.empty() {
-                        if let Some(asset) = &self.state.asset {
-                            let spec = asset.image().spec();
-                            let img_rect = Recti::from_min_size(vec2i(0, 0), vec2i(spec.width, spec.height));
-                            self.viewer.fit_rect(img_rect);
-                        }
-                    } else {
-                        self.viewer.fit_rect(rect);
-                    }
-                }
-                let center_button = ui
-                    .add(egui::Button::image(
-                        self.icons.get_center_view(&ctx).tint(ui.visuals().text_color()),
-                    ))
-                    .on_hover_text("Center image or marquee in view");
-                center_button.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), "Center"));
-                if center_button.clicked() {
-                    let rect = self.state.marquee_rect.validate();
-                    if rect.empty() {
-                        if let Some(asset) = &self.state.asset {
-                            let spec = asset.image().spec();
-                            let img_rect = Recti::from_min_size(vec2i(0, 0), vec2i(spec.width, spec.height));
-                            self.viewer.center_rect(img_rect);
-                        }
-                    } else {
-                        self.viewer.center_rect(rect);
-                    }
-                }
-
-                ui.separator();
-                ui.toggle_icon(
-                    &mut self.state.is_show_pixel_value,
-                    self.icons.get_show_pixel_value(&ctx),
-                    "Show Pixel Value",
-                    Some("Zoom in to see values"),
-                );
-                ui.toggle_icon(
-                    &mut self.state.is_show_crosshair,
-                    self.icons.get_show_crosshair(&ctx),
-                    "Show Crosshair",
-                    None,
-                );
-                ui.toggle_icon(
-                    &mut self.state.is_show_minimap,
-                    self.icons.get_show_minimap(&ctx),
-                    "Show Minimap",
-                    Some("Current visible region"),
-                );
-                let background_button = ui
-                    .add(egui::Button::image(self.icons.get_background(
-                        &ctx,
-                        self.state.background_style,
-                        ui.visuals(),
-                    )))
-                    .on_hover_text(format!(
-                        "Background: {}\nClick to choose a background; scroll to change it.",
-                        self.state.background_style.label()
-                    ));
-                background_button.hover_scroll(
-                    ui,
-                    &crate::settings::BackgroundStyle::ALL,
-                    &mut self.state.background_style,
-                    false,
-                );
-                egui::Popup::menu(&background_button).show(|ui| {
-                    for style in crate::settings::BackgroundStyle::ALL {
-                        if ui
-                            .add(
-                                egui::Button::image_and_text(
-                                    self.icons.get_background(&ctx, style, ui.visuals()),
-                                    style.label(),
-                                )
-                                .selected(self.state.background_style == style),
-                            )
-                            .clicked()
-                        {
-                            self.state.background_style = style;
-                            ui.close();
-                        }
-                    }
-                });
-
-                ui.visuals_mut().override_text_color = Some(ui.visuals().weak_text_color());
-                let socket_address = self.state.socket_info.lock().unwrap().address.clone();
-                ui.label(socket_address.clone())
-                    .on_hover_text("Socket Listener Address")
-                    .context_menu(|ui| {
-                        if ui.button("Copy Address").clicked() {
-                            arboard::Clipboard::new()
-                                .and_then(|mut cb| cb.set_text(socket_address))
-                                .unwrap_or_else(|e| {
-                                    eprintln!("Failed to copy socket address to clipboard: {e}");
-                                });
-                            ui.close();
-                        }
-                        ui.separator();
-                        if ui
-                            .hyperlink_to(
-                                "Remote Viewer Guide",
-                                "https://github.com/edoli/edolview/wiki/Remote%E2%80%90Viewer",
-                            )
-                            .clicked()
-                        {
-                            ui.close();
-                        }
-                    });
-                ui.visuals_mut().override_text_color = None;
-                ui.indicator_icon(
-                    self.state.socket_state.is_socket_receiving.load(Ordering::Relaxed),
-                    self.icons.get_downloading(&ctx),
-                    "Image Receiving",
-                );
-                // Both states paint into the same slot so loading never shifts the toolbar.
-                let (loading_rect, loading_response) = ui.allocate_exact_size(
-                    egui::Vec2::splat(crate::res::icons::IMAGE_LOADING_ICON_SIZE),
-                    egui::Sense::hover(),
-                );
-                let is_loading = self.image_loader.is_loading();
-                if is_loading {
-                    egui::Spinner::new().paint_at(ui, loading_rect);
-                } else {
-                    self.icons
-                        .get_image_ready(&ctx)
-                        .tint(ui.visuals().weak_text_color())
-                        .paint_at(ui, loading_rect);
-                }
-                loading_response.widget_info(|| {
-                    egui::WidgetInfo::labeled(egui::Role::ProgressIndicator, ui.is_enabled(), "Image Loading")
-                });
-                loading_response.on_hover_text(if is_loading {
-                    "Loading images..."
-                } else {
-                    "No images loading"
-                });
-
-                // Right end: panel visibility toggles
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let settings_button =
-                        ui.toggle_icon(&mut self.show_settings_modal, self.icons.get_settings(&ctx), "Settings", None);
-                    if matches!(self.update_status, UpdateStatus::Available(_)) {
-                        let indicator_center = settings_button.rect.right_bottom() + egui::vec2(-4.0, -4.0);
-                        ui.painter().circle_filled(indicator_center, 2.0, UPDATE_ACCENT_TEXT);
-                    }
-
-                    let statusbar_icon = self.icons.get_statusbar_panel(&ctx, self.state.is_show_statusbar);
-                    ui.toggle_icon(&mut self.state.is_show_statusbar, statusbar_icon, "Status Bar", None);
-                    let sidebar_icon = self.icons.get_sidebar_panel(&ctx, self.state.is_show_sidebar);
-                    ui.toggle_icon(&mut self.state.is_show_sidebar, sidebar_icon, "Sidebar", None);
-                    let rois_icon = self.icons.get_rois_panel(&ctx, self.show_rois_modal);
-                    ui.toggle_icon(
-                        &mut self.show_rois_modal,
-                        rois_icon,
-                        "ROIs",
-                        Some(&crate::res::ROI_PANEL_TOGGLE.format_sys()),
-                    );
-                });
-            });
-        });
+            }
+            Some(ToolbarAction::OpenFromClipboard) => self.open_from_clipboard(&ctx),
+            None => {}
+        }
 
         self.show_update_confirmation_dialog(&ctx);
         self.show_update_progress_dialog(&ctx);
@@ -2813,6 +2645,14 @@ impl eframe::App for ViewerApp {
         }
         if current_asset_hash != self.last_marquee_asset_hash {
             self.last_marquee_asset_hash = current_asset_hash;
+        }
+
+        #[cfg(target_os = "windows")]
+        if let Some(chrome) = &self.native_chrome {
+            for error in chrome.update(&ctx) {
+                eprintln!("{error}");
+                self.toasts.add_error(error);
+            }
         }
 
         // Debug window

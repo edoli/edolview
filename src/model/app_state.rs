@@ -16,6 +16,24 @@ use crate::{
     util::math_ext::{vec2i, Vec2i},
 };
 
+/// Runtime titlebar integration, reported by the active window backend.
+/// Other UI components use this state instead of checking the operating system.
+#[derive(Clone, Copy, Debug, Default)]
+pub struct TitlebarState {
+    pub is_integrated: bool,
+    /// Inline window-control width at the toolbar's right end, excluding spacing.
+    pub trailing_controls_width: f32,
+}
+
+impl TitlebarState {
+    pub fn integrated(trailing_controls_width: f32) -> Self {
+        Self {
+            is_integrated: true,
+            trailing_controls_width,
+        }
+    }
+}
+
 pub struct AppState {
     pub path: Option<PathBuf>,
     pub asset: Option<SharedAsset>,
@@ -42,6 +60,7 @@ pub struct AppState {
     pub is_show_minimap: bool,
     pub is_show_sidebar: bool,
     pub is_show_statusbar: bool,
+    pub titlebar: TitlebarState,
 
     // Copy behavior: when true, Ctrl+C copies marquee at original pixel size regardless of zoom.
     pub copy_use_original_size: bool,
@@ -108,6 +127,7 @@ impl AppState {
             is_show_minimap: true,
             is_show_sidebar: true,
             is_show_statusbar: true,
+            titlebar: TitlebarState::default(),
             copy_use_original_size: true,
             file_nav: crate::model::FileNav::new(),
             statistics: Statistics::default(),
