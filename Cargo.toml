@@ -24,8 +24,8 @@ color-eyre = "0.6.5"
 log = "0.4.34"
 # Use wgpu for both egui and the image pipeline so rendering and compute share one GPU API.
 # Disable backend defaults at every layer to keep DX12/GLES out of native builds.
-# Keep native text copy/cut/paste enabled when opting out of eframe defaults.
-eframe = { version = "0.37.0", default-features = false, features = ["clipboard", "default_fonts", "wgpu_no_default_features"] }
+# Keep native clipboard and browser links enabled when opting out of eframe defaults.
+eframe = { version = "0.37.0", default-features = false, features = ["clipboard", "default_fonts", "links", "wgpu_no_default_features"] }
 # egui 0.37 makes the legacy bundled symbol/emoji fonts opt-in.
 # Keep glyphs used by settings, display controls, and toasts on every platform.
 egui = { version = "0.37.0", features = ["monochrome_emoji_fonts"] }

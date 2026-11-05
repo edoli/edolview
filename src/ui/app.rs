@@ -1818,6 +1818,16 @@ impl eframe::App for ViewerApp {
                                 });
                             ui.close();
                         }
+                        ui.separator();
+                        if ui
+                            .hyperlink_to(
+                                "Remote Viewer Guide",
+                                "https://github.com/edoli/edolview/wiki/Remote%E2%80%90Viewer",
+                            )
+                            .clicked()
+                        {
+                            ui.close();
+                        }
                     });
                 ui.visuals_mut().override_text_color = None;
                 ui.indicator_icon(
