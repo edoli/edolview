@@ -14,6 +14,7 @@ use std::{
 use super::asset_list_selection::AssetListSelection;
 use super::clipboard_input::{clipboard_action, translate_text_clipboard_shortcuts, ClipboardAction};
 use super::image_loader::{ImageLoadRequest, ImageLoadResult, ImageLoader};
+use super::status_bar::StatusBar;
 #[cfg(debug_assertions)]
 use crate::util::timer::ScopedTimer;
 use crate::{
@@ -38,7 +39,7 @@ use crate::{
         fonts::{apply_fallback_fonts, spawn_fallback_font_loader, LoadedFallbackFonts},
         ImageViewer,
     },
-    util::{color::ColorDisplay, concurrency::mpsc_with_notify, math_ext::vec2i, series::SeriesRef},
+    util::{concurrency::mpsc_with_notify, math_ext::vec2i, series::SeriesRef},
 };
 
 #[derive(PartialEq, Clone)]
@@ -65,12 +66,6 @@ enum UpdateStatus {
 
 struct PendingImageSaveDialog {
     rx: mpsc::Receiver<Option<(PathBuf, String)>>,
-}
-
-#[derive(Clone, Copy)]
-enum MarqueeAngleDisplay {
-    Degrees(f32),
-    Radians(f32),
 }
 
 fn statistics_overlay_toggle(
@@ -112,8 +107,7 @@ pub struct ViewerApp {
     last_path: Option<PathBuf>,
     image_loader: ImageLoader,
     pending_navigation_path: Option<PathBuf>,
-    tmp_marquee_rect: Recti,
-    marquee_rect_text: String,
+    status_bar: StatusBar,
     is_start_background_event_handlers_called: bool,
 
     // Marquee change callbacks
@@ -188,42 +182,6 @@ impl Drop for ViewerApp {
     }
 }
 
-fn marquee_angle_radian(rect: Recti) -> Option<f32> {
-    let rect = rect.validate();
-    if rect.empty() {
-        return None;
-    }
-
-    Some((rect.height() as f32).atan2(rect.width() as f32))
-}
-
-fn marquee_angle(rect: Recti, unit: crate::settings::AngleDisplayUnit) -> Option<MarqueeAngleDisplay> {
-    let angle_radians = marquee_angle_radian(rect)?;
-    Some(match unit {
-        crate::settings::AngleDisplayUnit::Degrees => MarqueeAngleDisplay::Degrees(angle_radians.to_degrees()),
-        crate::settings::AngleDisplayUnit::Radians => MarqueeAngleDisplay::Radians(angle_radians),
-    })
-}
-
-fn marquee_angle_tooltip(unit: crate::settings::AngleDisplayUnit) -> &'static str {
-    match unit {
-        crate::settings::AngleDisplayUnit::Degrees => {
-            "Arc tan of marquee aspect ratio (height / width), shown in degrees."
-        }
-        crate::settings::AngleDisplayUnit::Radians => {
-            "Arc tan of marquee aspect ratio (height / width), shown in radians."
-        }
-    }
-}
-
-fn format_marquee_angle(angle: Option<MarqueeAngleDisplay>) -> String {
-    match angle {
-        Some(MarqueeAngleDisplay::Degrees(value)) => format!("{value:.2}°"),
-        Some(MarqueeAngleDisplay::Radians(value)) => format!("{value:.3}"),
-        None => "-".to_string(),
-    }
-}
-
 impl ViewerApp {
     fn request_root_repaint(ctx: &egui::Context) {
         ctx.request_repaint_of(egui::ViewportId::ROOT);
@@ -293,8 +251,7 @@ impl ViewerApp {
             image_loader: ImageLoader::default(),
             pending_navigation_path: None,
 
-            tmp_marquee_rect: marquee_rect,
-            marquee_rect_text: marquee_rect.to_string(),
+            status_bar: StatusBar::new(marquee_rect),
             is_start_background_event_handlers_called: false,
 
             last_marquee_rect_for_cb: marquee_rect,
@@ -792,8 +749,7 @@ impl ViewerApp {
         let clipped_rect = requested_rect.intersect(image_rect);
 
         self.state.set_marquee_rect(requested_rect);
-        self.tmp_marquee_rect = self.state.marquee_rect;
-        self.marquee_rect_text = self.state.marquee_rect.to_string();
+        self.status_bar.reset_marquee_text(self.state.marquee_rect);
         if clipped_rect.empty() {
         } else {
             match self.roi_jump_mode {
@@ -1467,8 +1423,7 @@ impl ViewerApp {
                     let spec = asset.image().spec();
                     let img_rect = Recti::from_min_size(vec2i(0, 0), vec2i(spec.width, spec.height));
                     self.state.marquee_rect = img_rect;
-                    self.tmp_marquee_rect = img_rect;
-                    self.marquee_rect_text = img_rect.to_string();
+                    self.status_bar.reset_marquee_text(img_rect);
                 }
             }
             if i.consume_shortcut(&crate::res::SELECT_NONE_SC) {
@@ -1889,176 +1844,14 @@ impl eframe::App for ViewerApp {
         self.show_rois_dialog(&ctx);
 
         if self.state.is_show_statusbar {
-            let mut frame = egui::Frame::side_top_panel(ui.style());
-            frame.inner_margin.bottom = 0;
-            egui::Panel::bottom("bottom").frame(frame).show(ui, |ui| {
-                let cursor_pixel = self.state.cursor_pixel_pos();
-                let cursor_label =
-                    cursor_pixel.map_or_else(|| "Cursor: -, -".to_owned(), |p| format!("Cursor: {}, {}", p.x, p.y));
-                let colors = self.active_display_asset().map(|asset| {
-                    let image = asset.image();
-                    let spec = image.spec();
-                    let cursor = image
-                        .get_pixel_at(cursor_pixel.map_or(-1, |p| p.x), cursor_pixel.map_or(-1, |p| p.y))
-                        .map(|pixel| pixel.iter().copied().collect::<Vec<f32>>())
-                        .unwrap_or_else(|_| vec![0.0; spec.channels as usize]);
-                    let mean = image
-                        .mean_value_in_rect(self.state.marquee_rect, MeanDim::All)
-                        .map(|mean| mean.iter().map(|&v| v as f32).collect::<Vec<f32>>())
-                        .unwrap_or_else(|_| vec![0.0; spec.channels as usize]);
-                    (cursor, mean, spec.dtype)
-                });
-                let image_label = self.state.asset.as_ref().map_or_else(
-                    || "No image loaded".to_owned(),
-                    |asset| {
-                        let spec = asset.image().spec();
-                        format!("{}×{} | {}", spec.width, spec.height, spec.dtype.name())
-                    },
-                );
-                let zoom_label = format!("Zoom: {:.2}x", self.viewer.zoom());
-                let unit = self.app_settings.ui_state.angle_display_unit;
-                let angle_label = format_marquee_angle(marquee_angle(self.state.marquee_rect, unit));
-                let font = egui::TextStyle::Body.resolve(ui.style());
-                let text_width = |text: &str| {
-                    ui.painter()
-                        .layout_no_wrap(text.to_owned(), font.clone(), ui.visuals().text_color())
-                        .size()
-                        .x
-                        .ceil()
-                };
-                let color_width = colors.as_ref().map_or(0.0, |(cursor, mean, dtype)| {
-                    [cursor, mean]
-                        .into_iter()
-                        .map(|color| {
-                            let text = if dtype.is_floating() {
-                                color.to_rgba_string()
-                            } else {
-                                color.to_rgba_int_string(dtype.alpha())
-                            };
-                            text_width(&text)
-                        })
-                        .fold(0.0_f32, f32::max)
-                        + ui.text_style_height(&egui::TextStyle::Body)
-                        + ui.spacing().item_spacing.y
-                        + ui.spacing().item_spacing.x * 0.5
-                });
-                // Capture may replace the editor text this frame when the selection changes.
-                let rect_label = if self.state.marquee_rect != self.tmp_marquee_rect {
-                    self.state.marquee_rect.to_string()
-                } else {
-                    self.marquee_rect_text.clone()
-                };
-                let minimum = [
-                    color_width,
-                    text_width(&cursor_label).max(text_width(&rect_label) + ui.spacing().button_padding.x * 2.0 + 2.0),
-                    text_width(&angle_label),
-                    0.0,
-                    text_width(&image_label).max(text_width(&zoom_label)),
-                ];
-                let (spacing, rows) =
-                    super::status_bar::column_rows(ui.available_width(), ui.spacing().item_spacing.x, minimum);
-                ui.spacing_mut().item_spacing.x = spacing;
-                let mut row_heights = (ui.text_style_height(&egui::TextStyle::Body), ui.spacing().interact_size.y);
-                for (row_index, widths) in rows.into_iter().enumerate() {
-                    ui.push_id(row_index, |ui| {
-                        ui.columns_sized(widths.map(Size::exact), |columns| {
-                            if widths[1] > 0.0 {
-                                row_heights = columns[1]
-                                    .vertical(|ui| {
-                                        let cursor_response = ui.label(&cursor_label);
-
-                                        ui.spacing_mut().text_edit_width = ui.available_width();
-                                        let response = ui
-                                            .text_edit_value_capture(
-                                                &mut self.marquee_rect_text,
-                                                &mut self.state.marquee_rect,
-                                                &mut self.tmp_marquee_rect,
-                                            )
-                                            .on_hover_text("Selected marquee rectangle bounds (x, y, width, height)");
-                                        let row_heights = (cursor_response.rect.height(), response.rect.height());
-                                        response.context_menu(|ui| {
-                                            if ui.button("Copy Numpy Indexing").clicked() {
-                                                let rect = self.state.marquee_rect.validate();
-                                                let np_indexing = format!(
-                                                    "{}:{}, {}:{}",
-                                                    rect.min.y, rect.max.y, rect.min.x, rect.max.x,
-                                                );
-                                                arboard::Clipboard::new()
-                                                    .and_then(|mut cb| cb.set_text(np_indexing))
-                                                    .unwrap_or_else(|e| {
-                                                        eprintln!("Failed to copy numpy indexing to clipboard: {e}");
-                                                    });
-                                                ui.close();
-                                            }
-                                            if ui.button("Copy x1, y1, x2, y2").clicked() {
-                                                let rect = self.state.marquee_rect.validate();
-                                                let rect_str = format!(
-                                                    "{}, {}, {}, {}",
-                                                    rect.min.x, rect.min.y, rect.max.x, rect.max.y
-                                                );
-                                                arboard::Clipboard::new()
-                                                    .and_then(|mut cb| cb.set_text(rect_str))
-                                                    .unwrap_or_else(|e| {
-                                                        eprintln!("Failed to copy rect to clipboard: {e}");
-                                                    });
-                                                ui.close();
-                                            }
-                                        });
-                                        row_heights
-                                    })
-                                    .inner;
-                            }
-                            let (cursor_row_height, selection_row_height) = row_heights;
-
-                            if widths[0] > 0.0 {
-                                columns[0].vertical(|ui| {
-                                    if let Some((cursor_color, mean_color, dtype)) = &colors {
-                                        ui.label_with_colored_rect(cursor_color.clone(), *dtype, cursor_row_height);
-                                        ui.label_with_colored_rect(mean_color.clone(), *dtype, selection_row_height);
-                                    }
-                                });
-                            }
-
-                            if widths[2] > 0.0 {
-                                columns[2].vertical(|ui| {
-                                    ui.label("");
-                                    let mut show_radians = unit == crate::settings::AngleDisplayUnit::Radians;
-                                    ui.allocate_ui_with_layout(
-                                        egui::vec2(ui.available_width(), selection_row_height),
-                                        egui::Layout::left_to_right(egui::Align::Center),
-                                        |ui| {
-                                            ui.label(&angle_label)
-                                                .on_hover_text(marquee_angle_tooltip(unit))
-                                                .context_menu(|ui| {
-                                                    if ui.checkbox(&mut show_radians, "Show in radians").changed() {
-                                                        self.app_settings.ui_state.angle_display_unit = if show_radians
-                                                        {
-                                                            crate::settings::AngleDisplayUnit::Radians
-                                                        } else {
-                                                            crate::settings::AngleDisplayUnit::Degrees
-                                                        };
-                                                        ui.close();
-                                                    }
-                                                });
-                                        },
-                                    );
-                                });
-                            }
-
-                            if widths[4] > 0.0 {
-                                columns[4].with_layout(egui::Layout::top_down(egui::Align::RIGHT), |ui| {
-                                    ui.add(egui::Label::new(&image_label).wrap());
-                                    ui.allocate_ui_with_layout(
-                                        egui::vec2(ui.available_width(), selection_row_height),
-                                        egui::Layout::right_to_left(egui::Align::Center),
-                                        |ui| ui.label(&zoom_label),
-                                    );
-                                });
-                            }
-                        });
-                    });
-                }
-            });
+            let active_asset = self.active_display_asset().cloned();
+            self.status_bar.show(
+                ui,
+                &mut self.state,
+                active_asset.as_ref(),
+                self.viewer.zoom(),
+                &mut self.app_settings.ui_state.angle_display_unit,
+            );
         }
 
         if self.state.is_show_sidebar {
