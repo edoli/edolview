@@ -1860,10 +1860,8 @@ impl eframe::App for ViewerApp {
 
                 // Right end: panel visibility toggles
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    let settings_button = ui.button("⚙").on_hover_text("Settings");
-                    if settings_button.clicked() {
-                        self.show_settings_modal = true;
-                    }
+                    let settings_button =
+                        ui.toggle_icon(&mut self.show_settings_modal, self.icons.get_settings(&ctx), "Settings", None);
                     if matches!(self.update_status, UpdateStatus::Available(_)) {
                         let indicator_center = settings_button.rect.right_bottom() + egui::vec2(-4.0, -4.0);
                         ui.painter().circle_filled(indicator_center, 2.0, UPDATE_ACCENT_TEXT);
