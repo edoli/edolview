@@ -12,6 +12,7 @@ const BACKGROUND_ICON_SIZE: usize = 24;
 const BACKGROUND_ICON_INSET: usize = 3;
 const BACKGROUND_ICON_CELL_SIZE: usize = 6;
 pub const IMAGE_LOADING_ICON_SIZE: f32 = 16.0;
+pub const SOCKET_ADDRESS_ICON_SIZE: f32 = 16.0;
 #[cfg(target_os = "windows")]
 pub const WINDOW_BUTTON_SIZE: egui::Vec2 = egui::vec2(32.0, 32.0);
 #[cfg(target_os = "windows")]
@@ -73,6 +74,7 @@ const SCALE_LOG: &[u8] = include_bytes!("icons/scale_log.svg");
 const SCALE_ABSOLUTE: &[u8] = include_bytes!("icons/scale_absolute.svg");
 
 const NORMALIZE: &[u8] = include_bytes!("icons/normalize.svg");
+const SOCKET_ADDRESS: &[u8] = include_bytes!("icons/socket_address.svg");
 const DOWNLOADING: &[u8] = include_bytes!("icons/downloading.svg");
 const IMAGE_READY: &[u8] = include_bytes!("icons/image_ready.svg");
 
@@ -108,6 +110,7 @@ pub struct Icons {
 
     normalize: OnceLock<egui::TextureHandle>,
 
+    socket_address: OnceLock<egui::TextureHandle>,
     downloading: OnceLock<egui::TextureHandle>,
     image_ready: OnceLock<egui::TextureHandle>,
 
@@ -146,6 +149,7 @@ impl Icons {
 
             normalize: OnceLock::new(),
 
+            socket_address: OnceLock::new(),
             downloading: OnceLock::new(),
             image_ready: OnceLock::new(),
 
@@ -312,6 +316,13 @@ impl Icons {
     pub fn get_normalize<'c>(&self, ctx: &egui::Context) -> egui::Image<'c> {
         self.normalize
             .get_or_init(|| icon::load_svg_icon_texture(ctx, "normalize", NORMALIZE))
+            .to_icon()
+    }
+
+    #[inline]
+    pub fn get_socket_address<'c>(&self, ctx: &egui::Context) -> egui::Image<'c> {
+        self.socket_address
+            .get_or_init(|| icon::load_svg_icon_texture(ctx, "socket_address", SOCKET_ADDRESS))
             .to_icon()
     }
 

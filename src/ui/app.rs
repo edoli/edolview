@@ -318,7 +318,11 @@ impl ViewerApp {
     #[cfg(target_os = "windows")]
     pub fn with_window_chrome(mut self, cc: &eframe::CreationContext<'_>) -> Self {
         match super::window_chrome::NativeChrome::attach(cc) {
-            Ok(chrome) => self.native_chrome = Some(chrome),
+            Ok(chrome) => {
+                self.native_chrome = Some(chrome);
+                self.state.titlebar =
+                    crate::model::TitlebarState::integrated(crate::res::icons::WINDOW_BUTTON_SIZE.x * 3.0);
+            }
             Err(error) => {
                 eprintln!("{error}");
                 self.toasts.add_error(error.to_string());
