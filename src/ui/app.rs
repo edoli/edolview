@@ -1650,7 +1650,6 @@ impl eframe::App for ViewerApp {
             viewer: &mut self.viewer,
             icons: &self.icons,
             show_settings: &mut self.show_settings_modal,
-            show_rois: &mut self.show_rois_modal,
             is_loading: self.image_loader.is_loading(),
             update_available: matches!(self.update_status, UpdateStatus::Available(_)),
         }
