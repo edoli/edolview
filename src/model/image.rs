@@ -1,3 +1,4 @@
+use super::histogram::ImageHistogramCache;
 use crate::model::{gpu_compute, GpuImageTexture, MeanDim, MeanProcessor, Recti};
 use color_eyre::eyre::{eyre, Result};
 use std::f64;
@@ -269,6 +270,7 @@ struct ImageDataInner {
     gpu: OnceLock<Arc<GpuImageTexture>>,
     gpu_init: Mutex<()>,
     hist: OnceLock<Vec<Vec<f32>>>,
+    histograms: ImageHistogramCache,
     minmax: OnceLock<MinMaxTotal>,
 }
 
@@ -290,6 +292,10 @@ struct DerivedImage {
 }
 
 impl ImageData {
+    pub(super) fn histogram_cache(&self) -> &ImageHistogramCache {
+        &self.0.histograms
+    }
+
     pub fn from_f32(spec: ImageSpec, pixels: Vec<f32>) -> Result<Self> {
         let expected = spec.width.max(0) as usize * spec.height.max(0) as usize * spec.channels.max(0) as usize;
         if pixels.len() != expected {
@@ -309,6 +315,7 @@ impl ImageData {
             gpu: OnceLock::new(),
             gpu_init: Mutex::new(()),
             hist: OnceLock::new(),
+            histograms: ImageHistogramCache::default(),
             minmax: OnceLock::new(),
         })))
     }
@@ -321,6 +328,7 @@ impl ImageData {
             gpu: OnceLock::new(),
             gpu_init: Mutex::new(()),
             hist: OnceLock::new(),
+            histograms: ImageHistogramCache::default(),
             minmax: OnceLock::new(),
         }))
     }
@@ -346,6 +354,7 @@ impl ImageData {
             gpu: OnceLock::new(),
             gpu_init: Mutex::new(()),
             hist: OnceLock::new(),
+            histograms: ImageHistogramCache::default(),
             minmax: OnceLock::new(),
         }))
     }
@@ -500,6 +509,7 @@ impl ImageData {
             gpu: OnceLock::new(),
             gpu_init: Mutex::new(()),
             hist: OnceLock::new(),
+            histograms: ImageHistogramCache::default(),
             minmax: OnceLock::new(),
         })))
     }

@@ -1,6 +1,6 @@
 use std::{
     num::NonZeroUsize,
-    sync::{mpsc, Arc},
+    sync::{mpsc, Arc, OnceLock},
     thread,
 };
 
@@ -11,6 +11,7 @@ use super::{gpu_compute, Image, ImageData, Recti};
 
 pub const HISTOGRAM_BINS: usize = 256;
 pub const HISTOGRAM_STRIDE: usize = HISTOGRAM_BINS + 3;
+const CUSTOM_HISTOGRAM_CACHE_CAPACITY: usize = 8;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq)]
 pub enum HistogramRange {
@@ -90,11 +91,39 @@ impl Histogram {
 
 type RequestKey = (u64, [u32; 3]);
 
+/// Fixed ranges live with their image, independently of custom-range eviction.
+#[derive(Default)]
+pub(super) struct ImageHistogramCache {
+    unit: OnceLock<Arc<Histogram>>,
+    data: OnceLock<Arc<Histogram>>,
+}
+
+impl ImageHistogramCache {
+    fn slot(&self, range: HistogramRange) -> Option<&OnceLock<Arc<Histogram>>> {
+        match range {
+            HistogramRange::Unit => Some(&self.unit),
+            HistogramRange::Data => Some(&self.data),
+            HistogramRange::Custom(_) => None,
+        }
+    }
+
+    fn get(&self, range: HistogramRange) -> Option<Arc<Histogram>> {
+        self.slot(range)?.get().map(Arc::clone)
+    }
+
+    fn insert(&self, range: HistogramRange, histogram: Arc<Histogram>) -> Arc<Histogram> {
+        match self.slot(range) {
+            Some(slot) => Arc::clone(slot.get_or_init(|| histogram)),
+            None => histogram,
+        }
+    }
+}
+
 /// One GPU readback at a time. New requests replace stale work after it completes;
 /// cached results contain only small histograms, never copies of image pixels.
 pub struct HistogramWorker {
-    pending: Option<(RequestKey, mpsc::Receiver<Result<Arc<Histogram>>>)>,
-    cache: LruCache<RequestKey, Arc<Histogram>>,
+    pending: Option<(RequestKey, HistogramRange, mpsc::Receiver<Result<Arc<Histogram>>>)>,
+    custom_cache: LruCache<RequestKey, Arc<Histogram>>,
     failed: Option<RequestKey>,
 }
 
@@ -102,7 +131,7 @@ impl Default for HistogramWorker {
     fn default() -> Self {
         Self {
             pending: None,
-            cache: LruCache::new(NonZeroUsize::new(8).unwrap()),
+            custom_cache: LruCache::new(NonZeroUsize::new(CUSTOM_HISTOGRAM_CACHE_CAPACITY).unwrap()),
             failed: None,
         }
     }
@@ -116,7 +145,7 @@ impl HistogramWorker {
         ctx: &egui::Context,
     ) -> Result<Option<Arc<Histogram>>> {
         let key = (image.id(), range.key());
-        if let Some((pending_key, rx)) = &self.pending {
+        if let Some((pending_key, pending_range, rx)) = &self.pending {
             let completed = match rx.try_recv() {
                 Ok(result) => Some(result),
                 Err(mpsc::TryRecvError::Empty) => None,
@@ -124,11 +153,13 @@ impl HistogramWorker {
             };
             if let Some(result) = completed {
                 let completed_key = *pending_key;
+                let completed_range = *pending_range;
                 self.pending = None;
                 match result {
-                    Ok(histogram) => {
-                        self.cache.put(completed_key, histogram);
+                    Ok(histogram) if matches!(completed_range, HistogramRange::Custom(_)) => {
+                        self.custom_cache.put(completed_key, histogram);
                     }
+                    Ok(_) => {} // The worker stored fixed ranges on their image before sending.
                     Err(error) if completed_key == key => {
                         self.failed = Some(key);
                         return Err(error);
@@ -137,8 +168,12 @@ impl HistogramWorker {
                 }
             }
         }
-        if let Some(histogram) = self.cache.get(&key) {
-            return Ok(Some(Arc::clone(histogram)));
+        let cached = match range {
+            HistogramRange::Custom(_) => self.custom_cache.get(&key).map(Arc::clone),
+            _ => image.histogram_cache().get(range),
+        };
+        if cached.is_some() {
+            return Ok(cached);
         }
         if self.failed.is_some_and(|failed| failed != key) {
             self.failed = None;
@@ -147,12 +182,16 @@ impl HistogramWorker {
             let image = image.clone();
             let ctx = ctx.clone();
             let (tx, rx) = mpsc::channel();
-            self.pending = Some((key, rx));
+            self.pending = Some((key, range, rx));
             thread::spawn(move || {
                 let result = (|| {
-                    let range = range.resolve(&image)?;
+                    if let Some(histogram) = image.histogram_cache().get(range) {
+                        return Ok(histogram);
+                    }
+                    let bounds = range.resolve(&image)?;
                     let texture = image.gpu_texture()?;
-                    gpu_compute()?.histogram_range(&texture, range).map(Arc::new)
+                    let histogram = Arc::new(gpu_compute()?.histogram_range(&texture, bounds)?);
+                    Ok(image.histogram_cache().insert(range, histogram))
                 })();
                 let _ = tx.send(result);
                 ctx.request_repaint_of(egui::ViewportId::ROOT);
@@ -169,6 +208,71 @@ impl HistogramWorker {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::PixelType;
+
+    fn sample_histogram() -> Arc<Histogram> {
+        Arc::new(Histogram {
+            bins: vec![vec![1; HISTOGRAM_BINS]],
+            excluded: vec![[0; 3]],
+            range: [0.0, 1.0],
+            pixels: HISTOGRAM_BINS as u64,
+        })
+    }
+
+    #[test]
+    fn fixed_histograms_survive_navigation_and_worker_recreation_until_image_is_dropped() {
+        let images: Vec<_> = (0..12).map(|_| ImageData::empty(PixelType::F32)).collect();
+        let mut expected = Vec::new();
+        for image in &images {
+            let unit = image.histogram_cache().insert(HistogramRange::Unit, sample_histogram());
+            let data = image.histogram_cache().insert(HistogramRange::Data, sample_histogram());
+            expected.push([Arc::downgrade(&unit), Arc::downgrade(&data)]);
+        }
+        let ctx = egui::Context::default();
+        for _ in 0..2 {
+            let mut worker = HistogramWorker::default();
+            for (image, cached) in images.iter().zip(&expected).rev() {
+                for (range, expected) in [HistogramRange::Unit, HistogramRange::Data].into_iter().zip(cached) {
+                    let histogram = worker.request(image, range, &ctx).unwrap().expect("fixed cache hit");
+                    assert!(Arc::ptr_eq(&histogram, &expected.upgrade().unwrap()));
+                    assert!(worker.pending.is_none(), "a cache hit must not start GPU work");
+                }
+            }
+            assert!(worker.custom_cache.is_empty());
+        }
+        drop(images);
+        assert!(expected.iter().flatten().all(|histogram| histogram.upgrade().is_none()));
+    }
+
+    #[test]
+    fn custom_histograms_keep_eight_entries_across_images_and_evict_the_least_recently_used() {
+        let images: Vec<_> = (0..9).map(|_| ImageData::empty(PixelType::F32)).collect();
+        let mut worker = HistogramWorker::default();
+        let ctx = egui::Context::default();
+        let range = HistogramRange::Custom([0.0, 1.0]);
+        let complete = |worker: &mut HistogramWorker, image: &ImageData| {
+            // Deliver a completed GPU job through the actual result channel, without a GPU fixture.
+            let histogram = sample_histogram();
+            let weak = Arc::downgrade(&histogram);
+            let (tx, rx) = mpsc::channel();
+            assert!(tx.send(Ok(histogram)).is_ok());
+            worker.pending = Some(((image.id(), range.key()), range, rx));
+            assert!(worker.request(image, range, &ctx).unwrap().is_some());
+            assert!(image.histogram_cache().get(range).is_none());
+            weak
+        };
+        let mut cached = Vec::new();
+        for image in images.iter().take(8) {
+            cached.push(complete(&mut worker, image));
+        }
+        // A hit on the oldest entry protects it; the next-oldest entry should be evicted.
+        assert!(worker.request(&images[0], range, &ctx).unwrap().is_some());
+        cached.push(complete(&mut worker, &images[8]));
+        assert_eq!(worker.custom_cache.len(), 8);
+        assert!(cached[0].upgrade().is_some());
+        assert!(cached[1].upgrade().is_none());
+        assert!(cached[2..].iter().all(|histogram| histogram.upgrade().is_some()));
+    }
 
     #[test]
     fn hidden_alpha_does_not_flatten_rgb_and_empty_masks_have_no_peak() {
