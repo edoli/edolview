@@ -43,6 +43,7 @@ impl HistogramPanel {
     ) -> color_eyre::Result<Option<ExportAction>> {
         let spec = image.spec();
         let scale = spec.dtype.alpha();
+        let standard_range_label = format!("Standard range (0-{scale:.0})");
         if self.image_id != Some(image.id()) {
             self.image_id = Some(image.id());
             self.custom_range = [0.0, scale];
@@ -51,13 +52,14 @@ impl HistogramPanel {
             ui.label("Range");
             egui::ComboBox::from_id_salt("histogram_range")
                 .selected_text(match self.mode {
-                    RangeMode::Unit => "0–1 (normalized)",
+                    RangeMode::Unit => standard_range_label.as_str(),
                     RangeMode::Data => "Full data range",
                     RangeMode::Custom => "Custom",
                 })
                 .width(ui.available_width())
+                .truncate()
                 .show_ui(ui, |ui| {
-                    ui.selectable_value(&mut self.mode, RangeMode::Unit, "0–1 (normalized)");
+                    ui.selectable_value(&mut self.mode, RangeMode::Unit, &standard_range_label);
                     ui.selectable_value(&mut self.mode, RangeMode::Data, "Full data range");
                     ui.selectable_value(&mut self.mode, RangeMode::Custom, "Custom");
                 });
