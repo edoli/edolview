@@ -22,6 +22,7 @@ pub(super) struct Toolbar<'a> {
     pub viewer: &'a mut ImageViewer,
     pub icons: &'a Icons,
     pub show_settings: &'a mut bool,
+    pub show_rois: &'a mut bool,
     pub is_loading: bool,
     pub update_available: bool,
 }
@@ -33,6 +34,7 @@ impl Toolbar<'_> {
             viewer,
             icons,
             show_settings,
+            show_rois,
             is_loading,
             update_available,
         } = self;
@@ -129,6 +131,10 @@ impl Toolbar<'_> {
                     ui.toggle_icon(&mut state.is_show_statusbar, statusbar_icon, "Status Bar", None);
                     let sidebar_icon = icons.get_sidebar_panel(&ctx, state.is_show_sidebar);
                     ui.toggle_icon(&mut state.is_show_sidebar, sidebar_icon, "Sidebar", None);
+                    if !layout.grouped {
+                        let rois_icon = icons.get_rois_panel(&ctx, *show_rois);
+                        ui.toggle_icon(show_rois, rois_icon, "ROIs", Some(&crate::res::ROI_PANEL_TOGGLE.format_sys()));
+                    }
                     #[cfg(target_os = "windows")]
                     if state.titlebar.is_integrated {
                         regions.title = super::window_chrome::title(ui, state.asset.as_ref().map(|asset| asset.name()));
@@ -144,7 +150,7 @@ impl Toolbar<'_> {
 }
 
 const GROUP_SEPARATOR_WIDTH: f32 = 6.0;
-const MIN_TITLE_WIDTH: f32 = 120.0;
+const MIN_TITLE_WIDTH: f32 = 160.0;
 const PREFERRED_TITLE_WIDTH: f32 = 320.0;
 
 struct ToolbarLayout {
@@ -172,33 +178,21 @@ impl ToolbarLayout {
             } else {
                 0.0
             };
-        // Three right-hand toggles, two separators, receiving/loading indicators,
-        // and the spacing after the socket address. Caption buttons have no inner gaps.
-        let fixed = 3.0 * button
-            + 2.0 * (GROUP_SEPARATOR_WIDTH + gap)
-            + icon
-            + crate::res::icons::IMAGE_LOADING_ICON_SIZE
-            + 3.0 * gap
-            + caption;
+        // Always-visible toggles, receiving/loading indicators, and socket spacing.
+        // Caption buttons have no inner gaps. ROIs and separators only appear expanded.
+        let fixed = 3.0 * button + icon + crate::res::icons::IMAGE_LOADING_ICON_SIZE + 3.0 * gap + caption;
         let title_min = if titlebar.is_integrated { MIN_TITLE_WIDTH } else { 0.0 };
         let smallest_address = if titlebar.is_integrated { icon } else { address_width };
-        let grouped = ui.available_width() < 9.0 * button + fixed + smallest_address + title_min;
+        let expanded_controls = 10.0 * button + 2.0 * (GROUP_SEPARATOR_WIDTH + gap);
+        let grouped = ui.available_width() < expanded_controls + fixed + smallest_address + title_min;
         let title_preferred = if titlebar.is_integrated {
             PREFERRED_TITLE_WIDTH
         } else {
             0.0
         };
-        let controls = if grouped { 3.0 } else { 9.0 } * button;
-        let compact_address = titlebar.is_integrated
-            && ui.available_width()
-                < controls + fixed
-                    - if grouped {
-                        2.0 * (GROUP_SEPARATOR_WIDTH + gap)
-                    } else {
-                        0.0
-                    }
-                    + address_width
-                    + title_preferred;
+        let controls = if grouped { 3.0 * button } else { expanded_controls };
+        let compact_address =
+            titlebar.is_integrated && ui.available_width() < controls + fixed + address_width + title_preferred;
         Self {
             grouped,
             compact_address,

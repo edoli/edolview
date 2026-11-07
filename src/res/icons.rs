@@ -56,6 +56,10 @@ const SHOW_MINIMAP: &[u8] = include_bytes!("icons/show_minimap.svg");
 const RESET_VIEW: &[u8] = include_bytes!("icons/reset_view.svg");
 const FIT_VIEW: &[u8] = include_bytes!("icons/fit_view.svg");
 const VIEW_SETTINGS: &[u8] = include_bytes!("icons/view_settings.svg");
+const ROIS_PANEL: [&[u8]; 2] = [
+    include_bytes!("icons/rois_hidden.svg"),
+    include_bytes!("icons/rois_shown.svg"),
+];
 const CENTER_VIEW: &[u8] = include_bytes!("icons/center_view.svg");
 const SIDEBAR_PANEL: [&[u8]; 2] = [
     include_bytes!("icons/sidebar_hidden.svg"),
@@ -98,6 +102,7 @@ pub struct Icons {
     fit_view: OnceLock<egui::TextureHandle>,
     center_view: OnceLock<egui::TextureHandle>,
     view_settings: OnceLock<egui::TextureHandle>,
+    rois_panel: [OnceLock<egui::TextureHandle>; 2],
     sidebar_panel: [OnceLock<egui::TextureHandle>; 2],
     statusbar_panel: [OnceLock<egui::TextureHandle>; 2],
 
@@ -137,6 +142,7 @@ impl Icons {
             fit_view: OnceLock::new(),
             center_view: OnceLock::new(),
             view_settings: OnceLock::new(),
+            rois_panel: [const { OnceLock::new() }; 2],
             sidebar_panel: [const { OnceLock::new() }; 2],
             statusbar_panel: [const { OnceLock::new() }; 2],
 
@@ -253,6 +259,14 @@ impl Icons {
     pub fn get_center_view<'c>(&self, ctx: &egui::Context) -> egui::Image<'c> {
         self.center_view
             .get_or_init(|| icon::load_svg_icon_texture(ctx, "center_view", CENTER_VIEW))
+            .to_icon()
+    }
+
+    #[inline]
+    pub fn get_rois_panel<'c>(&self, ctx: &egui::Context, shown: bool) -> egui::Image<'c> {
+        let index = usize::from(shown);
+        self.rois_panel[index]
+            .get_or_init(|| icon::load_svg_icon_texture(ctx, format!("rois_panel_{shown}"), ROIS_PANEL[index]))
             .to_icon()
     }
 

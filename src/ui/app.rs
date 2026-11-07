@@ -31,11 +31,11 @@ use crate::{
     },
     ui::{
         component::{
-            channel_toggle_ui, colormap_popup_contents, display_controls_ui, display_profile_slider, draw_histogram,
+            channel_toggle_ui, colormap_popup_contents, display_controls_ui, display_profile_slider,
             draw_multi_line_plot,
             egui_ext::{ComboBoxExt, ResponseExt, Size, UiExt},
             range_slider_context_menu, range_slider_tooltip, range_slider_ui, show_roi_window, CopyExport,
-            ExportAction, MonoColormapPreviews, RoiJumpMode, SaveExport, Toast, ToastUi, ToastsExt,
+            ExportAction, HistogramPanel, MonoColormapPreviews, RoiJumpMode, SaveExport, Toast, ToastUi, ToastsExt,
         },
         fonts::{apply_fallback_fonts, spawn_fallback_font_loader, LoadedFallbackFonts},
         ImageViewer,
@@ -126,6 +126,7 @@ pub struct ViewerApp {
 
     show_histogram: bool,
     show_histogram_channels: [bool; 4],
+    histogram_panel: HistogramPanel,
 
     show_statistics: bool,
     show_statistics_min_overlay_channels: [bool; 4],
@@ -271,6 +272,7 @@ impl ViewerApp {
 
             show_histogram: false,
             show_histogram_channels: [true, true, true, false],
+            histogram_panel: HistogramPanel::default(),
 
             show_statistics: false,
             show_statistics_min_overlay_channels: [false; 4],
@@ -1650,6 +1652,7 @@ impl eframe::App for ViewerApp {
             viewer: &mut self.viewer,
             icons: &self.icons,
             show_settings: &mut self.show_settings_modal,
+            show_rois: &mut self.show_rois_modal,
             is_loading: self.image_loader.is_loading(),
             update_available: matches!(self.update_status, UpdateStatus::Available(_)),
         }
@@ -1690,489 +1693,480 @@ impl eframe::App for ViewerApp {
                 .resizable(true)
                 .size_range(Rangef::new(240.0, f32::INFINITY))
                 .show(ui, |ui| {
-                    ui.vertical_centered(|ui| {
-                        ui.heading("View Settings");
-                    });
-                    ui.style_mut().spacing.slider_rail_height = 4.0;
+                    // Keep the histogram axes and range controls reachable on short windows,
+                    // while reserving room for the independently scrolling image list.
+                    let settings_height = (ui.available_height() - 100.0).max(140.0);
+                    egui::ScrollArea::vertical()
+                        .id_salt("view_settings_scroll")
+                        .max_height(settings_height)
+                        .auto_shrink([false, true])
+                        .show(ui, |ui| {
+                            ui.vertical_centered(|ui| {
+                                ui.heading("View Settings");
+                            });
+                            ui.style_mut().spacing.slider_rail_height = 4.0;
 
-                    let channels = self.state.asset.as_ref().map(|a| a.image().spec().channels).unwrap_or(0);
-                    let is_mono = self.state.channel_index != -1 || channels == 1;
+                            let channels = self.state.asset.as_ref().map(|a| a.image().spec().channels).unwrap_or(0);
+                            let is_mono = self.state.channel_index != -1 || channels == 1;
 
-                    if is_mono {
-                        if let Some(render_state) = frame.wgpu_render_state() {
-                            for error in self.mono_colormap_previews.prepare(&ctx, render_state, &self.state.colormap_mono_list) {
-                                eprintln!("{error}");
-                                self.toasts.add_error(error);
-                            }
-                        }
-                    }
-
-                    // ComboBox widths are minimums. Bound each control to its own column
-                    // so its natural text width cannot grow the panel on every frame.
-                    let sizes = [Size::exact(68.0), Size::remainder(1.0), Size::exact(if is_mono { 0.0 } else { 54.0 })];
-                    let mut open_custom_colormap = false;
-                    ui.columns_sized(sizes, |[channel_ui, colormap_ui, alpha_ui]| {
-                        let channel_values: Vec<i32> = if channels > 1 {
-                            (-1..channels).collect()
-                        } else {
-                            vec![-1]
-                        };
-                        channel_ui.add_enabled_ui(channels > 1, |ui| {
-                            egui::ComboBox::from_id_salt("channel_index")
-                                .width(ui.available_width())
-                                .truncate()
-                                .combo_i32_with(ui, &mut self.state.channel_index, &channel_values, |v| match v {
-                                    -1 => {
-                                        if channels > 1 {
-                                            "Color".to_string()
-                                        } else {
-                                            "Mono".to_string()
-                                        }
+                            if is_mono {
+                                if let Some(render_state) = frame.wgpu_render_state() {
+                                    for error in self.mono_colormap_previews.prepare(&ctx, render_state, &self.state.colormap_mono_list) {
+                                        eprintln!("{error}");
+                                        self.toasts.add_error(error);
                                     }
-                                    0 => "Red".to_string(),
-                                    1 => "Green".to_string(),
-                                    2 => "Blue".to_string(),
-                                    3 => "Alpha".to_string(),
-                                    _ => format!("C{}", v),
-                                })
-                                .response
-                                .on_hover_text("Channel to display");
-                        });
-
-                        let colormap_combo = egui::ComboBox::from_id_salt(if is_mono { "colormap_mono" } else { "colormap_rgb" })
-                            .width(colormap_ui.available_width())
-                            .truncate();
-                        if is_mono {
-                            self.mono_colormap_previews.show(
-                                colormap_ui,
-                                colormap_combo,
-                                &mut self.state.colormap_mono,
-                                &self.state.colormap_mono_list,
-                                &mut open_custom_colormap,
-                            )
-                        } else {
-                            let response = colormap_combo
-                                .height(f32::INFINITY)
-                                .selected_text(self.state.colormap_rgb.as_str())
-                                .show_ui(colormap_ui, |ui| {
-                                    open_custom_colormap |= colormap_popup_contents(ui, |ui| {
-                                    for name in &self.state.colormap_rgb_list {
-                                        ui.selectable_value(&mut self.state.colormap_rgb, name.clone(), name);
-                                    }
-                                    });
-                                });
-                            response.response.hover_scroll(
-                                colormap_ui,
-                                &self.state.colormap_rgb_list,
-                                &mut self.state.colormap_rgb,
-                                false,
-                            );
-                            response
-                        }
-                        .response
-                        .on_hover_text("Colormap");
-
-                        if !is_mono {
-                            alpha_ui.checkbox(&mut self.state.shader_params.use_alpha, "Alpha");
-                        }
-                    });
-                    if open_custom_colormap {
-                        self.open_colormap_folder(&ctx, is_mono);
-                    }
-
-                    ui.separator();
-                    ui.checkbox(&mut self.state.shader_params.use_per_channel, "Per-channel controls");
-
-                    if let Some(asset) = &self.state.asset {
-                        let image = asset.image();
-                        ui.vertical(|ui| {
-                            let mut style: egui::Style = ui.style().as_ref().clone();
-                            egui::containers::menu::menu_style(&mut style);
-                            ui.set_style(std::sync::Arc::new(style));
-
-                            if self.state.shader_params.use_per_channel {
-                                for i in 0..channels {
-                                    ui.horizontal(|ui| {
-                                        let label = match (channels, i) {
-                                            (1, 0) => "C",
-                                            (_, 0) => "R",
-                                            (_, 1) => "G",
-                                            (_, 2) => "B",
-                                            _ => "A",
-                                        };
-                                        let mut label = egui::RichText::new(label);
-                                        if channels > 1 && i < 3 {
-                                            label = label.color(RGB_CHANNEL_LABEL_COLORS[i as usize]);
-                                        }
-                                        ui.label(label);
-
-                                        display_controls_ui(
-                                            ui,
-                                            &self.icons,
-                                            image,
-                                            i,
-                                            &mut self.state.shader_params.scale_mode_channels[i as usize],
-                                            &mut self.state.shader_params.auto_minmax_channels[i as usize],
-                                            &mut self.state.shader_params.min_v_channels[i as usize],
-                                            &mut self.state.shader_params.max_v_channels[i as usize],
-                                        );
-                                    });
                                 }
-                            } else {
-                                ui.horizontal(|ui| {
-                                    display_controls_ui(
-                                        ui,
-                                        &self.icons,
-                                        image,
-                                        -1,
-                                        &mut self.state.shader_params.scale_mode,
-                                        &mut self.state.shader_params.auto_minmax,
-                                        &mut self.state.shader_params.min_v,
-                                        &mut self.state.shader_params.max_v,
-                                    );
-                                });
                             }
-                        });
-                    }
 
-                    ui.separator();
-
-                    display_profile_slider(ui, &mut self.state.shader_params.offset, -5.0, 5.0, 0.0, "Offset")
-                        .on_hover_text("Add a constant offset to the displayed values.");
-                    display_profile_slider(ui, &mut self.state.shader_params.exposure, -5.0, 5.0, 0.0, "Exposure")
-                        .on_hover_text("Adjust brightness in exposure stops.");
-                    display_profile_slider(ui, &mut self.state.shader_params.gamma, 0.1, 5.0, 1.0, "Gamma")
-                        .on_hover_text("Apply gamma correction to the display.");
-
-                    let desired_size_plot = egui::vec2(ui.available_width(), 100.0);
-                    if let Some(asset) = self.active_display_asset() {
-                        let rect = self.state.marquee_rect;
-                        let mean_dim = match self.plot_dim {
-                            PlotDim::Auto => {
-                                if rect.width() >= rect.height() {
-                                    MeanDim::Column
+                            // ComboBox widths are minimums. Bound each control to its own column
+                            // so its natural text width cannot grow the panel on every frame.
+                            let sizes = [Size::exact(68.0), Size::remainder(1.0), Size::exact(if is_mono { 0.0 } else { 54.0 })];
+                            let mut open_custom_colormap = false;
+                            ui.columns_sized(sizes, |[channel_ui, colormap_ui, alpha_ui]| {
+                                let channel_values: Vec<i32> = if channels > 1 {
+                                    (-1..channels).collect()
                                 } else {
-                                    MeanDim::Row
-                                }
-                            }
-                            PlotDim::Column => MeanDim::Column,
-                            PlotDim::Row => MeanDim::Row,
-                        };
-                        let reduced_value = asset
-                            .image()
-                            .mean_value_in_rect(rect, mean_dim)
-                            .expect("Failed to compute mean in rect");
-                        let (position_label, position_offset) = match mean_dim {
-                            MeanDim::Column => ("x", rect.min.x),
-                            MeanDim::Row => ("y", rect.min.y),
-                            MeanDim::All => ("x", 0),
-                        };
+                                    vec![-1]
+                                };
+                                channel_ui.add_enabled_ui(channels > 1, |ui| {
+                                    egui::ComboBox::from_id_salt("channel_index")
+                                        .width(ui.available_width())
+                                        .truncate()
+                                        .combo_i32_with(ui, &mut self.state.channel_index, &channel_values, |v| match v {
+                                            -1 => {
+                                                if channels > 1 {
+                                                    "Color".to_string()
+                                                } else {
+                                                    "Mono".to_string()
+                                                }
+                                            }
+                                            0 => "Red".to_string(),
+                                            1 => "Green".to_string(),
+                                            2 => "Blue".to_string(),
+                                            3 => "Alpha".to_string(),
+                                            _ => format!("C{}", v),
+                                        })
+                                        .response
+                                        .on_hover_text("Channel to display");
+                                });
 
-                        let channels = asset.image().spec().channels as usize;
-                        let mut plot_data = Vec::with_capacity(channels);
-
-                        for i in 0..channels {
-                            let mut channel_data = Vec::with_capacity(reduced_value.len() / channels);
-                            for j in 0..(reduced_value.len() / channels) {
-                                channel_data.push(reduced_value[j * channels + i]);
-                            }
-                            plot_data.push(channel_data);
-                        }
-
-                        let mut style: egui::Style = ui.style().as_ref().clone();
-                        egui::containers::menu::menu_style(&mut style);
-                        style.spacing.item_spacing.x = 4.0;
-                        let menu_style = std::sync::Arc::new(style);
-                        let slider_width = ui.spacing().interact_size.y;
-                        let alpha_scale = asset.image().spec().dtype.alpha();
-                        // Use part of the panel's right padding without increasing the row's reported width.
-                        egui::Frame::new().inner_margin(egui::Margin { right: -4, ..Default::default() }).show(ui, |ui| {
-                            ui.spacing_mut().item_spacing.x = 2.0;
-                            ui.columns_sized([Size::remainder(1.0), Size::exact(slider_width)], |[plot_ui, slider_ui]| {
-                                let plot_refs = plot_data.iter().map(Vec::as_slice).collect::<Vec<_>>();
-                                let mask = if channels > 1 { &self.show_plot_channels[..] } else { &[true] };
-                                if let Some(export) = draw_multi_line_plot(
-                                    plot_ui,
-                                    egui::vec2(plot_ui.available_width(), desired_size_plot.y),
-                                    SeriesRef::new(&plot_refs),
-                                    mask,
-                                    self.plot_percentiles,
-                                    alpha_scale,
-                                    position_label,
-                                    position_offset,
-                                ) {
-                                    self.handle_export_action(export);
-                                }
-
-                                slider_ui.set_style(menu_style.clone());
-                                slider_ui.spacing_mut().slider_width = desired_size_plot.y;
-                                let [low, high] = &mut self.plot_percentiles;
-                                let response = slider_ui.scope(|ui| {
-                                    // Only restyle native painting; keep the handle geometry and input unchanged.
-                                    let inset = 2.0;
-                                    let radius = slider_width.max(ui.text_style_height(&egui::TextStyle::Body)) / 2.5;
-                                    let rail_width = 8.0;
-                                    // egui shares the rail fill with the idle handle, so paint the rail separately.
-                                    // Native handles retain all input, focus, and per-handle hover behavior.
-                                    ui.spacing_mut().slider_rail_height = 0.0;
-                                    let rail_shape = ui.painter().add(egui::Shape::Noop);
-                                    let visuals = ui.visuals_mut();
-                                    let rail_fill = visuals.widgets.inactive.bg_fill;
-                                    let range_fill = visuals.selection.bg_fill;
-                                    let widgets = &mut visuals.widgets;
-                                    for visuals in [
-                                        &mut widgets.noninteractive,
-                                        &mut widgets.inactive,
-                                        &mut widgets.hovered,
-                                        &mut widgets.active,
-                                    ] {
-                                        visuals.expansion = rail_width / 2.0 - radius;
-                                        visuals.corner_radius = egui::CornerRadius::same(1);
-                                        visuals.bg_fill = visuals.fg_stroke.color;
-                                        visuals.fg_stroke = egui::Stroke::NONE;
-                                    }
-                                    let handle_expansion = widgets.inactive.expansion;
-                                    let response = range_slider_ui(ui, low, high, 0.0..=100.0, 1.0, |slider| {
-                                        slider.vertical().show_value(false).smart_aim(false)
-                                            .handle_shape(egui::style::HandleShape::Rect {
-                                                aspect_ratio: 0.5 + inset / radius,
-                                            })
-                                    });
-                                    if let (Some(low), Some(high)) = (
-                                        ui.ctx().read_response(response.id.with("low")),
-                                        ui.ctx().read_response(response.id.with("high")),
-                                    ) {
-                                        let rail = egui::Rect::from_center_size(
-                                            response.rect.center(),
-                                            // Native handles change their painted bounds by expansion at both ends.
-                                            // Match those bounds without changing value mapping or the hit target.
-                                            egui::vec2(rail_width, (response.rect.height() + 2.0 * handle_expansion).max(0.0)),
-                                        );
-                                        let range = egui::Rect::from_min_max(
-                                            egui::pos2(rail.left(), high.rect.center().y - 1.0),
-                                            egui::pos2(rail.right(), low.rect.center().y + 1.0),
-                                        ).intersect(rail);
-                                        ui.painter().set(rail_shape, egui::Shape::Vec(vec![
-                                            egui::Shape::rect_filled(rail, 1, rail_fill),
-                                            egui::Shape::rect_filled(range, 1, range_fill),
-                                        ]));
-                                    }
+                                let colormap_combo = egui::ComboBox::from_id_salt(if is_mono { "colormap_mono" } else { "colormap_rgb" })
+                                    .width(colormap_ui.available_width())
+                                    .truncate();
+                                if is_mono {
+                                    self.mono_colormap_previews.show(
+                                        colormap_ui,
+                                        colormap_combo,
+                                        &mut self.state.colormap_mono,
+                                        &self.state.colormap_mono_list,
+                                        &mut open_custom_colormap,
+                                    )
+                                } else {
+                                    let response = colormap_combo
+                                        .height(f32::INFINITY)
+                                        .selected_text(self.state.colormap_rgb.as_str())
+                                        .show_ui(colormap_ui, |ui| {
+                                            open_custom_colormap |= colormap_popup_contents(ui, |ui| {
+                                            for name in &self.state.colormap_rgb_list {
+                                                ui.selectable_value(&mut self.state.colormap_rgb, name.clone(), name);
+                                            }
+                                            });
+                                        });
+                                    response.response.hover_scroll(
+                                        colormap_ui,
+                                        &self.state.colormap_rgb_list,
+                                        &mut self.state.colormap_rgb,
+                                        false,
+                                    );
                                     response
-                                }).inner;
-                                if response.changed() {
-                                    ctx.request_repaint();
                                 }
-                                range_slider_tooltip(
-                                    slider_ui,
-                                    &response,
-                                    "Adjust the plot's Y-axis limits using lower and upper percentiles.",
-                                    self.plot_percentiles.map(|value| format!("{value:.0}%")),
+                                .response
+                                .on_hover_text("Colormap");
+
+                                if !is_mono {
+                                    alpha_ui.checkbox(&mut self.state.shader_params.use_alpha, "Alpha");
+                                }
+                            });
+                            if open_custom_colormap {
+                                self.open_colormap_folder(&ctx, is_mono);
+                            }
+
+                            ui.separator();
+                            ui.checkbox(&mut self.state.shader_params.use_per_channel, "Per-channel controls");
+
+                            if let Some(asset) = &self.state.asset {
+                                let image = asset.image();
+                                ui.vertical(|ui| {
+                                    let mut style: egui::Style = ui.style().as_ref().clone();
+                                    egui::containers::menu::menu_style(&mut style);
+                                    ui.set_style(std::sync::Arc::new(style));
+
+                                    if self.state.shader_params.use_per_channel {
+                                        for i in 0..channels {
+                                            ui.horizontal(|ui| {
+                                                let label = match (channels, i) {
+                                                    (1, 0) => "C",
+                                                    (_, 0) => "R",
+                                                    (_, 1) => "G",
+                                                    (_, 2) => "B",
+                                                    _ => "A",
+                                                };
+                                                let mut label = egui::RichText::new(label);
+                                                if channels > 1 && i < 3 {
+                                                    label = label.color(RGB_CHANNEL_LABEL_COLORS[i as usize]);
+                                                }
+                                                ui.label(label);
+
+                                                display_controls_ui(
+                                                    ui,
+                                                    &self.icons,
+                                                    image,
+                                                    i,
+                                                    &mut self.state.shader_params.scale_mode_channels[i as usize],
+                                                    &mut self.state.shader_params.auto_minmax_channels[i as usize],
+                                                    &mut self.state.shader_params.min_v_channels[i as usize],
+                                                    &mut self.state.shader_params.max_v_channels[i as usize],
+                                                );
+                                            });
+                                        }
+                                    } else {
+                                        ui.horizontal(|ui| {
+                                            display_controls_ui(
+                                                ui,
+                                                &self.icons,
+                                                image,
+                                                -1,
+                                                &mut self.state.shader_params.scale_mode,
+                                                &mut self.state.shader_params.auto_minmax,
+                                                &mut self.state.shader_params.min_v,
+                                                &mut self.state.shader_params.max_v,
+                                            );
+                                        });
+                                    }
+                                });
+                            }
+
+                            ui.separator();
+
+                            display_profile_slider(ui, &mut self.state.shader_params.offset, -5.0, 5.0, 0.0, "Offset")
+                                .on_hover_text("Add a constant offset to the displayed values.");
+                            display_profile_slider(ui, &mut self.state.shader_params.exposure, -5.0, 5.0, 0.0, "Exposure")
+                                .on_hover_text("Adjust brightness in exposure stops.");
+                            display_profile_slider(ui, &mut self.state.shader_params.gamma, 0.1, 5.0, 1.0, "Gamma")
+                                .on_hover_text("Apply gamma correction to the display.");
+
+                            let desired_size_plot = egui::vec2(ui.available_width(), 100.0);
+                            if let Some(asset) = self.active_display_asset() {
+                                let rect = self.state.marquee_rect;
+                                let mean_dim = match self.plot_dim {
+                                    PlotDim::Auto => {
+                                        if rect.width() >= rect.height() {
+                                            MeanDim::Column
+                                        } else {
+                                            MeanDim::Row
+                                        }
+                                    }
+                                    PlotDim::Column => MeanDim::Column,
+                                    PlotDim::Row => MeanDim::Row,
+                                };
+                                let reduced_value = asset
+                                    .image()
+                                    .mean_value_in_rect(rect, mean_dim)
+                                    .expect("Failed to compute mean in rect");
+                                let (position_label, position_offset) = match mean_dim {
+                                    MeanDim::Column => ("x", rect.min.x),
+                                    MeanDim::Row => ("y", rect.min.y),
+                                    MeanDim::All => ("x", 0),
+                                };
+
+                                let channels = asset.image().spec().channels as usize;
+                                let mut plot_data = Vec::with_capacity(channels);
+
+                                for i in 0..channels {
+                                    let mut channel_data = Vec::with_capacity(reduced_value.len() / channels);
+                                    for j in 0..(reduced_value.len() / channels) {
+                                        channel_data.push(reduced_value[j * channels + i]);
+                                    }
+                                    plot_data.push(channel_data);
+                                }
+
+                                let mut style: egui::Style = ui.style().as_ref().clone();
+                                egui::containers::menu::menu_style(&mut style);
+                                style.spacing.item_spacing.x = 4.0;
+                                let menu_style = std::sync::Arc::new(style);
+                                let slider_width = ui.spacing().interact_size.y;
+                                let alpha_scale = asset.image().spec().dtype.alpha();
+                                // Use part of the panel's right padding without increasing the row's reported width.
+                                egui::Frame::new().inner_margin(egui::Margin { right: -4, ..Default::default() }).show(ui, |ui| {
+                                    ui.spacing_mut().item_spacing.x = 2.0;
+                                    ui.columns_sized([Size::remainder(1.0), Size::exact(slider_width)], |[plot_ui, slider_ui]| {
+                                        let plot_refs = plot_data.iter().map(Vec::as_slice).collect::<Vec<_>>();
+                                        let mask = if channels > 1 { &self.show_plot_channels[..] } else { &[true] };
+                                        if let Some(export) = draw_multi_line_plot(
+                                            plot_ui,
+                                            egui::vec2(plot_ui.available_width(), desired_size_plot.y),
+                                            SeriesRef::new(&plot_refs),
+                                            mask,
+                                            self.plot_percentiles,
+                                            alpha_scale,
+                                            position_label,
+                                            position_offset,
+                                        ) {
+                                            self.handle_export_action(export);
+                                        }
+
+                                        slider_ui.set_style(menu_style.clone());
+                                        slider_ui.spacing_mut().slider_width = desired_size_plot.y;
+                                        let [low, high] = &mut self.plot_percentiles;
+                                        let response = slider_ui.scope(|ui| {
+                                            // Only restyle native painting; keep the handle geometry and input unchanged.
+                                            let inset = 2.0;
+                                            let radius = slider_width.max(ui.text_style_height(&egui::TextStyle::Body)) / 2.5;
+                                            let rail_width = 8.0;
+                                            // egui shares the rail fill with the idle handle, so paint the rail separately.
+                                            // Native handles retain all input, focus, and per-handle hover behavior.
+                                            ui.spacing_mut().slider_rail_height = 0.0;
+                                            let rail_shape = ui.painter().add(egui::Shape::Noop);
+                                            let visuals = ui.visuals_mut();
+                                            let rail_fill = visuals.widgets.inactive.bg_fill;
+                                            let range_fill = visuals.selection.bg_fill;
+                                            let widgets = &mut visuals.widgets;
+                                            for visuals in [
+                                                &mut widgets.noninteractive,
+                                                &mut widgets.inactive,
+                                                &mut widgets.hovered,
+                                                &mut widgets.active,
+                                            ] {
+                                                visuals.expansion = rail_width / 2.0 - radius;
+                                                visuals.corner_radius = egui::CornerRadius::same(1);
+                                                visuals.bg_fill = visuals.fg_stroke.color;
+                                                visuals.fg_stroke = egui::Stroke::NONE;
+                                            }
+                                            let handle_expansion = widgets.inactive.expansion;
+                                            let response = range_slider_ui(ui, low, high, 0.0..=100.0, 1.0, |slider| {
+                                                slider.vertical().show_value(false).smart_aim(false)
+                                                    .handle_shape(egui::style::HandleShape::Rect {
+                                                        aspect_ratio: 0.5 + inset / radius,
+                                                    })
+                                            });
+                                            if let (Some(low), Some(high)) = (
+                                                ui.ctx().read_response(response.id.with("low")),
+                                                ui.ctx().read_response(response.id.with("high")),
+                                            ) {
+                                                let rail = egui::Rect::from_center_size(
+                                                    response.rect.center(),
+                                                    // Native handles change their painted bounds by expansion at both ends.
+                                                    // Match those bounds without changing value mapping or the hit target.
+                                                    egui::vec2(rail_width, (response.rect.height() + 2.0 * handle_expansion).max(0.0)),
+                                                );
+                                                let range = egui::Rect::from_min_max(
+                                                    egui::pos2(rail.left(), high.rect.center().y - 1.0),
+                                                    egui::pos2(rail.right(), low.rect.center().y + 1.0),
+                                                ).intersect(rail);
+                                                ui.painter().set(rail_shape, egui::Shape::Vec(vec![
+                                                    egui::Shape::rect_filled(rail, 1, rail_fill),
+                                                    egui::Shape::rect_filled(range, 1, range_fill),
+                                                ]));
+                                            }
+                                            response
+                                        }).inner;
+                                        if response.changed() {
+                                            ctx.request_repaint();
+                                        }
+                                        range_slider_tooltip(
+                                            slider_ui,
+                                            &response,
+                                            "Adjust the plot's Y-axis limits using lower and upper percentiles.",
+                                            self.plot_percentiles.map(|value| format!("{value:.0}%")),
+                                        );
+                                        range_slider_context_menu(&response, |ui| {
+                                            if ui.button("Reset (0–100%)").clicked() {
+                                                self.plot_percentiles = [0.0, 100.0];
+                                                ctx.request_repaint();
+                                                ui.close();
+                                            }
+                                        });
+                                    });
+                                });
+
+                                ui.scope(|ui| {
+                                    ui.columns_sized([Size::exact(68.0), Size::remainder(1.0)], |[axis_ui, channel_ui]| {
+                                        axis_ui.set_style(menu_style.clone());
+                                        axis_ui.horizontal(|ui| {
+                                            ui.radio_icon(
+                                                &mut self.plot_dim,
+                                                PlotDim::Auto,
+                                                self.icons.get_reduce_auto(&ctx),
+                                                "Auto (Mean Shorter Side)",
+                                            );
+                                            ui.radio_icon(
+                                                &mut self.plot_dim,
+                                                PlotDim::Column,
+                                                self.icons.get_reduce_column(&ctx),
+                                                "Mean Column",
+                                            );
+                                            ui.radio_icon(
+                                                &mut self.plot_dim,
+                                                PlotDim::Row,
+                                                self.icons.get_reduce_row(&ctx),
+                                                "Mean Row",
+                                            );
+                                        });
+
+                                        if channels > 1 {
+                                            channel_toggle_ui(channel_ui, &mut self.show_plot_channels, channels);
+                                        }
+                                    });
+                                });
+                            } else {
+                                ui.allocate_ui_with_layout(
+                                    desired_size_plot,
+                                    egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
+                                    |ui| {
+                                        ui.label("No data to display.");
+                                    },
                                 );
-                                range_slider_context_menu(&response, |ui| {
-                                    if ui.button("Reset (0–100%)").clicked() {
-                                        self.plot_percentiles = [0.0, 100.0];
-                                        ctx.request_repaint();
-                                        ui.close();
+                            }
+
+                            ui.separator();
+
+                            ui.checkbox(&mut self.show_histogram, "Show Histogram")
+                                .on_hover_text("Show the histogram of the current image.");
+
+                            if self.show_histogram {
+                                if let Some(asset) = &self.state.asset {
+                                    match self.histogram_panel.show(ui, asset.image(), &mut self.show_histogram_channels) {
+                                        Ok(Some(export)) => self.handle_export_action(export),
+                                        Ok(None) => {},
+                                        Err(error) => {
+                                            eprintln!("Histogram failed: {error}");
+                                            self.toasts.add_error(format!("Histogram failed: {error}"));
+                                        }
                                     }
-                                });
-                            });
-                        });
-
-                        ui.scope(|ui| {
-                            ui.columns_sized([Size::exact(68.0), Size::remainder(1.0)], |[axis_ui, channel_ui]| {
-                                axis_ui.set_style(menu_style.clone());
-                                axis_ui.horizontal(|ui| {
-                                    ui.radio_icon(
-                                        &mut self.plot_dim,
-                                        PlotDim::Auto,
-                                        self.icons.get_reduce_auto(&ctx),
-                                        "Auto (Mean Shorter Side)",
-                                    );
-                                    ui.radio_icon(
-                                        &mut self.plot_dim,
-                                        PlotDim::Column,
-                                        self.icons.get_reduce_column(&ctx),
-                                        "Mean Column",
-                                    );
-                                    ui.radio_icon(
-                                        &mut self.plot_dim,
-                                        PlotDim::Row,
-                                        self.icons.get_reduce_row(&ctx),
-                                        "Mean Row",
-                                    );
-                                });
-
-                                if channels > 1 {
-                                    channel_toggle_ui(channel_ui, &mut self.show_plot_channels, channels);
-                                }
-                            });
-                        });
-                    } else {
-                        ui.allocate_ui_with_layout(
-                            desired_size_plot,
-                            egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
-                            |ui| {
-                                ui.label("No data to display.");
-                            },
-                        );
-                    }
-
-                    ui.separator();
-
-                    ui.checkbox(&mut self.show_histogram, "Show Histogram")
-                        .on_hover_text("Show the histogram of the current image.");
-
-                    if self.show_histogram {
-                        let desired_size = egui::vec2(ui.available_width(), 100.0);
-                        if let Some(asset) = &self.state.asset {
-                            let hist = asset.image().hist();
-                            let max = hist.iter().flatten().copied().fold(f32::NAN, f32::max);
-
-                            if !hist.is_empty() {
-                                let display_hist: Vec<&[f32]> = hist.iter().map(Vec::as_slice).collect();
-
-                                if channels > 1 {
-                                    if let Some(export) = draw_histogram(
-                                        ui,
-                                        desired_size,
-                                        SeriesRef::new(&display_hist),
-                                        &self.show_histogram_channels,
-                                        max,
-                                    ) {
-                                        self.handle_export_action(export);
-                                    }
-                                    channel_toggle_ui(ui, &mut self.show_histogram_channels, channels as usize);
                                 } else {
-                                    if let Some(export) =
-                                        draw_histogram(ui, desired_size, SeriesRef::new(&display_hist), &[true], max)
-                                    {
-                                        self.handle_export_action(export);
-                                    }
+                                    ui.allocate_ui_with_layout(
+                                        egui::vec2(ui.available_width(), 142.0),
+                                        egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
+                                        |ui| {
+                                            ui.label("No data to display.");
+                                        },
+                                    );
                                 }
                             }
-                        } else {
-                            ui.allocate_ui_with_layout(
-                                desired_size,
-                                egui::Layout::centered_and_justified(egui::Direction::LeftToRight),
-                                |ui| {
-                                    ui.label("No data to display.");
-                                },
-                            );
-                        }
-                    }
 
-                    ui.separator();
+                            ui.separator();
 
-                    if ui
-                        .checkbox(&mut self.show_statistics, "Show Statistics")
-                        .on_hover_text("Show min/max and comparison metrics for the current selection.")
-                        .clicked()
-                        && self.show_statistics {
-                        self.update_statistics();
-                    }
+                            if ui
+                                .checkbox(&mut self.show_statistics, "Show Statistics")
+                                .on_hover_text("Show min/max and comparison metrics for the current selection.")
+                                .clicked()
+                                && self.show_statistics {
+                                self.update_statistics();
+                            }
 
-                    if self.show_statistics {
-                        let min_values = &self.state.statistics.min_max.value.min;
-                        let max_values = &self.state.statistics.min_max.value.max;
-                        let num_channels = min_values.len().min(max_values.len()).min(4);
+                            if self.show_statistics {
+                                let min_values = &self.state.statistics.min_max.value.min;
+                                let max_values = &self.state.statistics.min_max.value.max;
+                                let num_channels = min_values.len().min(max_values.len()).min(4);
 
-                        if num_channels > 0 {
-                            let gap = 4.0;
-                            let label_width = 32.0;
-                            let value_width = ((ui.available_width() - label_width - gap * num_channels as f32)
-                                / num_channels as f32).max(0.0);
-                            egui::Grid::new("statistics_min_max_grid")
-                                .num_columns(num_channels + 1)
-                                .min_col_width(0.0)
-                                .max_col_width(value_width)
-                                .spacing(vec2(gap, 2.0))
-                                .striped(true)
-                                .show(ui, |ui| {
-                                    ui.label("Min:").on_hover_text("Minimum value per channel.");
-                                    for (i, &min_value) in min_values.iter().take(num_channels).enumerate() {
-                                        statistics_overlay_toggle(
-                                            ui,
-                                            &mut self.show_statistics_min_overlay_channels[i],
-                                            min_value,
-                                            STATISTICS_MIN_TOGGLE_FILL,
-                                            "Highlight pixels matching this minimum value.".to_owned(),
-                                        );
-                                    }
-                                    ui.end_row();
+                                if num_channels > 0 {
+                                    let gap = 4.0;
+                                    let label_width = 32.0;
+                                    let value_width = ((ui.available_width() - label_width - gap * num_channels as f32)
+                                        / num_channels as f32).max(0.0);
+                                    egui::Grid::new("statistics_min_max_grid")
+                                        .num_columns(num_channels + 1)
+                                        .min_col_width(0.0)
+                                        .max_col_width(value_width)
+                                        .spacing(vec2(gap, 2.0))
+                                        .striped(true)
+                                        .show(ui, |ui| {
+                                            ui.label("Min:").on_hover_text("Minimum value per channel.");
+                                            for (i, &min_value) in min_values.iter().take(num_channels).enumerate() {
+                                                statistics_overlay_toggle(
+                                                    ui,
+                                                    &mut self.show_statistics_min_overlay_channels[i],
+                                                    min_value,
+                                                    STATISTICS_MIN_TOGGLE_FILL,
+                                                    "Highlight pixels matching this minimum value.".to_owned(),
+                                                );
+                                            }
+                                            ui.end_row();
 
-                                    ui.label("Max:").on_hover_text("Maximum value per channel.");
-                                    for (i, &max_value) in max_values.iter().take(num_channels).enumerate() {
-                                        statistics_overlay_toggle(
-                                            ui,
-                                            &mut self.show_statistics_max_overlay_channels[i],
-                                            max_value,
-                                            STATISTICS_MAX_TOGGLE_FILL,
-                                            "Highlight pixels matching this maximum value.".to_owned(),
-                                        );
-                                    }
-                                    ui.end_row();
+                                            ui.label("Max:").on_hover_text("Maximum value per channel.");
+                                            for (i, &max_value) in max_values.iter().take(num_channels).enumerate() {
+                                                statistics_overlay_toggle(
+                                                    ui,
+                                                    &mut self.show_statistics_max_overlay_channels[i],
+                                                    max_value,
+                                                    STATISTICS_MAX_TOGGLE_FILL,
+                                                    "Highlight pixels matching this maximum value.".to_owned(),
+                                                );
+                                            }
+                                            ui.end_row();
+                                        });
+                                }
+
+                                if self.state.is_comparison() {
+                                    egui::Grid::new("statistics_metrics_grid").num_columns(2).striped(true).show(ui, |ui| {
+                                        ui.label("RMSE:");
+                                        ui.label(format!("{:.4}", self.state.statistics.psnr_rmse.value.rmse));
+                                        ui.end_row();
+
+                                        ui.label("PSNR:");
+                                        ui.label(format!("{:.4}", self.state.statistics.psnr_rmse.value.psnr));
+                                        ui.end_row();
+
+                                        // ui.label("SSIM:");
+                                        // ui.label(format!("{:.4}", self.state.statistics.ssim));
+                                        // ui.end_row();
+                                    });
+                                }
+                            }
+
+                            ui.separator();
+
+                            if self.state.is_comparison() {
+                                ui.heading("Comparison");
+                                let previous_comparison_mode = self.state.comparison_mode;
+                                let mut comparison_mode_changed = false;
+                                let mut comparison_changed = false;
+                                ui.horizontal(|ui| {
+                                    comparison_mode_changed |= ui
+                                        .radio_value(&mut self.state.comparison_mode, ComparisonMode::Diff, "Diff")
+                                        .on_hover_text("Show the pixel-wise difference: primary - secondary.")
+                                        .changed();
+                                    comparison_mode_changed |= ui
+                                        .radio_value(&mut self.state.comparison_mode, ComparisonMode::Blend, "Blend")
+                                        .on_hover_text("Blend the primary and secondary images.")
+                                        .changed();
+                                    comparison_mode_changed |= ui
+                                        .radio_value(&mut self.state.comparison_mode, ComparisonMode::Split, "Split")
+                                        .on_hover_text("Show the primary and secondary images side by side with synchronized pan and zoom.")
+                                        .changed();
                                 });
-                        }
-
-                        if self.state.is_comparison() {
-                            egui::Grid::new("statistics_metrics_grid").num_columns(2).striped(true).show(ui, |ui| {
-                                ui.label("RMSE:");
-                                ui.label(format!("{:.4}", self.state.statistics.psnr_rmse.value.rmse));
-                                ui.end_row();
-
-                                ui.label("PSNR:");
-                                ui.label(format!("{:.4}", self.state.statistics.psnr_rmse.value.psnr));
-                                ui.end_row();
-
-                                // ui.label("SSIM:");
-                                // ui.label(format!("{:.4}", self.state.statistics.ssim));
-                                // ui.end_row();
-                            });
-                        }
-                    }
-
-                    ui.separator();
-
-                    if self.state.is_comparison() {
-                        ui.heading("Comparison");
-                        let previous_comparison_mode = self.state.comparison_mode;
-                        let mut comparison_mode_changed = false;
-                        let mut comparison_changed = false;
-                        ui.horizontal(|ui| {
-                            comparison_mode_changed |= ui
-                                .radio_value(&mut self.state.comparison_mode, ComparisonMode::Diff, "Diff")
-                                .on_hover_text("Show the pixel-wise difference: primary - secondary.")
-                                .changed();
-                            comparison_mode_changed |= ui
-                                .radio_value(&mut self.state.comparison_mode, ComparisonMode::Blend, "Blend")
-                                .on_hover_text("Blend the primary and secondary images.")
-                                .changed();
-                            comparison_mode_changed |= ui
-                                .radio_value(&mut self.state.comparison_mode, ComparisonMode::Split, "Split")
-                                .on_hover_text("Show the primary and secondary images side by side with synchronized pan and zoom.")
-                                .changed();
-                        });
-                        comparison_changed |= comparison_mode_changed;
-                        if self.state.comparison_mode == ComparisonMode::Blend {
-                            comparison_changed |= ui
-                                .add(egui::Slider::new(&mut self.state.comparison_blend, 0.0..=1.0).text("Blend"))
-                                .changed();
-                        }
-                        if comparison_changed {
-                            self.state.update_asset();
-                            if comparison_mode_changed
-                                && previous_comparison_mode != ComparisonMode::Split
-                                && self.state.comparison_mode == ComparisonMode::Split
-                            {
-                                if let Some(asset) = self.state.asset_primary.as_ref() {
-                                    let spec = asset.image().spec();
-                                    self.viewer.fit_split(spec.width, spec.height);
+                                comparison_changed |= comparison_mode_changed;
+                                if self.state.comparison_mode == ComparisonMode::Blend {
+                                    comparison_changed |= ui
+                                        .add(egui::Slider::new(&mut self.state.comparison_blend, 0.0..=1.0).text("Blend"))
+                                        .changed();
                                 }
+                                if comparison_changed {
+                                    self.state.update_asset();
+                                    if comparison_mode_changed
+                                        && previous_comparison_mode != ComparisonMode::Split
+                                        && self.state.comparison_mode == ComparisonMode::Split
+                                    {
+                                        if let Some(asset) = self.state.asset_primary.as_ref() {
+                                            let spec = asset.image().spec();
+                                            self.viewer.fit_split(spec.width, spec.height);
+                                        }
+                                    }
+                                }
+                                ui.separator();
                             }
-                        }
-                        ui.separator();
-                    }
 
+                        });
                     self.asset_list_selection.retain(|hash| self.state.assets.contains_key(hash));
                     ui.horizontal(|ui| {
                         ui.heading("Image List");

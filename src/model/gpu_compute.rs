@@ -5,6 +5,7 @@ use color_eyre::eyre::{eyre, Result};
 use wgpu::util::DeviceExt as _;
 
 use super::{image_io::DecodedImage, ComparisonMode, ImageSpec, MeanDim, PixelType, Recti};
+use super::{Histogram, HISTOGRAM_BINS, HISTOGRAM_STRIDE};
 use crate::util::math_ext::Vec2i;
 
 const WORKGROUP_SIZE: u32 = 256;
@@ -770,10 +771,33 @@ impl GpuComputeContext {
     }
 
     pub fn histogram(&self, image: &GpuImageTexture) -> Result<Vec<Vec<f32>>> {
-        let size = 4 * 256 * std::mem::size_of::<u32>();
+        Ok(self
+            .histogram_range(image, [0.0, 1.0])?
+            .bins
+            .into_iter()
+            .map(|bins| bins.into_iter().map(|count| count as f32).collect())
+            .collect())
+    }
+
+    pub fn histogram_range(&self, image: &GpuImageTexture, range: [f32; 2]) -> Result<Histogram> {
+        let [low, high] = range;
+        if !low.is_finite() || !high.is_finite() || low > high {
+            return Err(eyre!("Invalid histogram range"));
+        }
+        let size = 4 * HISTOGRAM_STRIDE * std::mem::size_of::<u32>();
         let zeros = vec![0u8; size];
         let output = self.storage_buffer(&zeros, "edolview histogram output");
-        let params = ComputeParams::new(&image.spec, Recti::ZERO);
+        let mut params = ComputeParams::new(&image.spec, Recti::ZERO);
+        // A normal power-of-two factor preserves endpoint spacing and keeps both
+        // subtraction and division normal even for opposite f32::MAX endpoints.
+        // A subnormal reciprocal would be flushed to zero on some GPUs.
+        let exponent = ((low.abs().max(high.abs()).to_bits() >> 23) & 0xff) as i32 - 127;
+        let shift = (-exponent).clamp(-120, 120);
+        let scale = f32::from_bits(((shift + 127) as u32) << 23);
+        params.values = [low, high, scale, low * scale];
+        // Compute endpoints on the CPU to prevent shader optimizers from
+        // reassociating the scaled subtraction into an overflowing (high - low).
+        params.operation[0] = (high * scale - low * scale).to_bits();
         let groups = reduction_group_count(&params);
         self.run_readback(
             self.compute_pipeline(&self.histogram_pipeline, "histogram"),
@@ -786,9 +810,23 @@ impl GpuComputeContext {
             size as u64,
             |bytes| {
                 let words: &[u32] = bytemuck::cast_slice(bytes);
-                (0..image.spec.channels as usize)
-                    .map(|channel| words[channel * 256..(channel + 1) * 256].iter().map(|&v| v as f32).collect())
-                    .collect()
+                let channels = image.spec.channels as usize;
+                Histogram {
+                    bins: (0..channels)
+                        .map(|channel| {
+                            let start = channel * HISTOGRAM_STRIDE;
+                            words[start..start + HISTOGRAM_BINS].to_vec()
+                        })
+                        .collect(),
+                    excluded: (0..channels)
+                        .map(|channel| {
+                            let start = channel * HISTOGRAM_STRIDE + HISTOGRAM_BINS;
+                            [words[start], words[start + 1], words[start + 2]]
+                        })
+                        .collect(),
+                    range,
+                    pixels: image.spec.width as u64 * image.spec.height as u64,
+                }
             },
         )
     }
@@ -1314,9 +1352,22 @@ fn histogram(
         let value = textureLoad(source_a, roi_pixel(index), 0);
         for (var channel = 0u; channel < params.image.z; channel++) {
             let v = value[channel];
-            if (v >= 0.0 && v <= 1.0) {
-                let bin = min(255u, u32(floor(v * 256.0)));
-                atomicAdd(&output[channel * 256u + bin], 1u);
+            let base = channel * 259u;
+            if (!finite(v)) {
+                atomicAdd(&output[base + 258u], 1u);
+            } else if (v < params.values.x) {
+                atomicAdd(&output[base + 256u], 1u);
+            } else if (v > params.values.y) {
+                atomicAdd(&output[base + 257u], 1u);
+            } else {
+                var bin = 0u;
+                if (params.values.x < params.values.y) {
+                    let scale = params.values.z;
+                    let width = bitcast<f32>(params.operation.x);
+                    let fraction = clamp((v * scale - params.values.w) / width, 0.0, 1.0);
+                    bin = min(255u, u32(floor(fraction * 256.0)));
+                }
+                atomicAdd(&output[base + bin], 1u);
             }
         }
         index += stride;
@@ -1930,6 +1981,75 @@ mod tests {
             assert_eq!(histogram[0][255], upper_count);
             assert_eq!(histogram[0].iter().sum::<f32>(), 1.0 + upper_count);
         }
+    }
+
+    #[test]
+    fn histogram_accounts_for_hdr_negative_and_non_finite_samples() {
+        let compute = context();
+        let image = ImageData::from_f32(
+            ImageSpec::new(9, 1, 1, PixelType::F32),
+            vec![
+                -2.0,
+                -1.0,
+                0.0,
+                0.5,
+                1.0,
+                2.0,
+                f32::NAN,
+                f32::INFINITY,
+                f32::NEG_INFINITY,
+            ],
+        )
+        .unwrap();
+        let texture = image.gpu_texture().unwrap();
+        let unit = compute.histogram_range(&texture, [0.0, 1.0]).unwrap();
+        assert_eq!(unit.excluded, vec![[2, 1, 3]]);
+        assert_eq!(unit.bins[0].iter().sum::<u32>(), 3);
+        assert_eq!(unit.bins[0][0], 1);
+        assert_eq!(unit.bins[0][128], 1);
+        assert_eq!(unit.bins[0][255], 1);
+        assert_eq!(unit.pixels, 9);
+
+        let range = super::super::HistogramRange::Data.resolve(&image).unwrap();
+        assert_eq!(range, [-2.0, 2.0]);
+        let full = compute.histogram_range(&texture, range).unwrap();
+        assert_eq!(full.excluded, vec![[0, 0, 3]]);
+        assert_eq!(full.bins[0].iter().sum::<u32>(), 6);
+        assert_eq!(full.bins[0][0], 1);
+        assert_eq!(full.bins[0][255], 1);
+
+        let custom = compute.histogram_range(&texture, [-1.0, 0.5]).unwrap();
+        assert_eq!(custom.excluded, vec![[1, 2, 3]]);
+        assert_eq!(custom.bins[0].iter().sum::<u32>(), 3);
+        assert_eq!(custom.bins[0][0], 1);
+        assert_eq!(custom.bins[0][255], 1);
+    }
+
+    #[test]
+    fn histogram_handles_constant_invalid_and_extreme_ranges() {
+        let compute = context();
+        for values in [vec![2.0; 4], vec![f32::NAN, f32::INFINITY, f32::NEG_INFINITY, f32::NAN]] {
+            let image = ImageData::from_f32(ImageSpec::new(4, 1, 1, PixelType::F32), values.clone()).unwrap();
+            let range = super::super::HistogramRange::Data.resolve(&image).unwrap();
+            let hist = compute.histogram_range(&image.gpu_texture().unwrap(), range).unwrap();
+            if values[0].is_finite() {
+                assert_eq!(range, [2.0, 2.0]);
+                assert_eq!(hist.bins[0][0], 4);
+                assert_eq!(hist.excluded, vec![[0; 3]]);
+            } else {
+                assert_eq!(range, [0.0, 1.0]);
+                assert_eq!(hist.excluded, vec![[0, 0, 4]]);
+            }
+        }
+        let image =
+            ImageData::from_f32(ImageSpec::new(3, 1, 1, PixelType::F32), vec![-f32::MAX, 0.0, f32::MAX]).unwrap();
+        let hist = compute
+            .histogram_range(&image.gpu_texture().unwrap(), [-f32::MAX, f32::MAX])
+            .unwrap();
+        assert_eq!(hist.bins[0][0], 1);
+        assert_eq!(hist.bins[0][128], 1);
+        assert_eq!(hist.bins[0][255], 1);
+        assert_eq!(hist.excluded, vec![[0; 3]]);
     }
 
     #[test]

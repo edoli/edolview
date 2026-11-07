@@ -1,12 +1,9 @@
-use std::sync::Arc;
+use eframe::egui::{self, pos2, Color32, Pos2, Rect, Sense, Stroke, TextStyle, Vec2};
 
-use eframe::egui::epaint::Shape;
-use eframe::egui::Galley;
-use eframe::egui::{self, pos2, Color32, CornerRadius, Pos2, Rect, Sense, Stroke, TextStyle, Vec2};
-
-use super::{CopyExport, ExportAction, SaveExport};
-use crate::res::{histogram_bar_colors, HISTOGRAM_LABEL_COLORS};
-use crate::util::series::{build_indexed_csv, channel_label, SeriesRef};
+use super::{channel_toggle_ui, CopyExport, ExportAction, SaveExport};
+use crate::model::{Histogram, HistogramRange, HistogramWorker, Image, ImageData, PixelType, HISTOGRAM_BINS};
+use crate::res::{histogram_bar_colors, HISTOGRAM_GRID_STROKE, HISTOGRAM_LABEL_COLORS, NOTICE_WARNING_TEXT};
+use crate::util::series::channel_label;
 #[cfg(debug_assertions)]
 use crate::util::timer::ScopedTimer;
 
@@ -17,36 +14,256 @@ struct HistogramHoverState {
     lines: Vec<(String, Color32)>,
 }
 
+#[derive(Default, PartialEq)]
+enum RangeMode {
+    #[default]
+    Unit,
+    Data,
+    Custom,
+}
+
+#[derive(Default)]
+pub struct HistogramPanel {
+    mode: RangeMode,
+    custom_range: [f64; 2],
+    image_id: Option<u64>,
+    worker: HistogramWorker,
+}
+
+impl HistogramPanel {
+    pub fn show(
+        &mut self,
+        ui: &mut egui::Ui,
+        image: &ImageData,
+        mask: &mut [bool; 4],
+    ) -> color_eyre::Result<Option<ExportAction>> {
+        let spec = image.spec();
+        let scale = spec.dtype.alpha();
+        if self.image_id != Some(image.id()) {
+            self.image_id = Some(image.id());
+            self.custom_range = [0.0, scale];
+        }
+        ui.horizontal(|ui| {
+            ui.label("Range");
+            egui::ComboBox::from_id_salt("histogram_range")
+                .selected_text(match self.mode {
+                    RangeMode::Unit => "0–1 (normalized)",
+                    RangeMode::Data => "Full data range",
+                    RangeMode::Custom => "Custom",
+                })
+                .width(ui.available_width())
+                .show_ui(ui, |ui| {
+                    ui.selectable_value(&mut self.mode, RangeMode::Unit, "0–1 (normalized)");
+                    ui.selectable_value(&mut self.mode, RangeMode::Data, "Full data range");
+                    ui.selectable_value(&mut self.mode, RangeMode::Custom, "Custom");
+                });
+        });
+        if self.mode == RangeMode::Custom {
+            ui.horizontal(|ui| {
+                for (i, label) in ["Min", "Max"].into_iter().enumerate() {
+                    ui.label(label);
+                    ui.add(
+                        egui::DragValue::new(&mut self.custom_range[i])
+                            .speed(scale / 1000.0)
+                            .max_decimals(6),
+                    )
+                    .on_hover_text(format!("Histogram {label} in source pixel values"));
+                }
+            });
+        }
+        let range = match self.mode {
+            RangeMode::Unit => HistogramRange::Unit,
+            RangeMode::Data => HistogramRange::Data,
+            RangeMode::Custom => {
+                let bounds = self.custom_range.map(|v| (v / scale) as f32);
+                if !bounds.iter().all(|v| v.is_finite()) || bounds[0] >= bounds[1] {
+                    ui.colored_label(NOTICE_WARNING_TEXT, "Min must be finite and smaller than Max.");
+                    return Ok(None);
+                }
+                HistogramRange::Custom(bounds)
+            }
+        };
+        let histogram = self.worker.request(image, range, ui.ctx())?;
+        let action = if let Some(histogram) = &histogram {
+            let mono_mask = [true];
+            let visible_mask: &[bool] = if spec.channels == 1 { &mono_mask } else { mask };
+            ui.push_id(image.id(), |ui| {
+                draw_histogram(ui, Vec2::new(ui.available_width(), 130.0), histogram, visible_mask, spec.dtype)
+            })
+            .inner
+        } else {
+            ui.horizontal(|ui| {
+                if self.worker.failed(image, range) {
+                    ui.label("Histogram unavailable.");
+                } else {
+                    ui.spinner();
+                    ui.label("Computing histogram…");
+                }
+            });
+            None
+        };
+        ui.horizontal(|ui| {
+            if spec.channels > 1 {
+                channel_toggle_ui(ui, mask, spec.channels as usize);
+            }
+            if let Some(histogram) = &histogram {
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                    ui.menu_button("Details", |ui| {
+                        ui.strong("Excluded pixels");
+                        ui.separator();
+                        let mut shown = false;
+                        for (i, counts) in histogram.excluded.iter().enumerate() {
+                            if spec.channels > 1 && !mask.get(i).copied().unwrap_or(false) {
+                                continue;
+                            }
+                            if shown {
+                                ui.separator();
+                            }
+                            shown = true;
+                            ui.strong(channel_label(i, histogram.bins.len()));
+                            for (label, count) in
+                                ["Below range", "Above range", "NaN / infinity"].into_iter().zip(counts)
+                            {
+                                ui.label(format!("{label}: {count} ({:.2}%)", histogram.percent(*count)));
+                            }
+                        }
+                        if !shown {
+                            ui.label("Select a channel to display.");
+                        }
+                        ui.separator();
+                        ui.small(format!("% of all {} pixels per channel", histogram.pixels));
+                    });
+                });
+            }
+        });
+        Ok(action)
+    }
+}
+
+fn format_value(value: f64) -> String {
+    if value == 0.0 {
+        return "0".to_owned();
+    }
+    if value.abs() < 0.001 || value.abs() >= 1_000_000.0 {
+        return format!("{value:.6e}");
+    }
+    format!("{value:.6}").trim_end_matches('0').trim_end_matches('.').to_owned()
+}
+
+fn bin_label(hist: &Histogram, bin: usize, dtype: PixelType) -> String {
+    let [low, high] = hist.bin_bounds(bin).map(|v| v * dtype.alpha());
+    if !dtype.is_floating() {
+        if hist.range[0] == hist.range[1] {
+            return format_value(low.round());
+        }
+        let low = low.ceil();
+        let high = if bin + 1 == HISTOGRAM_BINS || hist.range[0] == hist.range[1] {
+            high.floor()
+        } else {
+            high.ceil() - 1.0
+        };
+        if low > high {
+            return "No integer values".to_owned();
+        }
+        if low == high {
+            return format_value(low);
+        }
+        return format!("{}–{}", format_value(low), format_value(high));
+    }
+    format!(
+        "[{}, {}{}",
+        format_value(low),
+        format_value(high),
+        if bin + 1 == HISTOGRAM_BINS || low == high {
+            "]"
+        } else {
+            ")"
+        }
+    )
+}
+
+fn histogram_csv(hist: &Histogram, mask: &[bool], dtype: PixelType) -> String {
+    use std::fmt::Write;
+    let channels: Vec<_> = (0..hist.bins.len())
+        .filter(|&i| mask.get(i).copied().unwrap_or(false))
+        .collect();
+    let mut csv = "bin,value_min,value_max,max_inclusive".to_owned();
+    for &i in &channels {
+        let label = channel_label(i, hist.bins.len());
+        let _ = write!(csv, ",{label}_pixels,{label}_percent");
+    }
+    csv.push('\n');
+    for bin in 0..HISTOGRAM_BINS {
+        let [low, high] = hist.bin_bounds(bin).map(|v| v * dtype.alpha());
+        let _ = write!(csv, "{bin},{low},{high},{}", bin + 1 == HISTOGRAM_BINS || low == high);
+        for &i in &channels {
+            let count = hist.bins[i][bin];
+            let _ = write!(csv, ",{count},{}", hist.percent(count));
+        }
+        csv.push('\n');
+    }
+    // Explicit rows preserve excluded samples and the denominator when exporting.
+    for (category, offset) in [("below_range", 0), ("above_range", 1), ("non_finite", 2)] {
+        let _ = write!(csv, "{category},,,");
+        for &i in &channels {
+            let count = hist.excluded[i][offset];
+            let _ = write!(csv, ",{count},{}", hist.percent(count));
+        }
+        csv.push('\n');
+    }
+    csv
+}
+
 pub fn draw_histogram(
     ui: &mut egui::Ui,
     desired_size: Vec2,
-    series: SeriesRef<'_, f32>,
+    histogram: &Histogram,
     mask: &[bool],
-    max_freq: f32,
+    dtype: PixelType,
 ) -> Option<ExportAction> {
     #[cfg(debug_assertions)]
     let _timer = ScopedTimer::new("ui.histogram_plot.draw");
 
-    if series.is_empty() || series.first_len() == 0 || mask.iter().all(|&m| !m) {
+    let series = &histogram.bins;
+    if series.is_empty() || mask.iter().all(|&m| !m) {
         ui.allocate_ui_with_layout(
             desired_size,
             egui::Layout::centered_and_justified(eframe::egui::Direction::LeftToRight),
             |ui| {
-                ui.label("No data to display.");
+                ui.label(if mask.iter().all(|&m| !m) {
+                    "Select a channel to display."
+                } else {
+                    "No data to display."
+                });
             },
         );
         return None;
     }
 
-    let (rect, response) = ui.allocate_exact_size(desired_size, Sense::click());
-    let painter = ui.painter_at(rect);
+    let max_freq = histogram.visible_max(mask).max(1) as f32;
+    let (outer_rect, response) = ui.allocate_exact_size(desired_size, Sense::click());
+    response.widget_info(|| {
+        egui::WidgetInfo::labeled(
+            egui::Role::Image,
+            ui.is_enabled(),
+            format!(
+                "Histogram, peak {} pixels, range {} to {}",
+                histogram.visible_max(mask),
+                format_value(histogram.range[0] as f64 * dtype.alpha()),
+                format_value(histogram.range[1] as f64 * dtype.alpha())
+            ),
+        )
+    });
+    let painter = ui.painter_at(outer_rect);
+    let axis_font = TextStyle::Small.resolve(ui.style());
+    let rect = Rect::from_min_max(outer_rect.min + Vec2::new(0.0, 4.0), outer_rect.max - Vec2::new(0.0, 12.0));
     let mut export_action = None;
 
     if max_freq <= 0.0 {
         return None;
     }
 
-    let bins = series.first_len();
+    let bins = HISTOGRAM_BINS;
     if bins == 0 {
         return None;
     }
@@ -61,17 +278,39 @@ pub fn draw_histogram(
     let bar_colors = histogram_bar_colors();
     let label_colors = HISTOGRAM_LABEL_COLORS;
 
-    let format_hist_value = |value: f32| {
-        if (value - value.round()).abs() < 0.0001 {
-            format!("{value:.0}")
-        } else {
-            format!("{value:.4}")
-        }
-    };
+    for fraction in [0.0, 0.5, 1.0] {
+        let y = rect.bottom() - fraction * rect.height();
+        painter.line_segment([pos2(rect.left(), y), pos2(rect.right(), y)], HISTOGRAM_GRID_STROKE);
+    }
+    for (fraction, align) in [
+        (0.0, egui::Align2::LEFT_TOP),
+        (0.5, egui::Align2::CENTER_TOP),
+        (1.0, egui::Align2::RIGHT_TOP),
+    ] {
+        let low = histogram.range[0] as f64;
+        let value = (low + fraction * (histogram.range[1] as f64 - low)) * dtype.alpha();
+        painter.text(
+            pos2(rect.left() + fraction as f32 * rect.width(), rect.bottom() + 4.0),
+            align,
+            format_value(value),
+            axis_font.clone(),
+            ui.visuals().weak_text_color(),
+        );
+    }
 
-    let draw_series = |series: &[f32], color: Color32| {
+    if histogram.visible_max(mask) == 0 {
+        painter.text(
+            rect.center(),
+            egui::Align2::CENTER_CENTER,
+            "No pixels in this range.",
+            axis_font.clone(),
+            ui.visuals().text_color(),
+        );
+    }
+
+    let draw_series = |series: &[u32], color: Color32| {
         for i in 0..bins {
-            let v = *series.get(i).unwrap_or(&0.0);
+            let v = *series.get(i).unwrap_or(&0) as f32;
             if v <= 0.0 {
                 continue;
             }
@@ -101,12 +340,14 @@ pub fn draw_histogram(
     };
 
     series.iter().take(4).enumerate().for_each(|(i, s)| {
-        if mask[i] {
+        if mask.get(i).copied().unwrap_or(false) {
             draw_series(s, bar_colors[i])
         }
     });
 
-    let hover_state_id = response.id.with("hovered_state");
+    let hover_state_id = response
+        .id
+        .with(("hovered_state", histogram.range.map(f32::to_bits), dtype as u32, mask));
     let context_menu_open = response.context_menu_opened();
 
     let hover_state = if context_menu_open {
@@ -117,15 +358,20 @@ pub fn draw_histogram(
             let bin_idx = ((x_norm * bins as f32).floor() as usize).min(bins.saturating_sub(1));
 
             let mut lines: Vec<(String, Color32)> = Vec::new();
-            lines.push((format!("bin: {bin_idx}"), Color32::WHITE));
+            lines.push((format!("Value: {}", bin_label(histogram, bin_idx, dtype)), Color32::WHITE));
             let total_channels = series.len();
             for (i, channel) in series.iter().take(4).enumerate() {
                 if !mask.get(i).copied().unwrap_or(false) {
                     continue;
                 }
-                let value = channel.get(bin_idx).copied().unwrap_or(0.0);
+                let value = channel.get(bin_idx).copied().unwrap_or(0);
                 lines.push((
-                    format!("{}: {}", channel_label(i, total_channels), format_hist_value(value)),
+                    format!(
+                        "{}: {} px ({:.2}%)",
+                        channel_label(i, total_channels),
+                        value,
+                        histogram.percent(value)
+                    ),
                     label_colors[i % label_colors.len()],
                 ));
             }
@@ -156,108 +402,16 @@ pub fn draw_histogram(
             y0 += dash_len + gap_len;
         }
 
-        let font_id = TextStyle::Monospace.resolve(ui.style());
-        let padding = Vec2::new(8.0, 6.0);
-        let mut galleys: Vec<(Arc<Galley>, Color32)> = Vec::with_capacity(lines.len());
-        let (max_w, total_h) = ui.fonts_mut(|fonts| {
-            let mut max_w = 0.0f32;
-            let mut total_h = 0.0f32;
-            for (text, color) in lines {
-                let galley = fonts.layout_no_wrap(text.clone(), font_id.clone(), *color);
-                let sz = galley.size();
-                max_w = max_w.max(sz.x);
-                total_h += sz.y;
-                galleys.push((galley, *color));
-            }
-            (max_w, total_h)
-        });
-        let tooltip_size = Vec2::new(max_w + padding.x * 2.0, total_h + padding.y * 2.0);
-
-        let anchor_pos = if context_menu_open {
-            Pos2 { x, y: rect.center().y }
-        } else {
-            response.hover_pos().unwrap_or(Pos2 { x, y: rect.center().y })
-        };
-        let mut tip_pos = Pos2 {
-            x: (anchor_pos.x + 12.0).min(rect.right() - tooltip_size.x),
-            y: (anchor_pos.y + 12.0).min(rect.bottom() - tooltip_size.y),
-        };
-        if tip_pos.x < rect.left() {
-            tip_pos.x = rect.left();
-        }
-        if tip_pos.y < rect.top() {
-            tip_pos.y = rect.top();
-        }
-
-        let tip_rect = Rect::from_min_size(tip_pos, tooltip_size);
-        painter.add(Shape::rect_filled(
-            tip_rect,
-            CornerRadius::same(4),
-            Color32::from_black_alpha(180),
-        ));
-
-        let border = Stroke::new(1.0, Color32::from_gray(80));
-        painter.line_segment(
-            [
-                Pos2 {
-                    x: tip_rect.left(),
-                    y: tip_rect.top(),
-                },
-                Pos2 {
-                    x: tip_rect.right(),
-                    y: tip_rect.top(),
-                },
-            ],
-            border,
-        );
-        painter.line_segment(
-            [
-                Pos2 {
-                    x: tip_rect.right(),
-                    y: tip_rect.top(),
-                },
-                Pos2 {
-                    x: tip_rect.right(),
-                    y: tip_rect.bottom(),
-                },
-            ],
-            border,
-        );
-        painter.line_segment(
-            [
-                Pos2 {
-                    x: tip_rect.right(),
-                    y: tip_rect.bottom(),
-                },
-                Pos2 {
-                    x: tip_rect.left(),
-                    y: tip_rect.bottom(),
-                },
-            ],
-            border,
-        );
-        painter.line_segment(
-            [
-                Pos2 {
-                    x: tip_rect.left(),
-                    y: tip_rect.bottom(),
-                },
-                Pos2 {
-                    x: tip_rect.left(),
-                    y: tip_rect.top(),
-                },
-            ],
-            border,
-        );
-
-        let mut cursor = Pos2 {
-            x: tip_rect.left() + padding.x,
-            y: tip_rect.top() + padding.y,
-        };
-        for (galley, color) in galleys {
-            let line_h = galley.size().y;
-            painter.galley(cursor, galley, color);
-            cursor.y += line_h;
+        if !context_menu_open {
+            // Plot readouts follow the pointer immediately instead of waiting
+            // for the normal tooltip delay or for the pointer to stop moving.
+            egui::Tooltip::for_widget(&response).at_pointer().gap(12.0).show(|ui| {
+                ui.set_max_width(300.0);
+                for (text, color) in lines {
+                    ui.label(egui::RichText::new(text).monospace().color(*color));
+                }
+                ui.small(format!("% of all {} pixels per channel", histogram.pixels));
+            });
         }
 
         ui.ctx().data_mut(|data| data.insert_temp(hover_state_id, hover_state.clone()));
@@ -280,7 +434,7 @@ pub fn draw_histogram(
         if ui.button("Copy Data (CSV)").clicked() {
             export_action = Some(ExportAction::Copy(CopyExport {
                 title: "histogram data",
-                text: build_indexed_csv("bin", None, None, &series, mask),
+                text: histogram_csv(histogram, mask, dtype),
             }));
             ui.close();
         }
@@ -288,11 +442,47 @@ pub fn draw_histogram(
             export_action = Some(ExportAction::Save(SaveExport {
                 title: "histogram data",
                 suggested_file_name: "histogram.csv",
-                text: build_indexed_csv("bin", None, None, &series, mask),
+                text: histogram_csv(histogram, mask, dtype),
             }));
             ui.close();
         }
     });
 
     export_action
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    fn histogram(range: [f32; 2]) -> Histogram {
+        Histogram {
+            bins: vec![vec![0; HISTOGRAM_BINS]],
+            excluded: vec![[0; 3]],
+            range,
+            pixels: 4,
+        }
+    }
+    #[test]
+    fn histogram_value_intervals_use_source_bit_depth_and_include_last_endpoint() {
+        let hist = histogram([0.0, 1.0]);
+        assert_eq!(bin_label(&hist, 128, PixelType::U8), "128");
+        assert_eq!(bin_label(&hist, 128, PixelType::U16), "32768–33023");
+        assert_eq!(bin_label(&hist, 255, PixelType::U16), "65280–65535");
+        assert_eq!(bin_label(&hist, 0, PixelType::F32), "[0, 0.003906)");
+        assert_eq!(bin_label(&hist, 255, PixelType::F32), "[0.996094, 1]");
+        assert_eq!(bin_label(&histogram([128.0 / 255.0; 2]), 0, PixelType::U8), "128");
+        assert_eq!(bin_label(&histogram([-2.0, 2.0]), 0, PixelType::F32), "[-2, -1.984375)");
+    }
+    #[test]
+    fn histogram_export_preserves_counts_percentages_and_excluded_samples() {
+        let mut hist = histogram([-1.0, 1.0]);
+        hist.bins[0][0] = 1;
+        hist.excluded[0] = [1, 0, 2];
+        let csv = histogram_csv(&hist, &[true], PixelType::F32);
+        assert!(
+            csv.starts_with("bin,value_min,value_max,max_inclusive,L_pixels,L_percent\n0,-1,-0.9921875,false,1,25\n")
+        );
+        assert!(csv.contains("below_range,,,,1,25\n"));
+        assert!(csv.contains("non_finite,,,,2,50\n"));
+    }
 }

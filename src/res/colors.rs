@@ -39,6 +39,10 @@ pub const RGB_CHANNEL_LABEL_COLORS: [Color32; 3] = [
 ];
 
 pub const HISTOGRAM_LABEL_COLORS: [Color32; 4] = [Color32::RED, Color32::GREEN, Color32::BLUE, Color32::YELLOW];
+pub const HISTOGRAM_GRID_STROKE: eframe::egui::Stroke = eframe::egui::Stroke {
+    width: 1.0,
+    color: Color32::from_gray(48),
+};
 
 pub const MULTI_LINE_PLOT_COLORS: [Color32; 8] = [
     Color32::RED,
