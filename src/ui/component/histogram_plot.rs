@@ -1,8 +1,12 @@
+use eframe::egui::epaint::Mesh;
 use eframe::egui::{self, pos2, Color32, Pos2, Rect, Sense, Stroke, TextStyle, Vec2};
 
 use super::{channel_toggle_ui, CopyExport, ExportAction, SaveExport};
 use crate::model::{Histogram, HistogramRange, HistogramWorker, Image, ImageData, PixelType, HISTOGRAM_BINS};
-use crate::res::{histogram_bar_colors, HISTOGRAM_GRID_STROKE, HISTOGRAM_LABEL_COLORS, NOTICE_WARNING_TEXT};
+use crate::res::{
+    histogram_bar_colors, HISTOGRAM_GRID_STROKE, HISTOGRAM_LABEL_COLORS, HISTOGRAM_RGB_ADDITIVE_COLORS,
+    NOTICE_WARNING_TEXT,
+};
 use crate::util::series::channel_label;
 #[cfg(debug_assertions)]
 use crate::util::timer::ScopedTimer;
@@ -214,6 +218,28 @@ fn histogram_csv(hist: &Histogram, mask: &[bool], dtype: PixelType) -> String {
     csv
 }
 
+fn histogram_bar_mesh(series: &[u32], rect: Rect, max_freq: f32, color: Color32) -> Mesh {
+    let mut mesh = Mesh::default();
+    if !rect.is_positive() || max_freq <= 0.0 {
+        return mesh;
+    }
+    mesh.reserve_vertices(series.len().min(HISTOGRAM_BINS) * 4);
+    mesh.reserve_triangles(series.len().min(HISTOGRAM_BINS) * 2);
+    let edge_x = |bin: usize| rect.left() + rect.width() * (bin as f32 / HISTOGRAM_BINS as f32);
+    for (bin, &count) in series.iter().take(HISTOGRAM_BINS).enumerate() {
+        if count == 0 {
+            continue;
+        }
+        let height = (count as f32 / max_freq).clamp(0.0, 1.0) * rect.height();
+        let bar = Rect::from_min_max(pos2(edge_x(bin), rect.bottom() - height), pos2(edge_x(bin + 1), rect.bottom()));
+        // Matching bin edges tile without the per-rectangle feathering that
+        // produces vertical seams on sub-point-wide bars. Keep fractional
+        // coordinates so narrow bins retain their exact widths and positions.
+        mesh.add_colored_rect(bar, color);
+    }
+    mesh
+}
+
 pub fn draw_histogram(
     ui: &mut egui::Ui,
     desired_size: Vec2,
@@ -268,14 +294,13 @@ pub fn draw_histogram(
         return None;
     }
 
-    let full_w = rect.width();
-    let baseline_y = rect.bottom();
-    let left_x = rect.left();
+    let bin_width = rect.width() / bins as f32;
 
-    let bin_width = full_w / bins as f32;
-    let inner_w = bin_width.max(0.0);
-
-    let bar_colors = histogram_bar_colors();
+    let mut bar_colors = histogram_bar_colors();
+    let rgb = series.len() >= 3;
+    if rgb {
+        bar_colors[..3].copy_from_slice(&HISTOGRAM_RGB_ADDITIVE_COLORS);
+    }
     let label_colors = HISTOGRAM_LABEL_COLORS;
 
     for fraction in [0.0, 0.5, 1.0] {
@@ -308,42 +333,16 @@ pub fn draw_histogram(
         );
     }
 
-    let draw_series = |series: &[u32], color: Color32| {
-        for i in 0..bins {
-            let v = *series.get(i).unwrap_or(&0) as f32;
-            if v <= 0.0 {
-                continue;
-            }
-            let h_px = (v / max_freq).clamp(0.0, 1.0) * rect.height();
-            if h_px <= 0.0 {
-                continue;
-            }
-
-            let x0 = left_x + i as f32 * bin_width;
-            let x1 = x0 + inner_w;
-            let y_top = baseline_y - h_px;
-
-            let x0c = x0.max(rect.left());
-            let x1c = x1.min(rect.right());
-            if x1c <= x0c {
-                continue;
-            }
-            let y0c = y_top.max(rect.top());
-            let y1c = baseline_y.min(rect.bottom());
-            if y1c <= y0c {
-                continue;
-            }
-
-            let r = Rect::from_min_max(pos2(x0c, y0c), pos2(x1c, y1c));
-            painter.rect_filled(r, 0.0, color);
-        }
-    };
-
-    series.iter().take(4).enumerate().for_each(|(i, s)| {
+    // Alpha remains a conventional overlay underneath the RGB light channels,
+    // so it cannot tint the white produced by all three RGB channels.
+    let draw_order = if rgb { [3, 0, 1, 2] } else { [0, 1, 2, 3] };
+    for i in draw_order {
         if mask.get(i).copied().unwrap_or(false) {
-            draw_series(s, bar_colors[i])
+            if let Some(values) = series.get(i) {
+                painter.add(egui::Shape::mesh(histogram_bar_mesh(values, rect, max_freq, bar_colors[i])));
+            }
         }
-    });
+    }
 
     let hover_state_id = response
         .id
@@ -454,6 +453,76 @@ pub fn draw_histogram(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn histogram_rgb_additive_combinations_are_independent_of_draw_order() {
+        for order in [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]] {
+            for mask in 0..8 {
+                let mut blended = Color32::BLACK;
+                for channel in order {
+                    if mask & (1 << channel) != 0 {
+                        blended = blended.blend(HISTOGRAM_RGB_ADDITIVE_COLORS[channel]);
+                    }
+                }
+                assert_eq!(
+                    blended,
+                    Color32::from_rgb(
+                        if mask & 1 != 0 { 255 } else { 0 },
+                        if mask & 2 != 0 { 255 } else { 0 },
+                        if mask & 4 != 0 { 255 } else { 0 },
+                    )
+                );
+            }
+        }
+        let mesh = histogram_bar_mesh(
+            &[1; HISTOGRAM_BINS],
+            Rect::from_min_size(Pos2::ZERO, Vec2::new(256.0, 100.0)),
+            1.0,
+            HISTOGRAM_RGB_ADDITIVE_COLORS[0],
+        );
+        assert!(mesh
+            .vertices
+            .iter()
+            .all(|vertex| vertex.color == HISTOGRAM_RGB_ADDITIVE_COLORS[0]));
+    }
+
+    #[test]
+    fn histogram_bar_mesh_tiles_fractional_bin_edges_without_transparent_seams() {
+        let rect = Rect::from_min_size(pos2(1049.34375, 382.0), Vec2::new(222.65625, 114.0));
+        let color = histogram_bar_colors()[0];
+        let mesh = histogram_bar_mesh(&[64; HISTOGRAM_BINS], rect, 64.0, color);
+        assert!(mesh.is_valid());
+        assert_eq!(mesh.vertices.len(), HISTOGRAM_BINS * 4);
+        assert_eq!(mesh.indices.len(), HISTOGRAM_BINS * 6);
+        assert_eq!(mesh.vertices[0].pos, rect.left_top());
+        assert_eq!(mesh.vertices.last().unwrap().pos, rect.right_bottom());
+        for (i, bar) in mesh.vertices.chunks_exact(4).enumerate() {
+            assert!(bar.iter().all(|vertex| vertex.color == color));
+            assert_eq!(bar[0].pos.y, rect.top());
+            assert_eq!(bar[2].pos.y, rect.bottom());
+            if i + 1 < HISTOGRAM_BINS {
+                assert_eq!(bar[1].pos.x.to_bits(), mesh.vertices[(i + 1) * 4].pos.x.to_bits());
+            }
+        }
+    }
+
+    #[test]
+    fn histogram_bar_mesh_preserves_isolated_spikes_and_zero_neighbors() {
+        let rect = Rect::from_min_size(pos2(0.0, 0.0), Vec2::new(256.0, 100.0));
+        let mut bins = [0; HISTOGRAM_BINS];
+        bins[128] = 100;
+        bins[130] = 25;
+        let mesh = histogram_bar_mesh(&bins, rect, 100.0, histogram_bar_colors()[0]);
+        assert_eq!(mesh.vertices.len(), 8);
+        assert_eq!(mesh.vertices[0].pos, pos2(128.0, 0.0));
+        assert_eq!(mesh.vertices[3].pos, pos2(129.0, 100.0));
+        assert_eq!(mesh.vertices[4].pos, pos2(130.0, 75.0));
+        assert_eq!(mesh.vertices[7].pos, pos2(131.0, 100.0));
+        assert!(histogram_bar_mesh(&[0; HISTOGRAM_BINS], rect, 1.0, Color32::RED)
+            .vertices
+            .is_empty());
+    }
+
     fn histogram(range: [f32; 2]) -> Histogram {
         Histogram {
             bins: vec![vec![0; HISTOGRAM_BINS]],

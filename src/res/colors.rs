@@ -38,7 +38,19 @@ pub const RGB_CHANNEL_LABEL_COLORS: [Color32; 3] = [
     Color32::from_rgb(100, 160, 255),
 ];
 
-pub const HISTOGRAM_LABEL_COLORS: [Color32; 4] = [Color32::RED, Color32::GREEN, Color32::BLUE, Color32::YELLOW];
+pub const HISTOGRAM_LABEL_COLORS: [Color32; 4] = [
+    RGB_CHANNEL_LABEL_COLORS[0],
+    RGB_CHANNEL_LABEL_COLORS[1],
+    RGB_CHANNEL_LABEL_COLORS[2],
+    Color32::from_rgb(230, 205, 110),
+];
+// Egui's premultiplied-alpha renderer treats nonzero RGB with zero alpha as
+// additive light, so overlapping primaries combine independently of draw order.
+pub const HISTOGRAM_RGB_ADDITIVE_COLORS: [Color32; 3] = [
+    Color32::from_rgb_additive(255, 0, 0),
+    Color32::from_rgb_additive(0, 255, 0),
+    Color32::from_rgb_additive(0, 0, 255),
+];
 pub const HISTOGRAM_GRID_STROKE: eframe::egui::Stroke = eframe::egui::Stroke {
     width: 1.0,
     color: Color32::from_gray(48),
@@ -68,10 +80,5 @@ pub fn selection_handle_clipped_fill() -> Color32 {
 }
 
 pub fn histogram_bar_colors() -> [Color32; 4] {
-    [
-        Color32::from_rgba_unmultiplied(255, 0, 0, 150),
-        Color32::from_rgba_unmultiplied(0, 255, 0, 150),
-        Color32::from_rgba_unmultiplied(0, 0, 255, 150),
-        Color32::from_rgba_unmultiplied(255, 255, 0, 150),
-    ]
+    HISTOGRAM_LABEL_COLORS.map(|color| Color32::from_rgba_unmultiplied(color.r(), color.g(), color.b(), 150))
 }
