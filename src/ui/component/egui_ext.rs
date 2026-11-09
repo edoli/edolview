@@ -268,7 +268,7 @@ impl UiExt for Ui {
             *selected = !*selected;
         }
         resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, self.is_enabled(), *selected, name));
-        resp.on_hover_text(format!("{hover_text}\n{}", if *selected { "On" } else { "Off" }))
+        resp.on_hover_text(hover_text)
     }
 
     fn indicator_icon<'a>(&mut self, is_on: bool, icon: impl Into<Image<'a>>, name: &str) -> Response {
