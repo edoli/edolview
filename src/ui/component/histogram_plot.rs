@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use eframe::egui::epaint::Mesh;
 use eframe::egui::{self, pos2, Color32, Pos2, Rect, Sense, Stroke, TextStyle, Vec2};
 
@@ -32,6 +34,7 @@ pub struct HistogramPanel {
     custom_range: [f64; 2],
     image_id: Option<u64>,
     worker: HistogramWorker,
+    mesh_cache: HistogramMeshCache,
 }
 
 impl HistogramPanel {
@@ -94,10 +97,18 @@ impl HistogramPanel {
             let mono_mask = [true];
             let visible_mask: &[bool] = if spec.channels == 1 { &mono_mask } else { mask };
             ui.push_id(image.id(), |ui| {
-                draw_histogram(ui, Vec2::new(ui.available_width(), 130.0), histogram, visible_mask, spec.dtype)
+                draw_histogram(
+                    ui,
+                    Vec2::new(ui.available_width(), 130.0),
+                    histogram,
+                    visible_mask,
+                    spec.dtype,
+                    &mut self.mesh_cache,
+                )
             })
             .inner
         } else {
+            self.mesh_cache = HistogramMeshCache::default();
             ui.horizontal(|ui| {
                 if self.worker.failed(image, range) {
                     ui.label("Histogram unavailable.");
@@ -242,18 +253,79 @@ fn histogram_bar_mesh(series: &[u32], rect: Rect, max_freq: f32, color: Color32)
     mesh
 }
 
-pub fn draw_histogram(
+#[derive(PartialEq)]
+struct HistogramMeshKey {
+    // Vertices use absolute coordinates, so scrolling must also invalidate them.
+    rect: Rect,
+    max_freq: f32,
+    mask: [bool; 4],
+    colors: [Color32; 4],
+}
+
+struct HistogramMeshes {
+    // Retain the immutable result to make pointer identity safe across image switches.
+    histogram: Arc<Histogram>,
+    key: HistogramMeshKey,
+    channels: [Option<Arc<Mesh>>; 4],
+}
+
+#[derive(Default)]
+struct HistogramMeshCache {
+    // Only the current plot is retained, independently of the histogram data caches.
+    current: Option<HistogramMeshes>,
+}
+
+impl HistogramMeshCache {
+    fn get(
+        &mut self,
+        histogram: &Arc<Histogram>,
+        rect: Rect,
+        max_freq: f32,
+        mask: &[bool],
+        colors: [Color32; 4],
+    ) -> &[Option<Arc<Mesh>>; 4] {
+        let key = HistogramMeshKey {
+            rect,
+            max_freq,
+            mask: std::array::from_fn(|i| mask.get(i).copied().unwrap_or(false)),
+            colors,
+        };
+        let reuse = self
+            .current
+            .as_ref()
+            .is_some_and(|cached| Arc::ptr_eq(&cached.histogram, histogram) && cached.key == key);
+        if !reuse {
+            let channels = std::array::from_fn(|i| {
+                histogram
+                    .bins
+                    .get(i)
+                    .filter(|_| key.mask[i])
+                    .map(|values| Arc::new(histogram_bar_mesh(values, rect, max_freq, colors[i])))
+            });
+            self.current = Some(HistogramMeshes {
+                histogram: Arc::clone(histogram),
+                key,
+                channels,
+            });
+        }
+        &self.current.as_ref().unwrap().channels
+    }
+}
+
+fn draw_histogram(
     ui: &mut egui::Ui,
     desired_size: Vec2,
-    histogram: &Histogram,
+    histogram: &Arc<Histogram>,
     mask: &[bool],
     dtype: PixelType,
+    mesh_cache: &mut HistogramMeshCache,
 ) -> Option<ExportAction> {
     #[cfg(debug_assertions)]
     let _timer = ScopedTimer::new("ui.histogram_plot.draw");
 
     let series = &histogram.bins;
     if series.is_empty() || mask.iter().all(|&m| !m) {
+        *mesh_cache = HistogramMeshCache::default();
         ui.allocate_ui_with_layout(
             desired_size,
             egui::Layout::centered_and_justified(eframe::egui::Direction::LeftToRight),
@@ -338,11 +410,10 @@ pub fn draw_histogram(
     // Alpha remains a conventional overlay underneath the RGB light channels,
     // so it cannot tint the white produced by all three RGB channels.
     let draw_order = if rgb { [3, 0, 1, 2] } else { [0, 1, 2, 3] };
+    let meshes = mesh_cache.get(histogram, rect, max_freq, mask, bar_colors);
     for i in draw_order {
-        if mask.get(i).copied().unwrap_or(false) {
-            if let Some(values) = series.get(i) {
-                painter.add(egui::Shape::mesh(histogram_bar_mesh(values, rect, max_freq, bar_colors[i])));
-            }
+        if let Some(mesh) = &meshes[i] {
+            painter.add(egui::Shape::Mesh(Arc::clone(mesh)));
         }
     }
 
@@ -455,6 +526,91 @@ pub fn draw_histogram(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn histogram_mesh_cache_reuses_buffers_and_preserves_rendered_geometry() {
+        let mut hist = histogram([0.0, 1.0]);
+        hist.bins = vec![vec![64; HISTOGRAM_BINS]; 4];
+        let hist = Arc::new(hist);
+        let rect = Rect::from_min_size(pos2(10.25, 20.5), Vec2::new(222.5, 114.0));
+        let colors = histogram_bar_colors();
+        let mask = [true, true, false, true];
+        let mut cache = HistogramMeshCache::default();
+        let first = cache.get(&hist, rect, 64.0, &mask, colors).clone();
+        assert!(first[2].is_none());
+        for _ in 0..10 {
+            let reused = cache.get(&Arc::clone(&hist), rect, 64.0, &mask, colors);
+            for i in [0, 1, 3] {
+                let mesh = reused[i].as_ref().unwrap();
+                assert!(Arc::ptr_eq(first[i].as_ref().unwrap(), mesh));
+                let expected = histogram_bar_mesh(&hist.bins[i], rect, 64.0, colors[i]);
+                assert_eq!(mesh.vertices, expected.vertices);
+                assert_eq!(mesh.indices, expected.indices);
+            }
+        }
+    }
+
+    #[test]
+    fn histogram_mesh_cache_invalidates_for_position_size_scale_mask_and_color() {
+        let mut hist = histogram([0.0, 1.0]);
+        hist.bins = vec![vec![32; HISTOGRAM_BINS]; 4];
+        let hist = Arc::new(hist);
+        let rect = Rect::from_min_size(pos2(10.0, 20.0), Vec2::new(256.0, 114.0));
+        let colors = histogram_bar_colors();
+        let mut changed_colors = colors;
+        changed_colors[0] = HISTOGRAM_RGB_ADDITIVE_COLORS[0];
+        for (new_rect, max_freq, mask, colors) in [
+            (rect.translate(Vec2::new(1.0, 0.0)), 32.0, [true; 4], colors),
+            (rect.translate(Vec2::new(0.0, -1.0)), 32.0, [true; 4], colors),
+            (Rect::from_min_size(rect.min, Vec2::new(257.0, 114.0)), 32.0, [true; 4], colors),
+            (Rect::from_min_size(rect.min, Vec2::new(256.0, 115.0)), 32.0, [true; 4], colors),
+            (rect, 64.0, [true; 4], colors),
+            (rect, 32.0, [true, true, true, false], colors),
+            (rect, 32.0, [true; 4], changed_colors),
+        ] {
+            let mut cache = HistogramMeshCache::default();
+            let original = Arc::clone(
+                cache.get(&hist, rect, 32.0, &[true; 4], histogram_bar_colors())[0]
+                    .as_ref()
+                    .unwrap(),
+            );
+            let meshes = cache.get(&hist, new_rect, max_freq, &mask, colors);
+            let updated = meshes[0].as_ref().unwrap();
+            assert!(!Arc::ptr_eq(&original, updated));
+            let expected = histogram_bar_mesh(&hist.bins[0], new_rect, max_freq, colors[0]);
+            assert_eq!(updated.vertices, expected.vertices);
+            assert_eq!(updated.indices, expected.indices);
+            assert_eq!(meshes[3].is_some(), mask[3]);
+        }
+    }
+
+    #[test]
+    fn histogram_mesh_cache_replaces_data_and_releases_previous_entry() {
+        let mut hist = histogram([0.0, 1.0]);
+        hist.bins[0][0] = 4;
+        let hist = Arc::new(hist);
+        let old_hist = Arc::downgrade(&hist);
+        let rect = Rect::from_min_size(Pos2::ZERO, Vec2::new(256.0, 114.0));
+        let mut cache = HistogramMeshCache::default();
+        let meshes = cache.get(&hist, rect, 4.0, &[true], histogram_bar_colors());
+        let old_mesh = Arc::downgrade(meshes[0].as_ref().unwrap());
+        let old_vertices = meshes[0].as_ref().unwrap().vertices.clone();
+        drop(hist);
+        assert!(old_hist.upgrade().is_some());
+
+        // Same range, dimensions and peak, but a different distribution.
+        let mut next = histogram([0.0, 1.0]);
+        next.bins[0][255] = 4;
+        let next = Arc::new(next);
+        let meshes = cache.get(&next, rect, 4.0, &[true], histogram_bar_colors());
+        assert_ne!(meshes[0].as_ref().unwrap().vertices, old_vertices);
+        assert!(old_hist.upgrade().is_none());
+        assert!(old_mesh.upgrade().is_none());
+        let current_mesh = Arc::downgrade(meshes[0].as_ref().unwrap());
+        drop(cache);
+        assert!(current_mesh.upgrade().is_none());
+        assert_eq!(Arc::strong_count(&next), 1);
+    }
 
     #[test]
     fn histogram_rgb_additive_combinations_are_independent_of_draw_order() {
