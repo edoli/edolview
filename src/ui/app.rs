@@ -69,24 +69,71 @@ struct PendingImageSaveDialog {
     rx: mpsc::Receiver<Option<(PathBuf, String)>>,
 }
 
+fn statistics_value_text(ui: &egui::Ui, value: f64, width: f32) -> String {
+    if !value.is_finite() {
+        return "N/A".to_owned();
+    }
+    let scientific = value != 0.0 && (value.abs() < 0.0001 || value.abs() >= 10_000.0);
+    let font = egui::TextStyle::Body.resolve(ui.style());
+    for precision in (0..=4).rev() {
+        let text = if scientific {
+            format!("{value:.precision$e}")
+        } else {
+            format!("{value:.precision$}")
+        };
+        let fits = ui.fonts_mut(|fonts| {
+            fonts
+                .layout_no_wrap(text.clone(), font.clone(), ui.visuals().text_color())
+                .size()
+                .x
+                <= width
+        });
+        if fits {
+            return text;
+        }
+    }
+    format!("{value:.0e}")
+}
+
 fn statistics_overlay_toggle(
     ui: &mut egui::Ui,
     selected: &mut bool,
     value: f64,
     active_fill: Color32,
     hover_text: String,
+    width: f32,
 ) -> egui::Response {
-    let mut text = egui::RichText::new(format!("{value:.4}"));
+    if !value.is_finite() {
+        *selected = false;
+    }
+    let label = statistics_value_text(ui, value, width);
+    let mut text = egui::RichText::new(&label);
     if *selected {
         text = text.background_color(active_fill).color(Color32::WHITE);
     }
     // Clickable text keeps all four channels compact without button padding.
     let response = ui
-        .add(egui::Label::new(text).truncate().selectable(false).sense(egui::Sense::click()))
+        .add_enabled_ui(value.is_finite(), |ui| {
+            ui.add_sized(
+                vec2(width, ui.text_style_height(&egui::TextStyle::Body)),
+                egui::Label::new(text).truncate().selectable(false).sense(egui::Sense::click()),
+            )
+        })
+        .inner
         .on_hover_cursor(egui::CursorIcon::PointingHand)
-        .on_hover_text(format!("{value}\n{hover_text}"));
+        .on_hover_text(if value.is_finite() {
+            format!("{value}\n{hover_text}")
+        } else {
+            "No finite pixels in this channel.".to_owned()
+        })
+        .on_disabled_hover_text("No finite pixels in this channel.");
     response.widget_info(|| {
-        egui::WidgetInfo::selected(egui::Role::Button, ui.is_enabled(), *selected, format!("{value:.4}"))
+        egui::WidgetInfo::selected(
+            egui::Role::Button,
+            ui.is_enabled() && value.is_finite(),
+            *selected,
+            label.as_str(),
+        )
     });
     response.context_menu(|ui| {
         if ui.button("Copy Value").clicked() {
@@ -1088,7 +1135,7 @@ impl ViewerApp {
             self.statistics_worker
                 .lock()
                 .unwrap()
-                .run_minmax(img.clone(), img.spec().dtype.alpha(), scope.clone());
+                .run_statistics(img.clone(), img.spec().dtype.alpha(), scope.clone());
         }
 
         if let Some(a1) = &self.state.asset_primary {
@@ -1219,6 +1266,9 @@ impl ViewerApp {
             Ok(updates) => {
                 let mut is_pending_update = false;
                 for result in updates {
+                    if let Some(error) = &result.error {
+                        self.toasts.add_error(error.clone());
+                    }
                     match result.stat_type {
                         StatisticsType::PSNRRMSE => {
                             is_pending_update |= result.is_pending;
@@ -1233,9 +1283,13 @@ impl ViewerApp {
                         }
                         StatisticsType::MinMax => {
                             is_pending_update |= result.is_pending;
-                            self.state.statistics.min_max.value.min = result.value.iter().step_by(2).cloned().collect();
+                            self.state.statistics.min_max.value.min = result.value.iter().step_by(4).cloned().collect();
                             self.state.statistics.min_max.value.max =
-                                result.value.iter().skip(1).step_by(2).cloned().collect();
+                                result.value.iter().skip(1).step_by(4).cloned().collect();
+                            self.state.statistics.min_max.value.variance =
+                                result.value.iter().skip(2).step_by(4).cloned().collect();
+                            self.state.statistics.min_max.value.std_dev =
+                                result.value.iter().skip(3).step_by(4).cloned().collect();
                             self.state.statistics.min_max.scope = Some(result.scope.clone());
                         }
                         _ => {}
@@ -2058,7 +2112,7 @@ impl eframe::App for ViewerApp {
 
                             if ui
                                 .checkbox(&mut self.show_statistics, "Show Statistics")
-                                .on_hover_text("Show min/max and comparison metrics for the current selection.")
+                                .on_hover_text("Show per-channel min/max, variance and standard deviation for the selection, or the full image if no selection. NaN and infinity are excluded. Comparison metrics are also shown when comparing images.")
                                 .clicked()
                                 && self.show_statistics {
                                 self.update_statistics();
@@ -2067,6 +2121,8 @@ impl eframe::App for ViewerApp {
                             if self.show_statistics {
                                 let min_values = &self.state.statistics.min_max.value.min;
                                 let max_values = &self.state.statistics.min_max.value.max;
+                                let variance_values = &self.state.statistics.min_max.value.variance;
+                                let std_dev_values = &self.state.statistics.min_max.value.std_dev;
                                 let num_channels = min_values.len().min(max_values.len()).min(4);
 
                                 if num_channels > 0 {
@@ -2077,7 +2133,7 @@ impl eframe::App for ViewerApp {
                                     egui::Grid::new("statistics_min_max_grid")
                                         .num_columns(num_channels + 1)
                                         .min_col_width(0.0)
-                                        .max_col_width(value_width)
+                                        .max_col_width(value_width.max(label_width))
                                         .spacing(vec2(gap, 2.0))
                                         .striped(true)
                                         .show(ui, |ui| {
@@ -2089,6 +2145,7 @@ impl eframe::App for ViewerApp {
                                                     min_value,
                                                     STATISTICS_MIN_TOGGLE_FILL,
                                                     "Highlight pixels matching this minimum value.".to_owned(),
+                                                    value_width,
                                                 );
                                             }
                                             ui.end_row();
@@ -2101,9 +2158,22 @@ impl eframe::App for ViewerApp {
                                                     max_value,
                                                     STATISTICS_MAX_TOGGLE_FILL,
                                                     "Highlight pixels matching this maximum value.".to_owned(),
+                                                    value_width,
                                                 );
                                             }
                                             ui.end_row();
+
+                                            for (label, values, tooltip) in [
+                                                ("Var:", variance_values, "Variance per channel. Values use squared pixel units; NaN and infinity are excluded."),
+                                                ("Std:", std_dev_values, "Standard deviation per channel: the square root of variance, in pixel units. NaN and infinity are excluded."),
+                                            ] {
+                                                ui.add(egui::Label::new(label).extend()).on_hover_text(tooltip);
+                                                for &value in values.iter().take(num_channels) {
+                                                    ui.add_sized(vec2(value_width, ui.text_style_height(&egui::TextStyle::Body)), egui::Label::new(statistics_value_text(ui, value, value_width)).truncate())
+                                                        .on_hover_text(if value.is_finite() { value.to_string() } else { "Unavailable: no finite pixels, or the calculation exceeded the numeric range.".to_owned() });
+                                                }
+                                                ui.end_row();
+                                            }
                                         });
                                 }
 

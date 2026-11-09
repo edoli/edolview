@@ -20,25 +20,10 @@ pub enum StatisticsType {
     FSIM,
 }
 
-impl StatisticsType {
-    pub fn result_size(&self) -> usize {
-        match self {
-            StatisticsType::MinMax => 2,
-            StatisticsType::Std => 1,
-            StatisticsType::MSE => 1,
-            StatisticsType::MAE => 1,
-            StatisticsType::PSNRRMSE => 2,
-            StatisticsType::SSIM => 1,
-            StatisticsType::MSSSIM => 1,
-            StatisticsType::FSIM => 1,
-        }
-    }
-}
-
 impl std::fmt::Display for StatisticsType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let s = match self {
-            StatisticsType::MinMax => "Min/Max",
+            StatisticsType::MinMax => "Min/Max/Variance/Std Dev",
             StatisticsType::Std => "Std Dev",
             StatisticsType::MSE => "MSE",
             StatisticsType::MAE => "MAE",
@@ -55,6 +40,7 @@ pub struct StatisticsResult {
     pub stat_type: StatisticsType,
     pub value: Vec<f64>,
     pub scope: StatisticsScope,
+    pub error: Option<String>,
 }
 
 pub struct StatisticsUpdate {
@@ -62,6 +48,7 @@ pub struct StatisticsUpdate {
     pub value: Vec<f64>,
     pub is_pending: bool,
     pub scope: StatisticsScope,
+    pub error: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -81,6 +68,8 @@ pub struct ValueWithScope<T> {
 pub struct MinMax {
     pub min: Vec<f64>,
     pub max: Vec<f64>,
+    pub variance: Vec<f64>,
+    pub std_dev: Vec<f64>,
 }
 
 #[derive(Default)]
@@ -116,24 +105,31 @@ impl StatisticsWorker {
         }
     }
 
-    pub fn run_minmax(&mut self, image: ImageData, scale: f64, scope: StatisticsScope) {
+    pub fn run_statistics(&mut self, image: ImageData, scale: f64, scope: StatisticsScope) {
         #[cfg(debug_assertions)]
-        let _timer = crate::util::timer::ScopedTimer::new("Statistics::MinMaxWrapper");
+        let _timer = crate::util::timer::ScopedTimer::new("Statistics::ImageWrapper");
 
         if image.spec().width <= 0 || image.spec().height <= 0 {
             return;
         }
 
-        self.run(StatisticsType::MinMax, scope, move |scope| {
+        let result_size = image.spec().channels as usize * 4;
+        self.run(StatisticsType::MinMax, scope, result_size, move |scope| {
             #[cfg(debug_assertions)]
-            let _timer = crate::util::timer::ScopedTimer::new("Statistics::MinMax");
+            let _timer = crate::util::timer::ScopedTimer::new("Statistics::Image");
 
             let texture = image.gpu_texture()?;
-            let (mins, maxs) = gpu_compute()?.minmax(&texture, scope.rect)?;
+            let statistics = gpu_compute()?.statistics(&texture, scope.rect)?;
             Ok::<Vec<f64>, color_eyre::Report>(
-                mins.into_iter()
-                    .zip(maxs)
-                    .flat_map(|(min, max)| [min as f64 * scale, max as f64 * scale])
+                (0..statistics.min.len())
+                    .flat_map(|c| {
+                        [
+                            statistics.min[c] * scale,
+                            statistics.max[c] * scale,
+                            statistics.variance[c] * scale * scale,
+                            statistics.std_dev[c] * scale.abs(),
+                        ]
+                    })
                     .collect(),
             )
         });
@@ -154,7 +150,7 @@ impl StatisticsWorker {
             return;
         }
 
-        self.run(StatisticsType::PSNRRMSE, scope, move |scope| {
+        self.run(StatisticsType::PSNRRMSE, scope, 2, move |scope| {
             #[cfg(debug_assertions)]
             let _timer = crate::util::timer::ScopedTimer::new("Statistics::PSNR");
 
@@ -173,7 +169,7 @@ impl StatisticsWorker {
             return;
         }
 
-        self.run(StatisticsType::SSIM, scope, move |scope| {
+        self.run(StatisticsType::SSIM, scope, 1, move |scope| {
             #[cfg(debug_assertions)]
             let _timer = crate::util::timer::ScopedTimer::new("Statistics::SSIM");
 
@@ -183,7 +179,7 @@ impl StatisticsWorker {
         });
     }
 
-    pub fn run<F, E>(&mut self, stat_type: StatisticsType, scope: StatisticsScope, func: F)
+    pub fn run<F, E>(&mut self, stat_type: StatisticsType, scope: StatisticsScope, result_size: usize, func: F)
     where
         F: FnOnce(&StatisticsScope) -> Result<Vec<f64>, E> + Send + 'static,
         E: std::fmt::Debug,
@@ -205,15 +201,17 @@ impl StatisticsWorker {
                         stat_type,
                         value: val,
                         scope,
+                        error: None,
                     });
                 }
                 Err(e) => {
-                    eprintln!("StatisticsWorker: Error computing {}: {:?}", stat_type, e);
-                    let result_size = stat_type.result_size();
+                    let error = format!("Error computing {stat_type}: {e:?}");
+                    eprintln!("StatisticsWorker: {error}");
                     let _ = tx.send(StatisticsResult {
                         stat_type,
                         value: vec![f64::NAN; result_size],
                         scope,
+                        error: Some(error),
                     });
                 }
             };
@@ -237,6 +235,7 @@ impl StatisticsWorker {
                         value: msg.value,
                         is_pending,
                         scope: msg.scope,
+                        error: msg.error,
                     });
                 }
                 Err(TryRecvError::Empty) => {

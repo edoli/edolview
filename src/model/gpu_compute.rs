@@ -11,6 +11,10 @@ use crate::util::math_ext::Vec2i;
 const WORKGROUP_SIZE: u32 = 256;
 const REDUCTION_GROUPS: u32 = 1024;
 
+#[path = "gpu_statistics.rs"]
+mod gpu_statistics;
+pub use gpu_statistics::STATISTICS_WORKGROUP_STORAGE_SIZE;
+
 static GPU_COMPUTE: LazyLock<RwLock<Option<Arc<GpuComputeContext>>>> = LazyLock::new(|| RwLock::new(None));
 
 pub fn install_gpu_compute(device: &wgpu::Device, queue: &wgpu::Queue, backend: wgpu::Backend) {
@@ -72,7 +76,7 @@ pub struct GpuComputeContext {
     layout: wgpu::BindGroupLayout,
     compute_module: wgpu::ShaderModule,
     compute_pipeline_layout: wgpu::PipelineLayout,
-    minmax_pipeline: std::sync::OnceLock<wgpu::ComputePipeline>,
+    statistics_pipeline: std::sync::OnceLock<wgpu::ComputePipeline>,
     histogram_pipeline: std::sync::OnceLock<wgpu::ComputePipeline>,
     sum_pipeline: std::sync::OnceLock<wgpu::ComputePipeline>,
     vector_mean_pipeline: std::sync::OnceLock<wgpu::ComputePipeline>,
@@ -257,7 +261,7 @@ impl GpuComputeContext {
             layout,
             compute_module,
             compute_pipeline_layout,
-            minmax_pipeline: std::sync::OnceLock::new(),
+            statistics_pipeline: std::sync::OnceLock::new(),
             histogram_pipeline: std::sync::OnceLock::new(),
             sum_pipeline: std::sync::OnceLock::new(),
             vector_mean_pipeline: std::sync::OnceLock::new(),
@@ -743,31 +747,11 @@ impl GpuComputeContext {
     }
 
     pub fn minmax(&self, image: &GpuImageTexture, rect: Recti) -> Result<(Vec<f32>, Vec<f32>)> {
-        let channels = image.spec.channels as usize;
-        let init = [u32::MAX, u32::MAX, u32::MAX, u32::MAX, 0, 0, 0, 0];
-        let output = self.storage_buffer(bytemuck::cast_slice(&init), "edolview minmax output");
-        let params = ComputeParams::new(&image.spec, rect);
-        let groups = reduction_group_count(&params);
-        self.run_readback(
-            self.compute_pipeline(&self.minmax_pipeline, "minmax"),
-            image,
-            None,
-            &output,
-            &params,
-            groups,
-            1,
-            32,
-            |bytes| {
-                let words: &[u32] = bytemuck::cast_slice(bytes);
-                let mut mins = Vec::with_capacity(channels);
-                let mut maxs = Vec::with_capacity(channels);
-                for channel in 0..channels {
-                    mins.push(ordered_to_float(words[channel]));
-                    maxs.push(ordered_to_float(words[4 + channel]));
-                }
-                (mins, maxs)
-            },
-        )
+        let statistics = self.statistics(image, rect)?;
+        Ok((
+            statistics.min.into_iter().map(|v| v as f32).collect(),
+            statistics.max.into_iter().map(|v| v as f32).collect(),
+        ))
     }
 
     pub fn histogram(&self, image: &GpuImageTexture) -> Result<Vec<Vec<f32>>> {
@@ -1296,14 +1280,6 @@ fn finite(value: f32) -> bool {
     return value == value && abs(value) <= 3.402823466e+38;
 }
 
-fn float_to_ordered(value: f32) -> u32 {
-    let bits = bitcast<u32>(value);
-    if ((bits & 0x80000000u) != 0u) {
-        return ~bits;
-    }
-    return bits ^ 0x80000000u;
-}
-
 fn roi_pixel(index: u32) -> vec2<i32> {
     let x = index % params.roi.z;
     let y = index / params.roi.z;
@@ -1316,28 +1292,6 @@ fn channel_mask(value: vec4<f32>, channels: u32) -> vec4<f32> {
         select(0.0, 1.0, channels > 1u),
         select(0.0, 1.0, channels > 2u),
         select(0.0, 1.0, channels > 3u));
-}
-
-@compute @workgroup_size(256)
-fn minmax(
-    @builtin(global_invocation_id) gid: vec3<u32>,
-    @builtin(num_workgroups) workgroups: vec3<u32>) {
-    let count = params.roi.z * params.roi.w;
-    let stride = max(1u, workgroups.x * 256u);
-    var index = gid.x;
-    loop {
-        if (index >= count) { break; }
-        let value = textureLoad(source_a, roi_pixel(index), 0);
-        for (var channel = 0u; channel < params.image.z; channel++) {
-            let v = value[channel];
-            if (finite(v)) {
-                let ordered = float_to_ordered(v);
-                atomicMin(&output[channel], ordered);
-                atomicMax(&output[4u + channel], ordered);
-            }
-        }
-        index += stride;
-    }
 }
 
 @compute @workgroup_size(256)
@@ -1780,12 +1734,16 @@ fn main(@builtin(global_invocation_id) gid: vec3<u32>) {
 "#;
 
 #[cfg(test)]
+#[path = "statistics_tests.rs"]
+mod statistics_tests;
+
+#[cfg(test)]
 mod tests {
     use super::*;
     use crate::model::image_io::{DecodedColor, DecodedImage, DecodedLayout, DecodedPixels, DecodedTransform};
     use crate::model::{Image, ImageData, PixelType};
 
-    fn context() -> Arc<GpuComputeContext> {
+    pub(super) fn context() -> Arc<GpuComputeContext> {
         static CONTEXT: std::sync::OnceLock<Arc<GpuComputeContext>> = std::sync::OnceLock::new();
         Arc::clone(CONTEXT.get_or_init(|| {
             let instance = wgpu::Instance::new(wgpu::InstanceDescriptor::new_without_display_handle());

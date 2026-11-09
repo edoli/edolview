@@ -39,7 +39,7 @@ const WINDOWS_APP_USER_MODEL_ID: &str = "kr.edoli.edolview";
 const REQUIRED_STORAGE_BUFFERS_PER_STAGE: u32 = 6;
 const REQUIRED_STORAGE_TEXTURES_PER_STAGE: u32 = 1;
 const REQUIRED_COMPUTE_INVOCATIONS_PER_WORKGROUP: u32 = 256;
-const REQUIRED_COMPUTE_WORKGROUP_STORAGE_SIZE: u32 = 256 * 16;
+const REQUIRED_COMPUTE_WORKGROUP_STORAGE_SIZE: u32 = crate::model::STATISTICS_WORKGROUP_STORAGE_SIZE;
 
 fn supports_image_compute_limits(limits: &wgpu::Limits) -> bool {
     limits.max_bind_groups >= 1
