@@ -410,8 +410,14 @@ impl GpuRenderer {
         if current.as_ref().is_some_and(|gpu_image| gpu_image.image_id == image.id()) {
             return Ok(());
         }
+        *current = None;
         *current = Some(upload_image(device, &self.bind_group_layout, &self.uniform_buffer, image)?);
         Ok(())
+    }
+
+    pub fn clear_images(&mut self) {
+        self.primary = None;
+        self.secondary = None;
     }
 
     pub fn update_colormap(&mut self, device: &wgpu::Device, name: &str, is_mono: bool) {

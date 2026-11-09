@@ -124,6 +124,11 @@ impl ImageViewer {
         show_statistics_max_overlay_channels: [bool; 4],
     ) {
         let Some(asset) = app_state.asset.clone() else {
+            if let Some(render_state) = frame.wgpu_render_state() {
+                if let Some(renderer) = render_state.renderer.write().callback_resources.get_mut::<GpuRenderer>() {
+                    renderer.clear_images();
+                }
+            }
             ui.centered_and_justified(|ui| {
                 ui.label("Drag & Drop an image file here.");
             });

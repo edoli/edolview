@@ -1,8 +1,10 @@
 use super::histogram::ImageHistogramCache;
+mod gpu_cache;
 use crate::model::{gpu_compute, GpuImageTexture, MeanDim, MeanProcessor, Recti};
 use color_eyre::eyre::{eyre, Result};
+use gpu_cache::{GpuCache, GPU_CACHE_BUDGET};
 use std::f64;
-use std::sync::{Arc, LazyLock, Mutex};
+use std::sync::{Arc, LazyLock, Mutex, Weak};
 use std::{
     fs, mem,
     path::PathBuf,
@@ -263,12 +265,16 @@ impl MinMaxTotal {
 #[derive(Clone)]
 pub struct ImageData(Arc<ImageDataInner>);
 
+static GPU_TEXTURE_CACHE: LazyLock<Mutex<GpuCache<Arc<GpuImageTexture>>>> =
+    LazyLock::new(|| Mutex::new(GpuCache::new(GPU_CACHE_BUDGET)));
+
 struct ImageDataInner {
     id: u64,
     spec: ImageSpec,
     storage: ImageStorage,
-    gpu: OnceLock<Arc<GpuImageTexture>>,
-    gpu_init: Mutex<()>,
+    // CPU assets do not own GPU residency. The bounded LRU, renderer and active
+    // operations share textures through this non-owning lookup.
+    gpu: Mutex<Weak<GpuImageTexture>>,
     hist: OnceLock<Vec<Vec<f32>>>,
     histograms: ImageHistogramCache,
     minmax: OnceLock<MinMaxTotal>,
@@ -289,6 +295,16 @@ struct DerivedImage {
     mode: crate::model::ComparisonMode,
     blend_alpha: f32,
     channel_strategy: u32,
+}
+
+impl Drop for ImageDataInner {
+    fn drop(&mut self) {
+        // The cache owns only the GPU texture, so deleting the last CPU asset
+        // removes its entry without keeping the image/derived source graph alive.
+        if let Ok(mut cache) = GPU_TEXTURE_CACHE.lock() {
+            cache.remove(self.id);
+        }
+    }
 }
 
 impl ImageData {
@@ -312,8 +328,7 @@ impl ImageData {
             id: new_id(),
             spec,
             storage: ImageStorage::Cpu(decoded),
-            gpu: OnceLock::new(),
-            gpu_init: Mutex::new(()),
+            gpu: Mutex::new(Weak::new()),
             hist: OnceLock::new(),
             histograms: ImageHistogramCache::default(),
             minmax: OnceLock::new(),
@@ -325,8 +340,7 @@ impl ImageData {
             id: new_id(),
             spec: ImageSpec::new(0, 0, 0, dtype),
             storage: ImageStorage::Empty,
-            gpu: OnceLock::new(),
-            gpu_init: Mutex::new(()),
+            gpu: Mutex::new(Weak::new()),
             hist: OnceLock::new(),
             histograms: ImageHistogramCache::default(),
             minmax: OnceLock::new(),
@@ -351,8 +365,7 @@ impl ImageData {
                 blend_alpha,
                 channel_strategy,
             }),
-            gpu: OnceLock::new(),
-            gpu_init: Mutex::new(()),
+            gpu: Mutex::new(Weak::new()),
             hist: OnceLock::new(),
             histograms: ImageHistogramCache::default(),
             minmax: OnceLock::new(),
@@ -506,8 +519,7 @@ impl ImageData {
             id: new_id(),
             spec,
             storage: ImageStorage::Cpu(decoded),
-            gpu: OnceLock::new(),
-            gpu_init: Mutex::new(()),
+            gpu: Mutex::new(Weak::new()),
             hist: OnceLock::new(),
             histograms: ImageHistogramCache::default(),
             minmax: OnceLock::new(),
@@ -515,12 +527,10 @@ impl ImageData {
     }
 
     pub fn gpu_texture(&self) -> Result<Arc<GpuImageTexture>> {
-        if let Some(texture) = self.0.gpu.get() {
-            return Ok(Arc::clone(texture));
-        }
-        let _init_guard = self.0.gpu_init.lock().unwrap();
-        if let Some(texture) = self.0.gpu.get() {
-            return Ok(Arc::clone(texture));
+        let mut resident = self.0.gpu.lock().unwrap();
+        if let Some(texture) = resident.upgrade() {
+            self.retain_gpu_texture(&texture);
+            return Ok(texture);
         }
         let compute = gpu_compute()?;
         let texture = match &self.0.storage {
@@ -539,8 +549,29 @@ impl ImageData {
             }
             ImageStorage::Empty => return Err(eyre!("Image is empty")),
         };
-        let _ = self.0.gpu.set(Arc::clone(&texture));
-        Ok(self.0.gpu.get().cloned().unwrap_or(texture))
+        *resident = Arc::downgrade(&texture);
+        self.retain_gpu_texture(&texture);
+        Ok(texture)
+    }
+
+    fn retain_gpu_texture(&self, image: &Arc<GpuImageTexture>) {
+        let texture = &image.texture;
+        // Image textures currently have one mip and sample. Bypass unfamiliar
+        // layouts rather than undercounting future multisample/mipmap resources.
+        if texture.mip_level_count() != 1 || texture.sample_count() != 1 {
+            return;
+        }
+        let size = texture.size();
+        if let Some(bytes) =
+            gpu_cache::payload_bytes(texture.format(), size.width, size.height, size.depth_or_array_layers)
+        {
+            GPU_TEXTURE_CACHE.lock().unwrap().retain(self.id(), bytes, Arc::clone(image));
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn evict_gpu_cache(&self) {
+        GPU_TEXTURE_CACHE.lock().unwrap().remove(self.id());
     }
 
     fn pixel_values(&self, x: i32, y: i32) -> Result<Vec<f32>> {
