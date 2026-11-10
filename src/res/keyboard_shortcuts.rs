@@ -48,6 +48,7 @@ pub const NAVIGATE_ASSET_PREV: Ksc = Ksc::new(Modifiers::NONE, Key::PageUp);
 pub const NAVIGATE_ASSET_NEXT: Ksc = Ksc::new(Modifiers::NONE, Key::PageDown);
 pub const NAVIGATE_ASSET_PREV_TAB: Ksc = Ksc::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::Tab);
 pub const NAVIGATE_ASSET_NEXT_TAB: Ksc = Ksc::new(Modifiers::CTRL, Key::Tab);
+pub const ASSET_SECONDARY_CLICK_MODIFIERS: Modifiers = Modifiers::COMMAND;
 
 const NUMBER_KEYS: [Key; 9] = [
     Key::Num1,

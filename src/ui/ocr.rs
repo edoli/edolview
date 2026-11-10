@@ -21,8 +21,8 @@ use backend::Backend;
 
 use crate::{
     model::Recti,
-    res::{icons::Icons, KeyboardShortcutExt, COPY_SC, CUT_SC, NOTICE_ERROR_TEXT, PASTE_SC, SELECT_ALL_SC},
-    ui::gpu::ExportCompletion,
+    res::{icons::Icons, COPY_SC, CUT_SC, NOTICE_ERROR_TEXT, PASTE_SC, SELECT_ALL_SC},
+    ui::{component::menu_button_with_shortcut, gpu::ExportCompletion},
 };
 
 #[derive(Clone, Copy)]
@@ -524,7 +524,7 @@ fn show_text_editor(ui: &mut egui::Ui, text: &mut String, errors: &mut Vec<Strin
             ("Paste", PASTE_SC, true, TextAction::Paste),
             ("Select All", SELECT_ALL_SC, !text.is_empty(), TextAction::SelectAll),
         ] {
-            let command = ui.add_enabled(enabled, egui::Button::new(label).shortcut_text(shortcut.format_sys()));
+            let command = ui.add_enabled(enabled, menu_button_with_shortcut(ui, label, shortcut));
             if command.clicked() {
                 action = Some(text_action);
                 ui.close();

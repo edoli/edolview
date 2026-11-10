@@ -8,11 +8,9 @@ use std::{
 };
 
 use crate::model::{empty_minmax, AppState, Image, PixelType, Recti};
-use crate::res::{
-    selection_handle_clipped_fill, KeyboardShortcutExt, PIXEL_VALUE_CHANNEL_COLORS, SELECTION_HANDLE_CLIPPED_STROKE,
-};
+use crate::res::{selection_handle_clipped_fill, PIXEL_VALUE_CHANNEL_COLORS, SELECTION_HANDLE_CLIPPED_STROKE};
 use crate::ui::component::egui_ext::UiExt;
-use crate::ui::component::{ContextValueCopy, ImageContextInfo, ViewportMinimap};
+use crate::ui::component::{menu_button_with_shortcut, ContextValueCopy, ImageContextInfo, ViewportMinimap};
 use crate::ui::gpu::{
     ExportCompletion, ExportRequest, GpuRenderer, ImagePaintCallback, ImageSlot, MinMaxOverlay, PaneDraw,
     MINIMAP_PRIMARY_UNIFORM_SLOT, MINIMAP_SECONDARY_UNIFORM_SLOT,
@@ -376,11 +374,11 @@ impl ImageViewer {
                 };
                 let has_selection = !app_state.marquee_rect.empty();
                 let copy_label = if has_selection {
-                    format!("Copy Selected Image ({})", crate::res::COPY_SC.format_sys())
+                    "Copy Selected Image"
                 } else {
-                    format!("Copy Image ({})", crate::res::COPY_SC.format_sys())
+                    "Copy Image"
                 };
-                if ui.button(copy_label).clicked() {
+                if ui.add(menu_button_with_shortcut(ui, copy_label, crate::res::COPY_SC)).clicked() {
                     self.request_copy(if split_view && app_state.cursor_on_secondary {
                         "secondary".to_string()
                     } else if split_view {
@@ -392,11 +390,14 @@ impl ImageViewer {
                     ui.close();
                 }
                 let save_label = if has_selection {
-                    format!("Save Selected Image As... ({})", crate::res::SAVE_IMAGE_SC.format_sys())
+                    "Save Selected Image As..."
                 } else {
-                    format!("Save Image As... ({})", crate::res::SAVE_IMAGE_SC.format_sys())
+                    "Save Image As..."
                 };
-                if ui.button(save_label).clicked() {
+                if ui
+                    .add(menu_button_with_shortcut(ui, save_label, crate::res::SAVE_IMAGE_SC))
+                    .clicked()
+                {
                     self.request_save_dialog();
                     ui.close();
                 }

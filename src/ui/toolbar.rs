@@ -5,13 +5,13 @@ use eframe::egui;
 use super::{
     component::{
         egui_ext::{ResponseExt, UiExt},
-        ShortcutTooltipExt,
+        menu_button_with_shortcut, ShortcutTooltipExt,
     },
     ImageViewer,
 };
 use crate::{
     model::{AppState, Image, Recti, TitlebarState},
-    res::{icons::Icons, KeyboardShortcutExt, UPDATE_ACCENT_TEXT},
+    res::{icons::Icons, UPDATE_ACCENT_TEXT},
     util::math_ext::vec2i,
 };
 
@@ -223,11 +223,10 @@ fn control_button(
 ) -> egui::Response {
     let icon = icon.tint(ui.visuals().text_color());
     let button = if in_menu {
-        let button = egui::Button::image_and_text(icon, name);
         if let Some(shortcut) = shortcut {
-            button.shortcut_text(shortcut.format_sys())
+            menu_button_with_shortcut(ui, (icon, name), shortcut)
         } else {
-            button
+            egui::Button::image_and_text(icon, name)
         }
     } else {
         egui::Button::image(icon)

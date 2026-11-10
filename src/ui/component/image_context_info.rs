@@ -478,8 +478,16 @@ mod tests {
                             .open(true)
                             .at_position(egui::pos2(0.0, 0.0))
                             .show(|ui| {
-                                let _ = ui.button("Copy Selected Image (Ctrl+C)");
-                                let _ = ui.button("Save Selected Image As... (Ctrl+S)");
+                                let _ = ui.add(crate::ui::component::menu_button_with_shortcut(
+                                    ui,
+                                    "Copy Selected Image",
+                                    crate::res::COPY_SC,
+                                ));
+                                let _ = ui.add(crate::ui::component::menu_button_with_shortcut(
+                                    ui,
+                                    "Save Selected Image As...",
+                                    crate::res::SAVE_IMAGE_SC,
+                                ));
                                 info.show(ui, &icons);
                             })
                             .unwrap();

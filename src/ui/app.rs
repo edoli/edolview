@@ -34,9 +34,9 @@ use crate::{
             channel_toggle_ui, colormap_popup_contents, display_controls_ui, display_profile_slider,
             draw_multi_line_plot,
             egui_ext::{ComboBoxExt, ResponseExt, Size, UiExt},
-            range_slider_context_menu, range_slider_tooltip, range_slider_ui, shortcut_hint, show_roi_window,
-            CopyExport, ExportAction, HistogramPanel, MonoColormapPreviews, RoiJumpMode, SaveExport, Toast, ToastUi,
-            ToastsExt,
+            menu_button_with_hint, range_slider_context_menu, range_slider_tooltip, range_slider_ui, shortcut_hint,
+            show_roi_window, CopyExport, ExportAction, HistogramPanel, MonoColormapPreviews, RoiJumpMode, SaveExport,
+            Toast, ToastUi, ToastsExt,
         },
         fonts::{apply_fallback_fonts, spawn_fallback_font_loader, LoadedFallbackFonts},
         ImageViewer,
@@ -2424,9 +2424,19 @@ impl eframe::App for ViewerApp {
                                         let secondary_label = if is_secondary {
                                             "Clear Secondary Asset"
                                         } else {
-                                            "Set as Secondary Asset (Ctrl + Click)"
+                                            "Set as Secondary Asset"
                                         };
-                                        if ui.button(secondary_label).clicked() {
+                                        let secondary_button = if is_secondary {
+                                            egui::Button::new(secondary_label)
+                                        } else {
+                                            let modifiers = crate::res::MODIFIER_NAMES.format(
+                                                &crate::res::ASSET_SECONDARY_CLICK_MODIFIERS,
+                                                crate::res::IS_MAC,
+                                            );
+                                            let hint = format!("{modifiers}{}Click", crate::res::MODIFIER_NAMES.concat);
+                                            menu_button_with_hint(ui, secondary_label, hint)
+                                        };
+                                        if ui.add(secondary_button).clicked() {
                                             if is_secondary {
                                                 deselect_secondary = true;
                                             } else {
