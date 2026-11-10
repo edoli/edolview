@@ -2,8 +2,11 @@ use eframe::egui;
 
 use crate::{
     model::Recti,
-    res::{icons::Icons, KeyboardShortcutExt, ROI_JUMP_SHORTCUTS, ROI_NEXT, ROI_PREV},
-    ui::component::egui_ext::{Size, UiExt},
+    res::{icons::Icons, ROI_ADD, ROI_JUMP_SHORTCUTS, ROI_NEXT, ROI_PREV},
+    ui::component::{
+        egui_ext::{Size, UiExt},
+        shortcut_hint, shortcut_key, ShortcutTooltipExt,
+    },
 };
 
 #[derive(Default)]
@@ -34,6 +37,17 @@ impl RoiJumpMode {
     }
 }
 
+fn show_roi_tooltip(ui: &mut egui::Ui, index: usize) {
+    shortcut_hint(ui, format!("Jump to ROI {}", index + 1), ROI_JUMP_SHORTCUTS.get(index).copied());
+    ui.horizontal_wrapped(|ui| {
+        ui.spacing_mut().item_spacing.x = 4.0;
+        ui.label("Previous ROI");
+        shortcut_key(ui, ROI_PREV);
+        ui.label("/ Next ROI");
+        shortcut_key(ui, ROI_NEXT);
+    });
+}
+
 pub fn show_roi_window(
     ctx: &egui::Context,
     icons: &Icons,
@@ -42,7 +56,6 @@ pub fn show_roi_window(
     active_roi_index: Option<usize>,
     scroll_to_new_roi: &mut bool,
     jump_mode: &mut RoiJumpMode,
-    add_shortcut_label: &str,
 ) -> RoiWindowActions {
     if !*open {
         return RoiWindowActions::default();
@@ -61,7 +74,7 @@ pub fn show_roi_window(
             ui.horizontal(|ui| {
                 let add_clicked = ui
                     .button("Add Current")
-                    .on_hover_text(format!("Add current selection as ROI ({add_shortcut_label})"))
+                    .on_hover_shortcut("Add current selection as ROI", Some(ROI_ADD))
                     .clicked();
                 if add_clicked {
                     actions.add_current = true;
@@ -106,16 +119,11 @@ pub fn show_roi_window(
                                 let rect_label = format!("{}: {}", index + 1, rect);
 
                                 columns[0].with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
-                                    let jump_text = ROI_JUMP_SHORTCUTS.get(index).map_or_else(
-                                        || format!("Jump to ROI {}", index + 1),
-                                        |shortcut| format!("Jump to ROI {} ({})", index + 1, shortcut.format_sys()),
-                                    );
-                                    let hover_text = format!(
-                                        "{jump_text}\nPrevious ROI ({}) / Next ROI ({})",
-                                        ROI_PREV.logical_key.symbol_or_name(),
-                                        ROI_NEXT.logical_key.symbol_or_name(),
-                                    );
-                                    if ui.selectable_label(selected, rect_label).on_hover_text(hover_text).clicked() {
+                                    if ui
+                                        .selectable_label(selected, rect_label)
+                                        .on_hover_ui(|ui| show_roi_tooltip(ui, index))
+                                        .clicked()
+                                    {
                                         actions.jump_to = Some(index);
                                     }
                                 });

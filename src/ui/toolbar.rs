@@ -3,7 +3,10 @@ use std::sync::atomic::Ordering;
 use eframe::egui;
 
 use super::{
-    component::egui_ext::{ResponseExt, UiExt},
+    component::{
+        egui_ext::{ResponseExt, UiExt},
+        ShortcutTooltipExt,
+    },
     ImageViewer,
 };
 use crate::{
@@ -121,19 +124,20 @@ impl Toolbar<'_> {
                     if state.titlebar.is_integrated {
                         regions.buttons = super::window_chrome::controls(ui);
                     }
-                    let settings_button = ui.toggle_icon(show_settings, icons.get_settings(&ctx), "Settings", None);
+                    let settings_button =
+                        ui.toggle_icon(show_settings, icons.get_settings(&ctx), "Settings", None, None);
                     if update_available {
                         let indicator_center = settings_button.rect.right_bottom() + egui::vec2(-4.0, -4.0);
                         ui.painter().circle_filled(indicator_center, 2.0, UPDATE_ACCENT_TEXT);
                     }
 
                     let statusbar_icon = icons.get_statusbar_panel(&ctx, state.is_show_statusbar);
-                    ui.toggle_icon(&mut state.is_show_statusbar, statusbar_icon, "Status Bar", None);
+                    ui.toggle_icon(&mut state.is_show_statusbar, statusbar_icon, "Status Bar", None, None);
                     let sidebar_icon = icons.get_sidebar_panel(&ctx, state.is_show_sidebar);
-                    ui.toggle_icon(&mut state.is_show_sidebar, sidebar_icon, "Sidebar", None);
+                    ui.toggle_icon(&mut state.is_show_sidebar, sidebar_icon, "Sidebar", None, None);
                     if !layout.grouped {
                         let rois_icon = icons.get_rois_panel(&ctx, *show_rois);
-                        ui.toggle_icon(show_rois, rois_icon, "ROIs", Some(&crate::res::ROI_PANEL_TOGGLE.format_sys()));
+                        ui.toggle_icon(show_rois, rois_icon, "ROIs", None, Some(crate::res::ROI_PANEL_TOGGLE));
                     }
                     #[cfg(target_os = "windows")]
                     if state.titlebar.is_integrated {
@@ -230,10 +234,7 @@ fn control_button(
     };
     let response = ui.add(button);
     response.widget_info(|| egui::WidgetInfo::labeled(egui::Role::Button, ui.is_enabled(), name));
-    response.on_hover_text(shortcut.map_or_else(
-        || description.to_owned(),
-        |shortcut| format!("{description} ({})", shortcut.format_sys()),
-    ))
+    response.on_hover_shortcut(description, shortcut)
 }
 
 fn open_controls(ui: &mut egui::Ui, icons: &Icons, in_menu: bool) -> Option<ToolbarAction> {
@@ -353,7 +354,7 @@ fn view_settings(ui: &mut egui::Ui, icons: &Icons, state: &mut AppState, in_menu
                 ui.close();
             }
         } else {
-            ui.toggle_icon(selected, icon, name, description);
+            ui.toggle_icon(selected, icon, name, description, None);
         }
     }
     let background = icons.get_background(&ctx, state.background_style, ui.visuals());

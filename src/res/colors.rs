@@ -10,6 +10,8 @@ pub const ASSET_MULTI_SELECTION_HOVER_STROKE: Color32 = Color32::from_rgb(232, 1
 pub const DANGER_TEXT: Color32 = Color32::from_rgb(255, 100, 100);
 pub const NOTICE_ERROR_TEXT: Color32 = Color32::from_rgb(255, 60, 60);
 pub const NOTICE_WARNING_TEXT: Color32 = Color32::from_rgb(255, 210, 120);
+pub const SHORTCUT_KEY_TEXT: Color32 = Color32::from_rgb(178, 229, 255);
+pub const SHORTCUT_KEY_FILL: Color32 = Color32::from_rgb(40, 55, 65);
 
 pub const BACKGROUND_BLACK: Color32 = Color32::BLACK;
 pub const BACKGROUND_GRAY: Color32 = Color32::from_gray(128);

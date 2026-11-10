@@ -24,18 +24,19 @@ use crate::{
         StatisticsScope, StatisticsType, StatisticsUpdate, StatisticsWorker,
     },
     res::{
-        icons::Icons, KeyboardShortcutExt, ASSET_MULTI_SELECTION_FILL, ASSET_MULTI_SELECTION_HOVER_STROKE,
-        ASSET_MULTI_SELECTION_STROKE, ASSET_SECONDARY_SELECTION_FILL, CONTROL_LISTENER_UNAVAILABLE_TEXT, DANGER_TEXT,
-        NOTICE_ERROR_TEXT, NOTICE_WARNING_TEXT, RGB_CHANNEL_LABEL_COLORS, STATISTICS_MAX_TOGGLE_FILL,
-        STATISTICS_MIN_TOGGLE_FILL, UPDATE_ACCENT_FILL, UPDATE_ACCENT_TEXT,
+        icons::Icons, ASSET_MULTI_SELECTION_FILL, ASSET_MULTI_SELECTION_HOVER_STROKE, ASSET_MULTI_SELECTION_STROKE,
+        ASSET_SECONDARY_SELECTION_FILL, CONTROL_LISTENER_UNAVAILABLE_TEXT, DANGER_TEXT, NOTICE_ERROR_TEXT,
+        NOTICE_WARNING_TEXT, RGB_CHANNEL_LABEL_COLORS, STATISTICS_MAX_TOGGLE_FILL, STATISTICS_MIN_TOGGLE_FILL,
+        UPDATE_ACCENT_FILL, UPDATE_ACCENT_TEXT,
     },
     ui::{
         component::{
             channel_toggle_ui, colormap_popup_contents, display_controls_ui, display_profile_slider,
             draw_multi_line_plot,
             egui_ext::{ComboBoxExt, ResponseExt, Size, UiExt},
-            range_slider_context_menu, range_slider_tooltip, range_slider_ui, show_roi_window, CopyExport,
-            ExportAction, HistogramPanel, MonoColormapPreviews, RoiJumpMode, SaveExport, Toast, ToastUi, ToastsExt,
+            range_slider_context_menu, range_slider_tooltip, range_slider_ui, shortcut_hint, show_roi_window,
+            CopyExport, ExportAction, HistogramPanel, MonoColormapPreviews, RoiJumpMode, SaveExport, Toast, ToastUi,
+            ToastsExt,
         },
         fonts::{apply_fallback_fonts, spawn_fallback_font_loader, LoadedFallbackFonts},
         ImageViewer,
@@ -1035,10 +1036,10 @@ impl ViewerApp {
                 ui.add_space(8.0);
 
                 ui.checkbox(&mut self.state.copy_use_original_size, "Copy at original size")
-                    .on_hover_text(format!(
-                        "When enabled, {} copies marquee at image pixel size (ignores zoom).",
-                        crate::res::COPY_SC.format_sys()
-                    ));
+                    .on_hover_ui(|ui| {
+                        shortcut_hint(ui, "Copy at original size", Some(crate::res::COPY_SC));
+                        ui.label("When enabled, copies marquee at image pixel size (ignores zoom).");
+                    });
 
                 let precompute_changed = ui
                     .checkbox(
@@ -1086,7 +1087,6 @@ impl ViewerApp {
             self.active_roi_index,
             &mut self.scroll_to_new_roi,
             &mut self.roi_jump_mode,
-            &crate::res::ROI_ADD.format_sys(),
         );
 
         if let Some(index) = actions.move_up {

@@ -9,6 +9,7 @@ mod image_context_info;
 mod multi_line_plot;
 mod range_slider;
 mod roi_window;
+mod shortcut_tooltip;
 mod toast;
 mod viewport_minimap;
 
@@ -22,5 +23,6 @@ pub use image_context_info::*;
 pub use multi_line_plot::*;
 pub use range_slider::*;
 pub use roi_window::*;
+pub use shortcut_tooltip::*;
 pub use toast::*;
 pub use viewport_minimap::*;

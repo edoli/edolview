@@ -4,6 +4,8 @@ use crate::model::PixelType;
 use crate::res::TEXT_EDIT_PARSE_FAILED_FLASH;
 use crate::util::color::ColorDisplay;
 
+use super::ShortcutTooltipExt;
+
 type ColumnsContents<'c, R, const N: usize> = Box<dyn FnOnce(&mut [Ui; N]) -> R + 'c>;
 
 #[derive(Clone, Debug, Copy)]
@@ -103,6 +105,7 @@ pub trait UiExt {
         icon: impl Into<Image<'a>>,
         name: &str,
         description: Option<&str>,
+        shortcut: Option<egui::KeyboardShortcut>,
     ) -> Response;
     fn indicator_icon<'a>(&mut self, is_on: bool, icon: impl Into<Image<'a>>, name: &str) -> Response;
     fn radio_icon<'a, Value: PartialEq>(
@@ -265,6 +268,7 @@ impl UiExt for Ui {
         icon: impl Into<Image<'a>>,
         name: &str,
         description: Option<&str>,
+        shortcut: Option<egui::KeyboardShortcut>,
     ) -> Response {
         let tint_color = if *selected {
             self.style().visuals.selection.bg_fill.linear_multiply(1.2)
@@ -278,7 +282,7 @@ impl UiExt for Ui {
             *selected = !*selected;
         }
         resp.widget_info(|| egui::WidgetInfo::selected(egui::Role::Button, self.is_enabled(), *selected, name));
-        resp.on_hover_text(hover_text)
+        resp.on_hover_shortcut(hover_text, shortcut)
     }
 
     fn indicator_icon<'a>(&mut self, is_on: bool, icon: impl Into<Image<'a>>, name: &str) -> Response {

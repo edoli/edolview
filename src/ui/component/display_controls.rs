@@ -153,7 +153,8 @@ pub fn display_controls_ui(
                 "Auto min/max disabled for Inverse/Log modes"
             };
             columns[4].add_enabled_ui(normalize_enabled, |ui| {
-                let response = ui.toggle_icon(auto_minmax, icons.get_normalize(&ctx), "Auto Min/Max", Some(auto_tip));
+                let response =
+                    ui.toggle_icon(auto_minmax, icons.get_normalize(&ctx), "Auto Min/Max", Some(auto_tip), None);
                 if locked {
                     response.context_menu(|ui| {
                         if ui.button("Set current values as manual").clicked() {
