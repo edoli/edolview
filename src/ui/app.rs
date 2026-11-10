@@ -136,10 +136,7 @@ fn statistics_overlay_toggle(
         )
     });
     response.context_menu(|ui| {
-        if ui.button("Copy Value").clicked() {
-            ui.ctx().copy_text(value.to_string());
-            ui.close();
-        }
+        ui.copy_value_menu_item(value);
     });
     if response.clicked() {
         *selected = !*selected;
@@ -2169,8 +2166,11 @@ impl eframe::App for ViewerApp {
                                             ] {
                                                 ui.add(egui::Label::new(label).extend()).on_hover_text(tooltip);
                                                 for &value in values.iter().take(num_channels) {
-                                                    ui.add_sized(vec2(value_width, ui.text_style_height(&egui::TextStyle::Body)), egui::Label::new(statistics_value_text(ui, value, value_width)).truncate())
+                                                    let response = ui.add_sized(vec2(value_width, ui.text_style_height(&egui::TextStyle::Body)), egui::Label::new(statistics_value_text(ui, value, value_width)).truncate().selectable(false).sense(egui::Sense::click()))
                                                         .on_hover_text(if value.is_finite() { value.to_string() } else { "Unavailable: no finite pixels, or the calculation exceeded the numeric range.".to_owned() });
+                                                    response.context_menu(|ui| {
+                                                        ui.copy_value_menu_item(value);
+                                                    });
                                                 }
                                                 ui.end_row();
                                             }

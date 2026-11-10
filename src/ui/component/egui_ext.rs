@@ -80,6 +80,7 @@ impl Size {
 }
 
 pub trait UiExt {
+    fn copy_value_menu_item(&mut self, value: f64) -> Response;
     fn raw_scroll_delta_y(&self) -> f32;
     fn colored_label(&mut self, color: impl Into<Color32>, text: impl ToString) -> Response;
     fn data_label(&mut self, text: impl Into<WidgetText>) -> Response;
@@ -127,6 +128,15 @@ pub trait UiExt {
 }
 
 impl UiExt for Ui {
+    fn copy_value_menu_item(&mut self, value: f64) -> Response {
+        let response = self.add_enabled(value.is_finite(), egui::Button::new("Copy Value"));
+        if response.clicked() {
+            self.ctx().copy_text(value.to_string());
+            self.close();
+        }
+        response
+    }
+
     #[inline]
     fn raw_scroll_delta_y(&self) -> f32 {
         self.input(|input| {
