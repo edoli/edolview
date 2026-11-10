@@ -2266,7 +2266,10 @@ impl eframe::App for ViewerApp {
                         });
                     self.asset_list_selection.retain(|hash| self.state.assets.contains_key(hash));
                     ui.horizontal(|ui| {
-                        ui.heading("Image List");
+                        ui.heading("Image List").on_hover_ui(|ui| {
+                            shortcut_hint(ui, "Previous asset", Some(crate::res::NAVIGATE_ASSET_PREV));
+                            shortcut_hint(ui, "Next asset", Some(crate::res::NAVIGATE_ASSET_NEXT));
+                        });
                         if self.asset_list_selection.len() > 0 {
                             ui.label(
                                 egui::RichText::new(format!("{} selected", self.asset_list_selection.len()))
@@ -2390,7 +2393,10 @@ impl eframe::App for ViewerApp {
                                             egui::Button::selectable(false, &display_name)
                                                 .sense(egui::Sense::click_and_drag()),
                                         )
-                                    };
+                                    }
+                                    .on_hover_ui(|ui| {
+                                        ui.add(egui::Label::new(name).wrap());
+                                    });
                                     let row_response = btn.clone();
                                     if row_response.secondary_clicked() && !self.asset_list_selection.contains(&hash) {
                                         self.asset_list_selection.activate(&hash);
