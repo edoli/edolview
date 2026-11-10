@@ -2,7 +2,7 @@ use eframe::egui;
 
 use crate::{
     model::Recti,
-    res::icons::Icons,
+    res::{icons::Icons, KeyboardShortcutExt, ROI_JUMP_SHORTCUTS, ROI_NEXT, ROI_PREV},
     ui::component::egui_ext::{Size, UiExt},
 };
 
@@ -106,7 +106,16 @@ pub fn show_roi_window(
                                 let rect_label = format!("{}: {}", index + 1, rect);
 
                                 columns[0].with_layout(egui::Layout::top_down_justified(egui::Align::LEFT), |ui| {
-                                    if ui.selectable_label(selected, rect_label).clicked() {
+                                    let jump_text = ROI_JUMP_SHORTCUTS.get(index).map_or_else(
+                                        || format!("Jump to ROI {}", index + 1),
+                                        |shortcut| format!("Jump to ROI {} ({})", index + 1, shortcut.format_sys()),
+                                    );
+                                    let hover_text = format!(
+                                        "{jump_text}\nPrevious ROI ({}) / Next ROI ({})",
+                                        ROI_PREV.logical_key.symbol_or_name(),
+                                        ROI_NEXT.logical_key.symbol_or_name(),
+                                    );
+                                    if ui.selectable_label(selected, rect_label).on_hover_text(hover_text).clicked() {
                                         actions.jump_to = Some(index);
                                     }
                                 });

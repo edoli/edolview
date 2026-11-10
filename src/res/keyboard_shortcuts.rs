@@ -49,7 +49,7 @@ pub const NAVIGATE_ASSET_NEXT: Ksc = Ksc::new(Modifiers::NONE, Key::PageDown);
 pub const NAVIGATE_ASSET_PREV_TAB: Ksc = Ksc::new(Modifiers::CTRL.plus(Modifiers::SHIFT), Key::Tab);
 pub const NAVIGATE_ASSET_NEXT_TAB: Ksc = Ksc::new(Modifiers::CTRL, Key::Tab);
 
-pub const PRESET_KEYS: [Key; 9] = [
+const NUMBER_KEYS: [Key; 9] = [
     Key::Num1,
     Key::Num2,
     Key::Num3,
@@ -61,18 +61,19 @@ pub const PRESET_KEYS: [Key; 9] = [
     Key::Num9,
 ];
 
-const fn preset_shortcuts(modifiers: Modifiers) -> [Ksc; PRESET_KEYS.len()] {
-    let mut shortcuts = [Ksc::new(Modifiers::NONE, Key::Num0); PRESET_KEYS.len()];
+const fn numbered_shortcuts(modifiers: Modifiers) -> [Ksc; NUMBER_KEYS.len()] {
+    let mut shortcuts = [Ksc::new(Modifiers::NONE, Key::Num0); NUMBER_KEYS.len()];
     let mut index = 0;
-    while index < PRESET_KEYS.len() {
-        shortcuts[index] = Ksc::new(modifiers, PRESET_KEYS[index]);
+    while index < NUMBER_KEYS.len() {
+        shortcuts[index] = Ksc::new(modifiers, NUMBER_KEYS[index]);
         index += 1;
     }
     shortcuts
 }
 
-pub const PRESET_SAVE_SHORTCUTS: [Ksc; PRESET_KEYS.len()] = preset_shortcuts(Modifiers::COMMAND);
-pub const PRESET_APPLY_SHORTCUTS: [Ksc; PRESET_KEYS.len()] = preset_shortcuts(Modifiers::ALT);
+pub const ROI_JUMP_SHORTCUTS: [Ksc; NUMBER_KEYS.len()] = numbered_shortcuts(Modifiers::NONE);
+pub const PRESET_SAVE_SHORTCUTS: [Ksc; NUMBER_KEYS.len()] = numbered_shortcuts(Modifiers::COMMAND);
+pub const PRESET_APPLY_SHORTCUTS: [Ksc; NUMBER_KEYS.len()] = numbered_shortcuts(Modifiers::ALT);
 
 pub const MODIFIER_NAMES: ModifierNames = ModifierNames {
     is_short: false,

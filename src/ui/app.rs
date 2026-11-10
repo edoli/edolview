@@ -95,6 +95,21 @@ fn statistics_value_text(ui: &egui::Ui, value: f64, width: f32) -> String {
     format!("{value:.0e}")
 }
 
+fn statistics_value_label(ui: &mut egui::Ui, value: f64, width: Option<f32>) -> egui::Response {
+    let text = width.map_or_else(|| format!("{value:.4}"), |width| statistics_value_text(ui, value, width));
+    let label = egui::Label::new(text).truncate();
+    let response = if let Some(width) = width {
+        ui.add_sized(vec2(width, ui.text_style_height(&egui::TextStyle::Body)), label)
+    } else {
+        ui.add(label)
+    }
+    .on_hover_text(value.to_string());
+    response.context_menu(|ui| {
+        ui.copy_value_menu_item(value);
+    });
+    response
+}
+
 fn statistics_overlay_toggle(
     ui: &mut egui::Ui,
     selected: &mut bool,
@@ -1480,6 +1495,7 @@ impl ViewerApp {
         let mut add_roi = false;
         let mut navigate_prev_roi = false;
         let mut navigate_next_roi = false;
+        let mut jump_to_roi = None;
         let mut navigate_file = None;
         ctx.input_mut(|i| {
             for slot in 0..crate::settings::VIEW_PRESET_COUNT {
@@ -1489,6 +1505,18 @@ impl ViewerApp {
                 }
                 if i.consume_shortcut(&crate::res::PRESET_APPLY_SHORTCUTS[slot]) {
                     apply_view_preset = Some(slot);
+                    break;
+                }
+            }
+            for (index, shortcut) in crate::res::ROI_JUMP_SHORTCUTS.iter().enumerate() {
+                // Number-only navigation must not consume modified number keys.
+                let event_index = i.events.iter().position(|event| {
+                    matches!(event, egui::Event::Key { key, pressed: true, modifiers, .. }
+                        if *key == shortcut.logical_key && modifiers.matches_exact(shortcut.modifiers))
+                });
+                if let Some(event_index) = event_index {
+                    i.events.remove(event_index);
+                    jump_to_roi = Some(index);
                     break;
                 }
             }
@@ -1553,6 +1581,8 @@ impl ViewerApp {
             self.navigate_roi(-1, ctx);
         } else if navigate_next_roi {
             self.navigate_roi(1, ctx);
+        } else if let Some(index) = jump_to_roi {
+            self.apply_roi(index, ctx);
         }
         if let Some(forward) = navigate_file {
             self.navigate_file(forward, ctx);
@@ -2161,16 +2191,12 @@ impl eframe::App for ViewerApp {
                                             ui.end_row();
 
                                             for (label, values, tooltip) in [
-                                                ("Var:", variance_values, "Variance per channel. Values use squared pixel units; NaN and infinity are excluded."),
-                                                ("Std:", std_dev_values, "Standard deviation per channel: the square root of variance, in pixel units. NaN and infinity are excluded."),
+                                                ("Var:", variance_values, "Variance per channel."),
+                                                ("Std:", std_dev_values, "Standard deviation per channel."),
                                             ] {
                                                 ui.add(egui::Label::new(label).extend()).on_hover_text(tooltip);
                                                 for &value in values.iter().take(num_channels) {
-                                                    let response = ui.add_sized(vec2(value_width, ui.text_style_height(&egui::TextStyle::Body)), egui::Label::new(statistics_value_text(ui, value, value_width)).truncate().selectable(false).sense(egui::Sense::click()))
-                                                        .on_hover_text(if value.is_finite() { value.to_string() } else { "Unavailable: no finite pixels, or the calculation exceeded the numeric range.".to_owned() });
-                                                    response.context_menu(|ui| {
-                                                        ui.copy_value_menu_item(value);
-                                                    });
+                                                    statistics_value_label(ui, value, Some(value_width));
                                                 }
                                                 ui.end_row();
                                             }
@@ -2179,13 +2205,14 @@ impl eframe::App for ViewerApp {
 
                                 if self.state.is_comparison() {
                                     egui::Grid::new("statistics_metrics_grid").num_columns(2).striped(true).show(ui, |ui| {
-                                        ui.label("RMSE:");
-                                        ui.label(format!("{:.4}", self.state.statistics.psnr_rmse.value.rmse));
-                                        ui.end_row();
-
-                                        ui.label("PSNR:");
-                                        ui.label(format!("{:.4}", self.state.statistics.psnr_rmse.value.psnr));
-                                        ui.end_row();
+                                        for (label, value, tooltip) in [
+                                            ("RMSE:", self.state.statistics.psnr_rmse.value.rmse, "Root mean square error."),
+                                            ("PSNR:", self.state.statistics.psnr_rmse.value.psnr, "Peak signal-to-noise ratio."),
+                                        ] {
+                                            ui.label(label).on_hover_text(tooltip);
+                                            statistics_value_label(ui, value, None);
+                                            ui.end_row();
+                                        }
 
                                         // ui.label("SSIM:");
                                         // ui.label(format!("{:.4}", self.state.statistics.ssim));
